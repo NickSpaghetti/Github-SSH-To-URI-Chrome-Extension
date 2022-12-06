@@ -19,7 +19,8 @@
   "homepage": "https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension#readme",
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "hcl2-parser": "^1.0.3"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.202",
