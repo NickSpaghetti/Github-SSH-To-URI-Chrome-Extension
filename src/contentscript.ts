@@ -1,30 +1,10 @@
 import { Url } from "url";
+import { DisplayHlcModule } from "./models/DisplayHclModule";
+import { IDisplayHlcModule } from "./models/IDisplayHclModule";
+import { HclFileTypes } from "./types/HclFileTypes";
+import  {HclModule}  from "./types/HclModuleType";
 
 var hcl2Parser = require("hcl2-parser")
-
-enum FileType {
-    tf = 'tf',
-    hlc = 'hlc'
-}
-
-interface IDisplayModule {
-    uri: URL;
-    source: string;
-}
-
-class DisplayModule implements IDisplayModule{
-    uri: URL =  new URL('')
-    source: string = ''
-    constructor(uri: string, source: string){
-        this.uri = new URL(uri);
-        this.source = source;
-    }
-}
-
-type HclModule = {
-    [key: string]: any;
-    source: string
-}
 
 function isHclModule(obj: any): obj is HclModule {
  return (
@@ -46,7 +26,7 @@ const getFileType = ():string => {
 
 }
 
-const findModuleSources = ():IDisplayModule[] => {
+const findModuleSources = ():IDisplayHlcModule[] => {
     const dataTargetElement = document.querySelector('table') as HTMLElement
     const innerText = dataTargetElement?.innerText ?? '';
     if(innerText === ''){
@@ -71,9 +51,9 @@ const findModuleSources = ():IDisplayModule[] => {
         return [];
     }
    
-    let sources: IDisplayModule[] = [];
+    let sources: IDisplayHlcModule[] = [];
     for (let [moduleName,source] of foundModules){
-        sources.push(new DisplayModule(source,moduleName));
+        sources.push(new DisplayHlcModule(source,moduleName));
     }
     
     return sources;
@@ -85,6 +65,7 @@ const getSourceUri = ():URL => {
 
 chrome.runtime.onMessage.addListener(async (tabId, sender, callback) => {
 
+    console.log("hi!")
     let currentTab = await chrome.tabs.get(tabId);
     console.log(currentTab);
     const currentUrl = new URL(currentTab.url ?? '');
@@ -93,10 +74,10 @@ chrome.runtime.onMessage.addListener(async (tabId, sender, callback) => {
         return;
     }
     let fileType = getFileType();
-    if(!(fileType in FileType)){
+    if(!(fileType in HclFileTypes)){
         return;
     }
-    let sources :IDisplayModule[] = findModuleSources();
+    let sources :IDisplayHlcModule[] = findModuleSources();
     console.log(sources);
     let sourceUris :URL = getSourceUri();
     callback(`uri: ${getSourceUri()}`);

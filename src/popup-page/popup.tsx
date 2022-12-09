@@ -1,28 +1,27 @@
 import React, {FC, useEffect, useState} from 'react';
-import {render} from 'react-dom';
+import {render} from 'react-dom'
 
-interface IProps {
-  
-}
+interface IProps {}
 
 export const Popup: FC<IProps> = () => {
+    
+    const [content, setContent] = useState('N/A')
+    useEffect(() => {
+        chrome.tabs.query({currentWindow:true, active: true}, tabs => {
+            const currentTabID = tabs.length !== 0 ? tabs[1].id! : 0
+            chrome.tabs.sendMessage(currentTabID, '' , response => {
+                console.log('Reponse Content: ',response)
+                setContent(response);
+            });
+        })
+    },[]);
 
-  const [content, setContent] = useState('N/A');
 
-  useEffect(() => {
-    chrome.tabs.query({currentWindow: true, active: true}, tabs => {
-      const currentTabID = tabs.length === 0 ? 0 : tabs[0].id!;
-      chrome.tabs.sendMessage(currentTabID, '', response => {
-        setContent(response);
-      });
-    });
-  }, []);
-
-  return (
-    <div>
-      {content}
-    </div>
-  );
+    return (
+        <div>
+          {content}
+        </div>
+      );
 }
 
 render(<Popup />, document.getElementById("sources-popup"))
