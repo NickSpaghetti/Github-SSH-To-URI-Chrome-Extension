@@ -3,6 +3,7 @@ import { DisplayHlcModule } from "./models/DisplayHclModule";
 import { IDisplayHlcModule } from "./models/IDisplayHclModule";
 import { HclFileTypes } from "./types/HclFileTypes";
 import  {HclModule}  from "./types/HclModuleType";
+import { Nullable } from "./types/Nullable";
 
 var hcl2Parser = require("hcl2-parser")
 
@@ -17,7 +18,6 @@ function isHclModule(obj: any): obj is HclModule {
 const getFileType = ():string => {
     const finalPath = document.querySelector('.final-path') as HTMLElement
     const innerText = finalPath?.innerText ?? '';
-    console.log(innerText);
     const fileType = innerText.split('.');
     if(fileType.length !== 2){
         return ''
@@ -38,10 +38,12 @@ const findModuleSources = ():IDisplayHlcModule[] => {
     try {
         let hclFile = hcl2Parser.parseToObject(innerText);
         if(hclFile[0] === null || hclFile[0].module === undefined) {
+            console.log('No readable hcl file');
             return [];
         }
-
+        console.log(hclFile)
         for (let [moduleName, value] of Object.entries(hclFile[0].module)) {
+            console.log(moduleName);
             if(isHclModule(value)){
                 foundModules.set(moduleName,value[0].source ?? value[0].Source);
             }
@@ -51,24 +53,59 @@ const findModuleSources = ():IDisplayHlcModule[] => {
         console.log("error parsing hcl file.")
         return [];
     }
-   
     let sources: IDisplayHlcModule[] = [];
+    console.log('printing found moduals')
+    console.log(foundModules);
     for (let [moduleName,source] of foundModules){
-        sources.push(new DisplayHlcModule(source,moduleName));
+        console.log(`key:${moduleName}, value${source}`)
+        //sources.push(new DisplayHlcModule(source,moduleName));
     }
-    
+    console.log('printing sources');
+    console.log(sources);
     return sources;
 }
-const getSourceUri = ():URL => {
-    const uri = ""
-    return new URL(uri);
+const getSourceUri = (sourceInput: string):Nullable<URL> => {
+
+    if(isValidUrl(sourceInput)){
+        return new URL(sourceInput);
+    }
+
+    if(isVaidFilePath(sourceInput)){
+
+    }
+
+    if(isValidSSH(sourceInput)){
+
+    }
+    return null;
+}
+
+const isVaidFilePath = (input:string): boolean => {
+    return false;
+}
+
+const isValidSSH = (input:string): boolean => {
+    return false;
+}
+
+const isValidUrl = (input: string): boolean => {
+    try {
+        let url = new URL(input);
+        const position = url.toString().lastIndexOf(url.protocol);
+        const domainExtensionPosition = url.toString().lastIndexOf('.');
+        let isValid =  (
+            position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 &&  url.toString().length - domainExtensionPosition > 2
+        )
+        return isValid;
+    }
+    catch($error){
+        return false;
+    }
 }
 
 chrome.runtime.onMessage.addListener((message, sender,):IDisplayHlcModule[] => {
 
-    console.log("hi!");
     let currentTab = message;
-    console.log(currentTab);
     const currentUrl = new URL(currentTab.tabUrl ?? '');
     console.log(currentUrl.hostname)
     if(currentUrl.hostname !== "github.com" ){
@@ -80,7 +117,7 @@ chrome.runtime.onMessage.addListener((message, sender,):IDisplayHlcModule[] => {
     }
     let sources :IDisplayHlcModule[] = findModuleSources();
     console.log(sources);
-    chrome.runtime.lastError ;
+    console.log('im at the end');
     return sources;
 });
 
