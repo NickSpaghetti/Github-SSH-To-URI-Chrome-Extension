@@ -17,6 +17,7 @@ function isHclModule(obj: any): obj is HclModule {
 const getFileType = ():string => {
     const finalPath = document.querySelector('.final-path') as HTMLElement
     const innerText = finalPath?.innerText ?? '';
+    console.log(innerText);
     const fileType = innerText.split('.');
     if(fileType.length !== 2){
         return ''
@@ -63,23 +64,23 @@ const getSourceUri = ():URL => {
     return new URL(uri);
 }
 
-chrome.runtime.onMessage.addListener(async (tabId, sender, callback) => {
+chrome.runtime.onMessage.addListener((message, sender,):IDisplayHlcModule[] => {
 
-    console.log("hi!")
-    let currentTab = await chrome.tabs.get(tabId);
+    console.log("hi!");
+    let currentTab = message;
     console.log(currentTab);
-    const currentUrl = new URL(currentTab.url ?? '');
+    const currentUrl = new URL(currentTab.tabUrl ?? '');
     console.log(currentUrl.hostname)
     if(currentUrl.hostname !== "github.com" ){
-        return;
+        return [];
     }
     let fileType = getFileType();
     if(!(fileType in HclFileTypes)){
-        return;
+        return [];
     }
     let sources :IDisplayHlcModule[] = findModuleSources();
     console.log(sources);
-    let sourceUris :URL = getSourceUri();
-    callback(`uri: ${getSourceUri()}`);
-    callback(`source: ${JSON.stringify(sources)}`);
+    chrome.runtime.lastError ;
+    return sources;
 });
+
