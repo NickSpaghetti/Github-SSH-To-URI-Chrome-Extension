@@ -37,8 +37,12 @@ export const Popup: FC<IProps> = () => {
                     if(!loadResult){
                         return;
                     }
+                    console.log("Sending my message")
                     sendMessage(tabId, {tabId: tab.id, tabUrl: tab?.url || ''}).then((result) => {
+                        console.log("I got a response");
                         setContent(JSON.stringify(result));
+                    }).catch(err => {
+                        console.log(err);
                     });
                 });
             }

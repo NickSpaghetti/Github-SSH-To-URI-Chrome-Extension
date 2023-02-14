@@ -54,53 +54,14 @@ const findModuleSources = ():IDisplayHlcModule[] => {
         return [];
     }
     let sources: IDisplayHlcModule[] = [];
-    console.log('printing found moduals')
+    console.log('printing found modules')
     console.log(foundModules);
     for (let [moduleName,source] of foundModules){
-        console.log(`key:${moduleName}, value${source}`)
-        //sources.push(new DisplayHlcModule(source,moduleName));
+        sources.push(new DisplayHlcModule(window.location.href,source,moduleName));
     }
     console.log('printing sources');
     console.log(sources);
     return sources;
-}
-const getSourceUri = (sourceInput: string):Nullable<URL> => {
-
-    if(isValidUrl(sourceInput)){
-        return new URL(sourceInput);
-    }
-
-    if(isVaidFilePath(sourceInput)){
-
-    }
-
-    if(isValidSSH(sourceInput)){
-
-    }
-    return null;
-}
-
-const isVaidFilePath = (input:string): boolean => {
-    return false;
-}
-
-const isValidSSH = (input:string): boolean => {
-    return false;
-}
-
-const isValidUrl = (input: string): boolean => {
-    try {
-        let url = new URL(input);
-        const position = url.toString().lastIndexOf(url.protocol);
-        const domainExtensionPosition = url.toString().lastIndexOf('.');
-        let isValid =  (
-            position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 &&  url.toString().length - domainExtensionPosition > 2
-        )
-        return isValid;
-    }
-    catch($error){
-        return false;
-    }
 }
 
 chrome.runtime.onMessage.addListener((message, sender,):IDisplayHlcModule[] => {
@@ -116,7 +77,6 @@ chrome.runtime.onMessage.addListener((message, sender,):IDisplayHlcModule[] => {
         return [];
     }
     let sources :IDisplayHlcModule[] = findModuleSources();
-    console.log(sources);
     console.log('im at the end');
     return sources;
 });

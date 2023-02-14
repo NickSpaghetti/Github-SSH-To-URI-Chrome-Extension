@@ -1,4 +1,5 @@
 export interface IDisplayHlcModule {
-    uri: URL;
+    hostUri: URL;
     source: string;
+    moduleName: string;
 }
