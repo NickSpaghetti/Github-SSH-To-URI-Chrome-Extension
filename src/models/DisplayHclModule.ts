@@ -77,7 +77,7 @@ function sshToUrl(source: string): string{
         if(isRef){
             fullName = fullName.replace(`?ref=${branchTag}`,"")
         }
-        return fullName;
+        return "https://"+fullName;
     }catch (ex){
         return source;
     }
