@@ -70,8 +70,9 @@ function sshToUrl(source: string): string{
         let uri = new URL(source);
         let isRef = uri.searchParams.get("ref") !== null
         let branchTag = uri.searchParams.get("ref") ?? "main";
+        let dirName = uri.pathname.lastIndexOf(".tf") !== -1 || uri.pathname.lastIndexOf(".hcl") !== -1 ? "blob" : "tree";
         let fullName = hostName
-            .replace("//",`/tree/${branchTag}/`)
+            .replace("//",`/${dirName}/${branchTag}/`)
             .replace(".git","");
         if(isRef){
             fullName = fullName.replace(`?ref=${branchTag}`,"")
@@ -91,10 +92,9 @@ function IsHost (source: string): boolean  {
         let url = new URL(source);
         const position = url.toString().lastIndexOf(url.protocol);
         const domainExtensionPosition = url.toString().lastIndexOf('.');
-        let isValid =  (
-            position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 &&  url.toString().length - domainExtensionPosition > 2
-        )
-        return isValid;
+        return (
+            position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 && url.toString().length - domainExtensionPosition > 2
+        );
     }
     catch($error){
         return false;
@@ -103,10 +103,8 @@ function IsHost (source: string): boolean  {
 
 function IsPrivateRegistry(source: string): boolean {
     let privateRegistryHostNames = source.substring(0,source.indexOf('/')).split(".");
-    if(privateRegistryHostNames.length === 3 && privateRegistryHostNames[1] === 'terraform' && privateRegistryHostNames[2] === "io"){
-        return true;
-    }
-    return false;
+    return privateRegistryHostNames.length === 3 && privateRegistryHostNames[1] === 'terraform' && privateRegistryHostNames[2] === "io";
+
 }
 
 function IsRegistry(source: string): boolean{
@@ -125,12 +123,4 @@ function IsSSH(source: string): boolean{
     let endHostNameIndex = source.indexOf(":");
 
     return startIndex !== -1 && startHostNameIndex !== -1 && endHostNameIndex !== -1;
-}
-
-function GetHost(source: string) : string{
-    let prefixOffset = source.indexOf("://");
-    let startIndex = prefixOffset == -1 ? 0 : prefixOffset + 3;
-    let endIndex = source.indexOf('/',startIndex);
-
-    return endIndex == -1 ? source.substring(startIndex) : source.substring(startIndex,endIndex);
 }
