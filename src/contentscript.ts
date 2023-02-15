@@ -1,35 +1,28 @@
-enum FileType {
-    tf = 'tf',
-    hlc = 'hlc'
-}
+import {HclService} from "./services/HclService";
+import {DisplayHlcModule} from "./models/DisplayHclModule";
+import {HclFileTypes} from "./types/HclFileTypes";
 
-const getFileType = () => {
-    const finalPath = document.querySelector('.final-path') as HTMLElement
-    const innerText = finalPath?.innerText ?? '';
-    const fileType = innerText.split('.');
-    if(fileType.length !== 2){
-        return ''
+const hclService = new HclService();
+chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
+
+    let currentTab = message;
+    if(currentTab == null || currentTab?.tabUrl === ''){
+        sendResponse([])
+        return false;
     }
-
-    return fileType[1];
-
-}
-
-const findModules = () => {
-    //regex string module (\"[\w]+\" \{)\n  source [\s]+\= (\"[\w\d\s].+\")
-}
-
-const getSourceUri = () => {
-    const uri = ""
-    return uri;
-}
-
-chrome.runtime.onMessage.addListener((message, sender, callback) => {
-
-    let fileType = getFileType();
-    if(!(fileType in FileType)){
-        return;
+    const currentUrl = new URL(currentTab.tabUrl);
+    console.log(currentUrl.hostname)
+    if(currentUrl.hostname !== "github.com" ){
+        sendResponse([])
+        return false;
     }
-    let sourceUri = getSourceUri();
-    callback(`uri: ${getSourceUri()}`);
+    let fileType = hclService.getFileType();
+    if(!(fileType in HclFileTypes)){
+        sendResponse([])
+       return false;
+    }
+    let sources :DisplayHlcModule[] = hclService.findModuleSources();
+    sendResponse(sources);
+    return false;
 });
+

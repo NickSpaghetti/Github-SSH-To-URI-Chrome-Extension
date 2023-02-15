@@ -1,14 +1,25 @@
 {
+    "manifest_version": 3,
     "name":"Github SSH to Clickable URI",
     "description":"converts SSH endpoints to clickable https URI",
+    "permissions": [
+        "tabs",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://github.com/*"
+    ],
     "version":"1.0.0",
-    "manifest_version": 3,
     "action":{
-        "default_popup":"popup.html"
+        "default_popup": "index.html"
     },
     "content_scripts":[{
         "matches":["<all_urls>"],
         "js": ["contentscript.js"]
-    }]
+    }],
+    "background": {
+        "service_worker": "backgroundscript.js"
+    }
 
 }
