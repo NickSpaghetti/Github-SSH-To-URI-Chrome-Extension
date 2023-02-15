@@ -1,6 +1,5 @@
 import React, {FC, useEffect, useState} from 'react';
 import {render} from 'react-dom'
-import { DisplayHlcModule } from '../models/DisplayHclModule';
 import { IDisplayHlcModule } from '../models/IDisplayHclModule';
 
 interface IProps {}
@@ -15,16 +14,14 @@ export const Popup: FC<IProps> = () => {
         }
 
         const sendMessage = async (currentTabId: number, message: any): Promise<IDisplayHlcModule[]> => {
-          let response =  await chrome.tabs.sendMessage(currentTabId,message);
-          return response;
+          return await chrome.tabs.sendMessage(currentTabId,message);
         }
 
         const loadContentScript = async (tabId: number) => {
-           let result = await chrome.scripting.executeScript({
+           return await chrome.scripting.executeScript({
                 target: {tabId: tabId, allFrames: true},
                 files: ['contentscript.js'],
             });
-            return result;
         }
         
         
@@ -40,7 +37,13 @@ export const Popup: FC<IProps> = () => {
                     console.log("Sending my message")
                     sendMessage(tabId, {tabId: tab.id, tabUrl: tab?.url || ''}).then((result) => {
                         console.log("I got a response");
-                        setContent(JSON.stringify(result));
+                        if(result.length === 0){
+                            setContent("No Modules Found");
+                        }
+                        else {
+                            console.log(JSON.stringify(result));
+                            setContent(JSON.stringify(result));
+                        }
                     }).catch(err => {
                         console.log(err);
                     });
