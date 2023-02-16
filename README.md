@@ -20,5 +20,5 @@ yarn dev
 ```
 This will generate a dist folder where the javascript is exported to. 
 Then open up chrome and paste `chrome://extensions/` in the search bar. Once the page has loaded click Load unpacked Extension.
-To see the extension you must also enable dev mode.
-Navigate to the `dist` folder and click okay.
+Navigate to the `dist` folder and click okay.  To see the extension you must also enable dev mode.
+
