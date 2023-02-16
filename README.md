@@ -13,8 +13,12 @@ Before you submit your pull request consider the following guidelines:
 1. Your PR must be reviewed by one of the code owners before you can merge into main.
 
 ### Developing Locally
-Clone this repository and run 
-```yarn dev```.
-This will generate a dist folder where the javascript is exported to.
-Then open up chrome at [chrome-extensions](chrome://extensions/) and click Load unpacked Extension.
+Clone this repository and run.
+```
+cd Github-SSH-To-URI-Chrome-Extension
+yarn dev
+```
+This will generate a dist folder where the javascript is exported to. 
+Then open up chrome and paste `chrome://extensions/` in the search bar. Once the page has loaded click Load unpacked Extension.
+To see the extension you must also enable dev mode.
 Navigate to the `dist` folder and click okay.
