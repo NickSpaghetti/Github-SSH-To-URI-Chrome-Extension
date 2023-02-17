@@ -3,6 +3,7 @@ import {DisplayHlcModule} from "./models/DisplayHclModule";
 import {HclFileTypes} from "./types/HclFileTypes";
 
 const hclService = new HclService();
+//return false to tell chrome that this is not an async method
 chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
 
     let currentTab = message;
@@ -21,8 +22,29 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         sendResponse([])
        return false;
     }
-    let sources :DisplayHlcModule[] = hclService.findModuleSources();
-    sendResponse(sources);
+    let modules :DisplayHlcModule[] = hclService.findModuleSources();
+
+    addHyperLinksToModuleSource(modules);
+    sendResponse(modules);
     return false;
 });
+
+function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
+    //all strings are stored in class 'pl-s'
+    let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
+    modules.forEach(module => {
+         for(let i : number = 0; i < stringSpans.length; i++){
+             let spanElement = stringSpans[i] as HTMLElement;
+             let innerText = spanElement.innerText as string;
+             if(innerText.includes(module.source) && module.modifiedSourceType !== null){
+                 let a = document.createElement('a');
+                 a.href = module.modifiedSourceType;
+                 a.rel = "noreferrer"
+                 a.target = "_blank";
+                 a.text = `"${module.source}"`;
+                 spanElement.replaceWith(a);
+             }
+         }
+    });
+}
 

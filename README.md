@@ -16,7 +16,8 @@ Before you submit your pull request consider the following guidelines:
 Clone this repository and run.
 ```
 cd Github-SSH-To-URI-Chrome-Extension
-yarn dev
+yarn install
+yarn build
 ```
 This will generate a dist folder where the javascript is exported to. 
 Then open up chrome and paste `chrome://extensions/` in the search bar. Once the page has loaded click Load unpacked Extension.
