@@ -4,7 +4,6 @@
     "description":"converts SSH endpoints to clickable https URI",
     "permissions": [
         "tabs",
-        "activeTab",
         "scripting"
     ],
     "host_permissions": [
@@ -15,8 +14,9 @@
         "default_popup": "index.html"
     },
     "content_scripts":[{
-        "matches":["<all_urls>"],
-        "js": ["contentscript.js"]
+        "matches":["https://github.com/*"],
+        "js": ["contentscript.js"],
+        "run_at": "document_end"
     }],
     "background": {
         "service_worker": "backgroundscript.js"

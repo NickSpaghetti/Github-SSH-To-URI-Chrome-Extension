@@ -22,4 +22,7 @@ yarn build
 This will generate a dist folder where the javascript is exported to. 
 Then open up chrome and paste `chrome://extensions/` in the search bar. Once the page has loaded click Load unpacked Extension.
 Navigate to the `dist` folder and click okay.  To see the extension you must also enable dev mode.
+You must also allow the Extension to have access to [github](https://github.com) found in the Site access setting on the `chrome://extensions` page.
+Alternatively the extension will flash white in the corner when you navigate to [github](https://github.com) click the Icon to allow the extension to have access to your page.
+Note you must do this each time you run `yarn build` and update the extension.
 
