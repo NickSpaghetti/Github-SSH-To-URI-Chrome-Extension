@@ -1,13 +1,15 @@
 # Github-SSH-To-URI-Chrome-Extension
 
-### Using the extension
-# on page load
-When the page loads the extension will try and parse the sources of your modules in your terraform file from an ssh to a clickable uri.  The extension supports parsing `.tf` and `.hcl` file types.
-# viewing all sources
+## Using the extension
+### on page load
+When the page loads the extension will try and parse the sources of your modules in your terraform file from an ssh to a clickable uri.  The extension supports parsing `.tf` and `.hcl` file types.  You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
+### viewing all sources
 Navigate to a GitHub page where there is Terraform code and click on the extension.  If no modules are found then `No Moduels found` will be displayed on the pop-up.
 If a modules is found then a table displaying the module name and source type will be shown.  The module name is a hyperlink to the github page of that module. 
 # How to contribute
 I would love for you to contribute to the source code and make the extension even better.
+
+## Contributing
 
 ### Submitting a Pull Request
 Before you submit your pull request consider the following guidelines:
@@ -15,7 +17,7 @@ Before you submit your pull request consider the following guidelines:
 1. Please write a summary of what your change does.
 1. Your PR must be reviewed by one of the code owners before you can merge into main.
 
-### Developing Locally
+## Developing Locally
 Clone this repository and run.
 ```
 cd Github-SSH-To-URI-Chrome-Extension
