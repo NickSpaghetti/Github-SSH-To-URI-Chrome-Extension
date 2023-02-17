@@ -21,8 +21,24 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         sendResponse([])
        return false;
     }
-    let sources :DisplayHlcModule[] = hclService.findModuleSources();
-    sendResponse(sources);
+    let modules :DisplayHlcModule[] = hclService.findModuleSources();
+
+    addHyperLinksToModuleSource(modules);
+    sendResponse(modules);
     return false;
 });
+
+function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
+    //all strings are stored in class 'pl-s'
+    let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
+    modules.forEach(module => {
+         for(let i : number = 0; i < stringSpans.length; i++){
+             let spanElement = stringSpans[i] as HTMLElement;
+             let innerText = spanElement.innerText as string;
+             if(innerText.includes(module.source)){
+                 //spanElement.innerText = `<a href="${module.modifiedSourceType}" on = "_blank" rel="noreferrer">${module.source}</a>`
+             }
+         }
+    });
+}
 
