@@ -1,4 +1,4 @@
-# Github-SSH-To-URI-Chrome-Extension
+# <img src="public/icons/icon96.png" align="absmiddle"> Github-SSH-To-URI-Chrome-Extension
 
 ### Using the extension
 # on page load
@@ -28,4 +28,8 @@ Navigate to the `dist` folder and click okay.  To see the extension you must als
 You must also allow the Extension to have access to [github](https://github.com) found in the Site access setting on the `chrome://extensions` page.
 Alternatively the extension will flash white in the corner when you navigate to [github](https://github.com) click the Icon to allow the extension to have access to your page.
 Note you must do this each time you run `yarn build` and update the extension.
+
+# Credit
+1. This icon was created with the assistance of DALL·E 2.
+1. Thanks to [bec-uk](https://github.com/benc-uk) for his work on [hcl2-parser](https://github.com/benc-uk/hcl2-parser).
 
