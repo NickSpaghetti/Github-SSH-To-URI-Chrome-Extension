@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name":"Github SSH to Clickable URI",
+    "name":"Github Terraform Sources To Url",
     "description":"Converts Terraform modules sources on github to clickable links that take you to the module definition page.",
     "permissions": [
         "tabs",
