@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name":"Github SSH to Clickable URI",
-    "description":"converts SSH endpoints to clickable https URI",
+    "description":"Converts Terraform modules sources on github to clickable links that take you to the module definition page.",
     "permissions": [
         "tabs",
         "scripting"
@@ -9,7 +9,7 @@
     "host_permissions": [
         "https://github.com/*"
     ],
-    "version":"1.0.0",
+    "version":"0.0.0.1",
     "action":{
         "default_popup": "index.html"
     },
