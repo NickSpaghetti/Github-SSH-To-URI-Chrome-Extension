@@ -32,7 +32,7 @@ function GetSourceType(source: string): Nullable<SourceTypes> {
         return SourceTypes.privateRegistry;
     }
     if(IsRegistry(source)){
-        return SourceTypes.path;
+        return SourceTypes.registry;
     }
     return null;
 }
@@ -84,7 +84,7 @@ function sshToUrl(source: string): string{
 }
 
 function registryToUrl(source: string){
-    return `registry.terraform.io/providers/${source}`
+    return `https://registry.terraform.io/modules/${source}`
 }
 
 function IsHost (source: string): boolean  {
