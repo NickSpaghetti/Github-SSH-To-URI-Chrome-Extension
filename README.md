@@ -1,5 +1,8 @@
 # <img src="public/icons/icon96.png" align="absmiddle"> Github-SSH-To-URI-Chrome-Extension
 
+## Installing the Extension
+You can install the Chrome extension from the [store](https://chrome.google.com/webstore/detail/github-terraform-sources/opnokndmmanolamphnpknbpdkdbcfidl?hl=en&authuser=0).
+
 ## Using the extension
 ### on page load
 When the page loads the extension will try and parse the sources of your modules in your terraform file from an ssh to a clickable uri.  The extension supports parsing `.tf` and `.hcl` file types.  You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
