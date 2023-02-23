@@ -1,4 +1,4 @@
 export enum HclFileTypes {
     tf = 'tf',
-    hlc = 'hlc'
+    hcl = 'hcl',
 }

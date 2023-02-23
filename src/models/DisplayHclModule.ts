@@ -1,6 +1,12 @@
 import {IDisplayHlcModule} from "./IDisplayHclModule";
 import {SourceTypes} from "../types/SourceTypes";
 import {Nullable} from "../types/Nullable";
+import {
+    FileExtensions,
+    GITHUB_ROUTES,
+    TERRAFORM_REGISTRY_ROUTES,
+    TERRAFORM_SYNTAX
+} from "../util/constants";
 
 export class DisplayHlcModule implements IDisplayHlcModule{
     hostUri: URL;
@@ -13,7 +19,7 @@ export class DisplayHlcModule implements IDisplayHlcModule{
         this.source = source;
         this.moduleName = moduleName;
         this.sourceType = GetSourceType(source);
-        this.modifiedSourceType = ResolveSource(this.sourceType,source);
+        this.modifiedSourceType = ResolveSource(this.sourceType,source, this.moduleName);
     }
 
 }
@@ -37,7 +43,7 @@ function GetSourceType(source: string): Nullable<SourceTypes> {
     return null;
 }
 
-function ResolveSource(sourceType: Nullable<SourceTypes>, source: string): Nullable<string> {
+function ResolveSource(sourceType: Nullable<SourceTypes>, source: string, moduleName: string): Nullable<string> {
     if(sourceType === null){
         return null;
     }
@@ -50,7 +56,7 @@ function ResolveSource(sourceType: Nullable<SourceTypes>, source: string): Nulla
         case SourceTypes.path:
             return source;
         case SourceTypes.registry:
-            return registryToUrl(source);
+            return registryToUrl(source, moduleName);
         case SourceTypes.privateRegistry:
             return source;
         default:
@@ -70,21 +76,33 @@ function sshToUrl(source: string): string{
         let uri = new URL(source);
         let isRef = uri.searchParams.get("ref") !== null
         let branchTag = uri.searchParams.get("ref") ?? "main";
-        let dirName = uri.pathname.lastIndexOf(".tf") !== -1 || uri.pathname.lastIndexOf(".hcl") !== -1 ? "blob" : "tree";
-        let fullName = hostName
-            .replace("//",`/${dirName}/${branchTag}/`)
-            .replace(".git","");
+        let dirName =
+            uri.pathname.lastIndexOf(FileExtensions.TF) !== -1 || uri.pathname.lastIndexOf(FileExtensions.HCL) !== -1
+                ? GITHUB_ROUTES.BLOB
+                : GITHUB_ROUTES.TREE;
+
+        let fullName = hostName.replace(FileExtensions.GIT,"");
         if(isRef){
             fullName = fullName.replace(`?ref=${branchTag}`,"")
         }
-        return "https://"+fullName;
+        if(fullName.indexOf("//") === -1){
+            fullName += `/${dirName}/${branchTag}/`
+        }
+        else{
+            fullName = fullName.replace("//",`/${dirName}/${branchTag}/`)
+        }
+
+        return `https://${fullName}`;
     }catch (ex){
         return source;
     }
 }
 
-function registryToUrl(source: string){
-    return `https://registry.terraform.io/modules/${source}`
+function registryToUrl(source: string, moduleName: string){
+    let providerType = moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS)
+        ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
+        : TERRAFORM_REGISTRY_ROUTES.MODULES
+    return `https://registry.terraform.io/${providerType}/${source}`
 }
 
 function IsHost (source: string): boolean  {
