@@ -382,5 +382,7 @@ sensitive
 #Jetbrains IDE
 .idea
 
+# Ignore webpack bundle
 dist
+dist.*
 
