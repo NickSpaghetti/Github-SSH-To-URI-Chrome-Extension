@@ -9,12 +9,12 @@
     "host_permissions": [
         "https://github.com/*"
     ],
-    "version":"0.0.0.2",
+    "version":"0.0.0.3",
     "action":{
         "default_popup": "index.html"
     },
     "content_scripts":[{
-        "matches":["https://github.com/*"],
+        "matches":["https://github.com/?*"],
         "js": ["contentscript.js"],
         "run_at": "document_end"
     }],
