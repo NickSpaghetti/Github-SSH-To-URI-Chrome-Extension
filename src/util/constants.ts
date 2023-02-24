@@ -12,6 +12,7 @@ export const TERRAFORM_REGISTRY_ROUTES ={
 export const GITHUB_ROUTES = {
     BLOB: "blob",
     TREE: "tree",
+    MAIN: "main"
 }
 
 export const FileExtensions = {

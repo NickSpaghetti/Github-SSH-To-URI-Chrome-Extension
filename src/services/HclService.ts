@@ -78,7 +78,9 @@ export class HclService {
         return foundModules
         
     }
-
+    //((source)\s*=\s*("(.*?)"))
+    //module\s+"(\w+)"\s+{[^}]
+    //+version\s+=\s+"([\d\.]+)"[^}]+}
     findModuleSources = (hclFile: IHclFile[]):Nullable<Map<string,TerraformModule>> => {
         let foundModules: Map<string,TerraformModule> = new Map<string,TerraformModule>();
         try {
