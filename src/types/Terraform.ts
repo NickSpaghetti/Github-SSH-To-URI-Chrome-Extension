@@ -11,3 +11,9 @@ export type ProviderType ={
     source?: string
     version?: string
 }
+
+export type TerraformModule = {
+    provider: ProviderType,
+    moduleName: string,
+    terraformProperty: string,
+}

@@ -3,9 +3,8 @@ import {DisplayHlcModule} from "../models/DisplayHclModule";
 import { Nullable } from "../types/Nullable";
 import { HclFileTypes } from "../types/HclFileTypes";
 import { IHclFile } from "../models/IHclFile";
-import {ProviderType, RequiredProvider} from "../types/Terraform";
+import {ProviderType, RequiredProvider, TerraformModule} from "../types/Terraform";
 import {TERRAFORM_SYNTAX} from "../util/constants";
-import {Module} from "../types/Module";
 
 export class HclService {
     private hcl2Parser = require("hcl2-parser");
@@ -35,62 +34,77 @@ export class HclService {
 
     }
     //regex to get source = "foo" ((source)\s*=\s*("(.*?)"))
-    findTerraformSources = (hclFile: IHclFile[]):Nullable<Map<string,string>> => {
+    findTerraformSources = (hclFile: IHclFile[]):Nullable<Map<string,TerraformModule>> => {
         if(hclFile[0] === null || hclFile[0]?.terraform === undefined || hclFile[0]?.terraform[0] === undefined) {
             console.log('No terraform section found');
             return null;
         }
 
-        let foundModules: Map<string,string> = new Map<string,string>();
-        let fc:  Map<string,Module> = new Map<string,Module>();
+        let foundModules:  Map<string,TerraformModule> = new Map<string,TerraformModule>();
         try {
             hclFile[0]?.terraform.forEach(tf => {
                 let requiredProvidersCount = 0;
                 if(tf.source !== undefined){
-                    foundModules.set(`terraform`,tf.source);
+                    foundModules.set(TERRAFORM_SYNTAX.TERRAFORM, {
+                        moduleName: TERRAFORM_SYNTAX.TERRAFORM,
+                        terraformProperty: TERRAFORM_SYNTAX.TERRAFORM,
+                        provider: {
+                            source: tf.source,
+                            version: ''
+                        }
+                    })
                 }
                 if(tf.required_providers !== undefined){
                     let providers = tf.required_providers[requiredProvidersCount] ?? [];
                     Object.keys(providers).forEach(key => {
-                        let pt = providers[key as keyof RequiredProvider] as ProviderType;
-                        if(pt.source !== undefined){
-                            foundModules.set(`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.${key}`,pt.source);
-                            fc.set(`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.${key}`,  {
-                                source: pt.source,
-                                version: pt.version,
-                            } as Module);
+                        let providerType = providers[key as keyof RequiredProvider] as ProviderType;
+                        if(providerType.source !== undefined){
+                            foundModules.set(`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.${key}`,  {
+                                moduleName: `${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.${key}`,
+                                terraformProperty: TERRAFORM_SYNTAX.REQUIRED_PROVIDERS,
+                                provider: providerType
+                            } as TerraformModule);
                         }
                     })
                 }
                 requiredProvidersCount++;
             });
         } catch (error) {
-            console.log("error parsing hcl file.")
+            console.log(error)
+            console.log("error parsing terraform section in hcl file.")
             return null;
         }
+        console.log(foundModules);
         return foundModules
         
     }
 
-    findModuleSources = (hclFile: IHclFile[]):Nullable<Map<string,string>> => {
-
-        let foundModules: Map<string,string> = new Map<string,string>();
+    findModuleSources = (hclFile: IHclFile[]):Nullable<Map<string,TerraformModule>> => {
+        let foundModules: Map<string,TerraformModule> = new Map<string,TerraformModule>();
         try {
             if(hclFile[0] === null || hclFile[0].module === undefined) {
                 console.log('No module found file');
                 return null;
             }
             console.log(hclFile)
-            for (let [moduleName, value] of Object.entries(hclFile[0].module)) {
-                if(this.isHclModule(value)){
-                    foundModules.set(moduleName,value[0].source ?? value[0].Source);
+            for (let [moduleName, modules] of Object.entries(hclFile[0].module)) {
+                if(this.isHclModule(modules)){
+                    foundModules.set(moduleName,{
+                        moduleName: moduleName,
+                        terraformProperty: TERRAFORM_SYNTAX.MODULE,
+                        provider: {
+                            source: modules[0]?.source ?? '',
+                            version: modules[0]?.version ?? ''
+                        }
+                    } as TerraformModule)
                 }
             }
-
         } catch (error) {
-            console.log("error parsing hcl file.")
+            console.log(error);
+            console.log("error parsing modules hcl file.")
             return null;
         }
+        console.log(foundModules);
         return foundModules;
     }
 
@@ -110,13 +124,17 @@ export class HclService {
             console.log(terraformSources)
             let moduleSources = this.findModuleSources(hclFile);
             console.log(moduleSources);
-            const mergedSources = new Map<string,string>(
-                [...terraformSources?.entries() ?? new Map<string,string>(),
-                 ...moduleSources?.entries() ?? new Map<string,string>() ]);
+            const mergedSources = new Map<string,TerraformModule>(
+                [...terraformSources?.entries() ?? new Map<string,TerraformModule>(),
+                 ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
         
             console.log(mergedSources)
-            for (let [moduleName,source] of mergedSources){
-                sources.push(new DisplayHlcModule(window.location.href,source,moduleName));
+            for (let [moduleName,module] of mergedSources){
+                if(module.provider.source !== undefined){
+                    //sources.push(new DisplayHlcModule(window.location.href,module.provider.source,moduleName));
+                    //console.log(module.provider.source)
+                    sources.push(new DisplayHlcModule(window.location.href,module));
+                }
             }
 
         } catch (error) {
