@@ -25,7 +25,6 @@ export class HclService {
             return null;
         }
         const tempFileType = fileType[1].trim();
-        console.log(tempFileType)
         if(!Object.values(HclFileTypes as unknown as string[]).includes(tempFileType)){
             return null;
         }
@@ -74,7 +73,6 @@ export class HclService {
             console.log("error parsing terraform section in hcl file.")
             return null;
         }
-        console.log(foundModules);
         return foundModules
         
     }
@@ -106,7 +104,6 @@ export class HclService {
             console.log("error parsing modules hcl file.")
             return null;
         }
-        console.log(foundModules);
         return foundModules;
     }
 
@@ -121,20 +118,14 @@ export class HclService {
         let sources: DisplayHlcModule[] = [];
         try {
             let hclFile = this.hcl2Parser.parseToObject(innerText) as IHclFile[];
-            console.log(hclFile)
             let terraformSources = this.findTerraformSources(hclFile);
-            console.log(terraformSources)
             let moduleSources = this.findModuleSources(hclFile);
-            console.log(moduleSources);
             const mergedSources = new Map<string,TerraformModule>(
                 [...terraformSources?.entries() ?? new Map<string,TerraformModule>(),
                  ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
-        
-            console.log(mergedSources)
+
             for (let [moduleName,module] of mergedSources){
                 if(module.provider.source !== undefined){
-                    //sources.push(new DisplayHlcModule(window.location.href,module.provider.source,moduleName));
-                    //console.log(module.provider.source)
                     sources.push(new DisplayHlcModule(window.location.href,module));
                 }
             }
