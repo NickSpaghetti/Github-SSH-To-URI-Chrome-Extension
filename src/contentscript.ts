@@ -11,10 +11,10 @@ if(init === 0){
         }
     
         let fileType = hclService.getFileType();
-        if(!(fileType in HclFileTypes)){
-           return;
+        if(fileType === null){
+            return;
         }
-        let modules :DisplayHlcModule[] = hclService.findModuleSources();
+        let modules :DisplayHlcModule[] = hclService.findSources();
     
         addHyperLinksToModuleSource(modules);
     }
@@ -57,11 +57,14 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         return false;
     }
     let fileType = hclService.getFileType();
-    if(!(fileType in HclFileTypes)){
+    console.log(fileType);
+    if(fileType === null){
+        console.log("was not found in HCLFileTypes")
         sendResponse([])
        return false;
     }
-    let modules :DisplayHlcModule[] = hclService.findModuleSources();
+    console.log("looking for modules")
+    let modules :DisplayHlcModule[] = hclService.findSources();
 
     sendResponse(modules);
     return false;
