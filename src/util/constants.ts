@@ -10,6 +10,7 @@ export const TERRAFORM_REGISTRY_ROUTES ={
 }
 
 export const GITHUB_ROUTES = {
+    HOST:"github.com",
     BLOB: "blob",
     TREE: "tree",
     MAIN: "main"
@@ -19,4 +20,9 @@ export const FileExtensions = {
     TF:".tf",
     HCL:".hcl",
     GIT:".git"
+}
+
+export const SENDERS = {
+    BACKGROUND:"background",
+    POPUP:"popup"
 }

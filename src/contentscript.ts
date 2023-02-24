@@ -1,26 +1,22 @@
 import {HclService} from "./services/HclService";
 import {DisplayHlcModule} from "./models/DisplayHclModule";
-import {HclFileTypes} from "./types/HclFileTypes";
+import {GITHUB_ROUTES, SENDERS} from "./util/constants";
 
 const hclService = new HclService();
-let init: number = 0;
-if(init === 0){
-    const run = () => {
-        if(window.location.host !== "github.com"){
+const InjectHyperLinksToPage = () => {
+        if(window.location.host !== GITHUB_ROUTES.HOST){
             return;
         }
-    
+
         let fileType = hclService.getFileType();
         if(fileType === null){
             return;
         }
         let modules :DisplayHlcModule[] = hclService.findSources();
-    
+
         addHyperLinksToModuleSource(modules);
     }
-    run();
-    init = 1;
-}
+
 
 
 function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
@@ -42,9 +38,13 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     });
 }
 
+
 //return false to tell chrome that this is not an async method
 chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
-
+    if(message === SENDERS.BACKGROUND){
+        InjectHyperLinksToPage();
+        return false;
+    }
     let currentTab = message;
     if(currentTab == null || currentTab?.tabUrl === ''){
         sendResponse([])
@@ -52,7 +52,7 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
     }
     const currentUrl = new URL(currentTab.tabUrl);
     console.log(currentUrl.hostname)
-    if(currentUrl.hostname !== "github.com" ){
+    if(currentUrl.hostname !== GITHUB_ROUTES.HOST ){
         sendResponse([])
         return false;
     }
@@ -68,4 +68,8 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
 
     sendResponse(modules);
     return false;
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('loaded');
 });
