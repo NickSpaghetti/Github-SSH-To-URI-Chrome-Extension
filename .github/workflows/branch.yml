@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build and Test
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -22,9 +22,6 @@ jobs:
 
       - name: Run install
         run: yarn install
-
-      - name: Run build
-        run: yarn build
 
       - name: Test the app
         run: yarn test
