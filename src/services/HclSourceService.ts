@@ -130,14 +130,18 @@ export class HclSourceService {
     }
 
     IsPrivateRegistry = (source: string): boolean => {
-        let privateRegistryHostNames = source.substring(0,source.indexOf('/')).split(".");
+        let stripedHttpSource = source.replace("https://","")
+                                    .replace("http://","");
+
+        let privateRegistryHostNames =  stripedHttpSource.substring(0,stripedHttpSource.indexOf('/'))
+                                                        .split(".");
         return privateRegistryHostNames.length === 3 && privateRegistryHostNames[1] === 'terraform' && privateRegistryHostNames[2] === "io";
 
     }
 
     IsRegistry = (source: string): boolean => {
         //public registry are only allowed /
-        return source.indexOf(".") === -1 && source.indexOf("//") === -1 && source.indexOf("@") === -1 && source.indexOf(":") === -1;
+        return source !== "" && source.indexOf(".") === -1 && source.indexOf("//") === -1 && source.indexOf("@") === -1 && source.indexOf(":") === -1;
 
     }
 

@@ -74,7 +74,6 @@ export class HclService {
             return null;
         }
         return foundModules
-        
     }
     //((source)\s*=\s*("(.*?)"))
     //module\s+"(\w+)"\s+{[^}]
@@ -122,7 +121,7 @@ export class HclService {
             let moduleSources = this.findModuleSources(hclFile);
             const mergedSources = new Map<string,TerraformModule>(
                 [...terraformSources?.entries() ?? new Map<string,TerraformModule>(),
-                 ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
+                    ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
 
             for (let [moduleName,module] of mergedSources){
                 if(module.provider.source !== undefined){
@@ -139,4 +138,3 @@ export class HclService {
         return sources;
     }
 }
-

@@ -1,0 +1,41 @@
+name: Publish To Chrome Store
+
+on:
+  release:
+    types: [published]
+    tags:
+      - v.*.*.*
+
+jobs:
+  build:
+    name: Build and Release to Chrome Extension Store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Run install
+        run: yarn install
+
+      - name: Run build
+        run: yarn build
+
+      - name: Test the app
+        run: yarn test
+
+      - name: add chrome-webstore-cli
+        run: yarn add chrome-webstore-upload-cli@2
+
+      - name: Submit to Chrome Extension Store
+        working-directory: dist
+        run: yarn chrome-webstore-upload-cli@2 upload --auto-publish
+        env:
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+      
