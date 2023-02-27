@@ -97,7 +97,7 @@ export class HclSourceService {
                 return version.trim();
             }
             const [sign, versionConstraint] = leftConstraint.split(' ');
-            return (sign === '>=' || sign === '') ? versionConstraint.trim() : sign.trim();
+            return !parseFloat(sign) ? versionConstraint.trim() : sign.trim();
         }
         const [leftSign, leftVersion] = leftConstraint.split(' ');
         const [rightSign, rightVersion] = rightConstraint.split(' ');

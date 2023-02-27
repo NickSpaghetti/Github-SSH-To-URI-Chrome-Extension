@@ -6,6 +6,82 @@ beforeAll(() => {
     hlcSourceService = new HclSourceService();
 });
 
+describe("Given a version", () => {
+    describe("When the version is 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is ~= 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("~= 3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is = 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("= 3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is >= 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion(">= 3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is <= 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("<= 3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is < 3.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("< 3.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is >= 3.0.0, < 4.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion(">= 3.0.0, < 4.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is >= 3.0.0, <= 4.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion(">= 3.0.0, <= 4.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is > 3.0.0, <= 4.0.0", () => {
+        test('Then I expect Version to be 4.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("> 3.0.0, <= 4.0.0")).toBe("4.0.0");
+        });
+    });
+
+    describe("When the version is > 3.0.0, < 4.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("> 3.0.0, < 4.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is ~= 3.0.0, < 4.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("~= 3.0.0, < 4.0.0")).toBe("3.0.0");
+        });
+    });
+
+    describe("When the version is ~= 3.0.0, <= 4.0.0", () => {
+        test('Then I expect Version to be 3.0.0', () => {
+            expect<string>(hlcSourceService.computeVersion("~= 3.0.0, <= 4.0.0")).toBe("4.0.0");
+        });
+    });
+})
+
+
+
 describe('Given a github file path', () => {
     describe('When path starts with ./', () => {
         test('Then I expect IsFilePath to be true',() =>{
@@ -148,6 +224,8 @@ describe('Given a Private Registry', () => {
         });
     });
 });
+
+
 
 
 
