@@ -23,6 +23,9 @@ jobs:
       - name: Run install
         run: yarn install
 
+      - name: Run build
+        run: yarn build
+
       - name: Test the app
         run: yarn test
 
