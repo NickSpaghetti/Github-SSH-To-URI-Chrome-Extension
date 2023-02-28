@@ -386,3 +386,7 @@ sensitive
 dist
 dist.*
 
+# Ignore cypresss
+tests/cypress/cypress/videos/*
+tests/cypress/cypress/screenshots/*
+

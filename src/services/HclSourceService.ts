@@ -77,7 +77,7 @@ export class HclSourceService {
         }
     }
 
-    registryToUrl = (source: string, moduleName: string, sourceVersion: string) => {
+    registryToUrl = (source: string, moduleName: string, sourceVersion: string):string => {
         let providerType = moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS)
             ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
             : TERRAFORM_REGISTRY_ROUTES.MODULES
@@ -97,7 +97,7 @@ export class HclSourceService {
                 return version.trim();
             }
             const [sign, versionConstraint] = leftConstraint.split(' ');
-            return (sign === '>=' || sign === '') ? versionConstraint.trim() : sign.trim();
+            return !parseFloat(sign) ? versionConstraint.trim() : sign.trim();
         }
         const [leftSign, leftVersion] = leftConstraint.split(' ');
         const [rightSign, rightVersion] = rightConstraint.split(' ');
@@ -130,14 +130,18 @@ export class HclSourceService {
     }
 
     IsPrivateRegistry = (source: string): boolean => {
-        let privateRegistryHostNames = source.substring(0,source.indexOf('/')).split(".");
+        let stripedHttpSource = source.replace("https://","")
+                                    .replace("http://","");
+
+        let privateRegistryHostNames =  stripedHttpSource.substring(0,stripedHttpSource.indexOf('/'))
+                                                        .split(".");
         return privateRegistryHostNames.length === 3 && privateRegistryHostNames[1] === 'terraform' && privateRegistryHostNames[2] === "io";
 
     }
 
     IsRegistry = (source: string): boolean => {
         //public registry are only allowed /
-        return source.indexOf(".") === -1 && source.indexOf("//") === -1 && source.indexOf("@") === -1 && source.indexOf(":") === -1;
+        return source !== "" && source.indexOf(".") === -1 && source.indexOf("//") === -1 && source.indexOf("@") === -1 && source.indexOf(":") === -1;
 
     }
 
