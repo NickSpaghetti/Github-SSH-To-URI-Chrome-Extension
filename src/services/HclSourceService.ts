@@ -77,7 +77,7 @@ export class HclSourceService {
         }
     }
 
-    registryToUrl = (source: string, moduleName: string, sourceVersion: string) => {
+    registryToUrl = (source: string, moduleName: string, sourceVersion: string):string => {
         let providerType = moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS)
             ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
             : TERRAFORM_REGISTRY_ROUTES.MODULES
