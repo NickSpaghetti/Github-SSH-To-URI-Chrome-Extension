@@ -27,7 +27,7 @@ jobs:
         run: yarn test
 
       - name: Install Cypress dependencies
-        working-directory: test/cypress
+        working-directory: tests/cypress
         run: yarn install
 
       - name: Run Cypress
