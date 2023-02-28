@@ -23,12 +23,15 @@ jobs:
       - name: Run install
         run: yarn install
 
-      - name: Test the app
-        run: yarn test
-
       - name: Install Cypress dependencies
         working-directory: tests/cypress
         run: yarn install
+
+      - name: Run build
+        run: yarn build
+
+      - name: Test the app
+        run: yarn test
 
       - name: Run Cypress
         working-directory: tests/cypress
