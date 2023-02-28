@@ -7,7 +7,7 @@ const tsRule = {
     test: /\.ts(x?)$/,
     exclude: [
         /node_modules/,
-        "tests/*",
+        "tests/cypress/cypress/e2e/*.cy.ts",
         /dist/,
     ],
     use: 'ts-loader'
