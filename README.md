@@ -35,7 +35,7 @@ Alternatively the extension will flash white in the corner when you navigate to 
 Note you must do this each time you run `yarn build` and update the extension.
 
 # Testing
-This project uses [jest]() and [cypress]().  
+This project uses [jest](https://jestjs.io/docs/getting-started) and [cypress](https://docs.cypress.io/guides/tooling/typescript-support).  
 ### To run the Jest unit tests 
 ```yarn tests```
 
