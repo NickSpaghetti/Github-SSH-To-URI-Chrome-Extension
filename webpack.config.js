@@ -7,7 +7,10 @@ const tsRule = {
     test: /\.ts(x?)$/,
     exclude: [
         /node_modules/,
-        /tests/
+        /tests/,
+        "./tests/**/*.spec.ts/",
+        "./tests/**/*.spec.tsx/",
+        "./dist/",
     ],
     use: 'ts-loader'
 }
