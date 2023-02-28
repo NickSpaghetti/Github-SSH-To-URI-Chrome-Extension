@@ -5,12 +5,9 @@ const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 
 const tsRule = {
     test: /\.ts(x?)$/,
-    include: [/src/],
     exclude: [
-        /node_modules/,
-        /cypress/,
-        /tests/,
-        /dist/,
+        '/node_modules/',
+        '/tests/'
     ],
     use: 'ts-loader'
 }
