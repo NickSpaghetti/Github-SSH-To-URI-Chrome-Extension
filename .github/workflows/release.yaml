@@ -41,7 +41,7 @@ jobs:
 
       - name: Submit to Chrome Extension Store
         working-directory: dist
-        run: yarn chrome-webstore-upload-cli@2 upload --auto-publish
+        run: chrome-webstore-upload-cli@2 upload --auto-publish
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
