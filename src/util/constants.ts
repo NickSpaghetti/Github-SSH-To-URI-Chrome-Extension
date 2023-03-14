@@ -4,6 +4,10 @@ export const TERRAFORM_SYNTAX = {
     MODULE:   "module",
 }
 
+export const TERRAFORM_PROVIDERS = {
+    HASHICORP: "hashicorp"
+}
+
 export const TERRAFORM_REGISTRY_ROUTES ={
     PROVIDERS: "providers",
     MODULES:   "modules",

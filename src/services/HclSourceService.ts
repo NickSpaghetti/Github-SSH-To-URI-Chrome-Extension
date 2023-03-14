@@ -1,6 +1,12 @@
 import {Nullable} from "../types/Nullable";
 import {SourceTypes} from "../types/SourceTypes";
-import {FileExtensions, GITHUB_ROUTES, TERRAFORM_REGISTRY_ROUTES, TERRAFORM_SYNTAX} from "../util/constants";
+import {
+    FileExtensions,
+    GITHUB_ROUTES,
+    TERRAFORM_PROVIDERS,
+    TERRAFORM_REGISTRY_ROUTES,
+    TERRAFORM_SYNTAX
+} from "../util/constants";
 
 export class HclSourceService {
     GetSourceType = (source: string): Nullable<SourceTypes> => {
@@ -82,8 +88,13 @@ export class HclSourceService {
             ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
             : TERRAFORM_REGISTRY_ROUTES.MODULES
         let version = this.computeVersion( sourceVersion?? '');
+        const sourcePaths = source.split("/");
+        let sourcePath = source;
+        if(sourcePaths.length === 1 && providerType == TERRAFORM_REGISTRY_ROUTES.PROVIDERS){
+            sourcePath = `${TERRAFORM_PROVIDERS.HASHICORP}/${source}`
+        }
 
-        return `https://registry.terraform.io/${providerType}/${source}/${version}`
+        return `https://registry.terraform.io/${providerType}/${sourcePath}/${version}`
     }
 
     //expects input in terraform version formats
