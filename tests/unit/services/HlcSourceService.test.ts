@@ -2,6 +2,7 @@ import {HclSourceService} from "../../../src/services/HclSourceService";
 import {Nullable} from "../../../src/types/Nullable";
 import {SourceTypes} from "../../../src/types/SourceTypes";
 import { expect } from '@jest/globals';
+import {TERRAFORM_SYNTAX} from "../../../src/util/constants";
 
 
 let hlcSourceService: HclSourceService;
@@ -181,6 +182,25 @@ describe('Given a Public Registry', () => {
             expect<boolean>(hlcSourceService.IsRegistry("clouddrove/labels/aws")).toBe(true);
         })
     });
+    describe('When Public Registry is a terraform registry path', () => {
+        test('Then I expect IsRegistry to be true', () => {
+            expect<boolean>(hlcSourceService.IsRegistry("hashicorp/aws")).toBe(true);
+        });
+    });
+    describe('When Public Registry is aws', () => {
+        test('Then I expect RegistryToUrl("aws","Provider.aws","") to be hashicorp/aws', () => {
+            expect<String>(hlcSourceService.registryToUrl("aws",`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.aws`,"")).toBe("https://registry.terraform.io/providers/hashicorp/aws/");
+        });
+        test('Then I expect RegistryToUrl("required_provider.hashicorp/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',() => {
+            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.hashicorp/aws`,"4.58.0")).toBe("https://registry.terraform.io/providers/hashicorp/aws/4.58.0");
+        });
+        test('Then I expect RegistryToUrl("module.hashicorp/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',() => {
+            expect<String>(hlcSourceService.registryToUrl("aws",'',"")).toBe("https://registry.terraform.io/modules/aws/");
+            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",'',"4.58.0")).toBe("https://registry.terraform.io/modules/hashicorp/aws/4.58.0");
+            expect<String>(hlcSourceService.registryToUrl("aws",`${TERRAFORM_SYNTAX.MODULE}.aws`,"")).toBe("https://registry.terraform.io/modules/aws/");
+            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",`${TERRAFORM_SYNTAX.MODULE}.hashicorp/aws`,"4.58.0")).toBe("https://registry.terraform.io/modules/hashicorp/aws/4.58.0");
+        });
+    });
     describe("When Public Registry is a ssh Host", () => {
         test('Then I expect IsRegistry to be false', () => {
             expect<boolean>(hlcSourceService.IsRegistry("git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v0.21.6")).toBe(false);
@@ -192,6 +212,7 @@ describe('Given a Public Registry', () => {
         });
     });
 });
+
 
 describe('Given a Private Registry', () => {
     describe("When the Private Registry is a valid url", () => {

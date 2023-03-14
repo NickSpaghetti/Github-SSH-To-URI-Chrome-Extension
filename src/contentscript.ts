@@ -24,14 +24,14 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
     modules.forEach(module => {
          for(let i : number = 0; i < stringSpans.length; i++){
-             let spanElement = stringSpans[i] as HTMLElement;
-             let innerText = spanElement.innerText as string;
-             if(innerText.includes(module.source) && module.modifiedSourceType !== null){
+             const spanElement = stringSpans[i] as HTMLElement;
+             const innerText = spanElement.innerText as string;
+             if(innerText === `"${module.source}"` && module.modifiedSourceType !== null){
                  let a = document.createElement('a');
                  a.href = module.modifiedSourceType;
                  a.rel = "noreferrer"
                  a.target = "_blank";
-                 a.text = `"${module.source}"`;
+                 a.text = innerText;
                  spanElement.replaceWith(a);
              }
          }
