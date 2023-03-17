@@ -7,8 +7,10 @@ import {
     TERRAFORM_REGISTRY_ROUTES,
     TERRAFORM_SYNTAX
 } from "../util/constants";
+import {HclVersionService} from "./HclVersionService";
 
 export class HclSourceService {
+    private readonly hlcVersionService = new HclVersionService();
     GetSourceType = (source: string): Nullable<SourceTypes> => {
         if(this.IsHost(source)){
             return SourceTypes.url;
@@ -87,7 +89,7 @@ export class HclSourceService {
         let providerType = moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS)
             ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
             : TERRAFORM_REGISTRY_ROUTES.MODULES
-        let version = this.computeVersion( sourceVersion?? '');
+        let version = this.hlcVersionService.getMinimalTerraformVersion( sourceVersion?? '');
         const sourcePaths = source.split("/");
         let sourcePath = source;
         if(sourcePaths.length === 1 && providerType == TERRAFORM_REGISTRY_ROUTES.PROVIDERS){
@@ -96,35 +98,6 @@ export class HclSourceService {
 
         return `https://registry.terraform.io/${providerType}/${sourcePath}/${version}`
     }
-
-    //expects input in terraform version formats
-    computeVersion = (version: string): string =>{
-        if(version === ''){
-            return version;
-        }
-        const [leftConstraint, rightConstraint] = version.split(', ');
-        if(!rightConstraint){
-            if(!isNaN(parseFloat(version))){
-                return version.trim();
-            }
-            const [sign, versionConstraint] = leftConstraint.split(' ');
-            return !parseFloat(sign) ? versionConstraint.trim() : sign.trim();
-        }
-        const [leftSign, leftVersion] = leftConstraint.split(' ');
-        const [rightSign, rightVersion] = rightConstraint.split(' ');
-        if(leftSign !== '>=' && (rightSign === '<=' || rightSign === '>=')){
-            return rightVersion.trim();
-        }
-        if(leftSign === '>='){
-            return leftVersion.trim();
-        }
-        if(rightSign === '<='){
-            return rightVersion.trim();
-        }
-        return leftVersion.trim();
-    };
-
-
 
     IsHost = (source: string): boolean =>  {
         try {

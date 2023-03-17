@@ -69,7 +69,3 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
     sendResponse(modules);
     return false;
 });
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('loaded');
-});
