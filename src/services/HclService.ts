@@ -5,9 +5,9 @@ import { HclFileTypes } from "../types/HclFileTypes";
 import { IHclFile } from "../models/IHclFile";
 import {ProviderType, RequiredProvider, TerraformModule} from "../types/Terraform";
 import {TERRAFORM_SYNTAX} from "../util/constants";
+import * as hcl  from "hcl2-parser"
 
 export class HclService {
-    private hcl2Parser = require("hcl2-parser");
 
     isHclModule(obj: any): obj is HclModule {
         return (
@@ -24,13 +24,12 @@ export class HclService {
         if(fileType.length !== 2){
             return null;
         }
-        const tempFileType = fileType[1].trim();
+        const tempFileType = fileType[1]?.trim();
         if(!Object.values(HclFileTypes as unknown as string[]).includes(tempFileType)){
             return null;
         }
 
         return  tempFileType as unknown as HclFileTypes;
-
     }
     //regex to get source = "foo" ((source)\s*=\s*("(.*?)"))
     findTerraformSources = (hclFile: IHclFile[]):Nullable<Map<string,TerraformModule>> => {
@@ -69,8 +68,7 @@ export class HclService {
                 requiredProvidersCount++;
             });
         } catch (error) {
-            console.log(error)
-            console.log("error parsing terraform section in hcl file.")
+            console.log(`error parsing terraform section in hcl file: ${error}`)
             return null;
         }
         return foundModules
@@ -85,7 +83,6 @@ export class HclService {
                 console.log('No module found file');
                 return null;
             }
-            console.log(hclFile)
             for (let [moduleName, modules] of Object.entries(hclFile[0].module)) {
                 if(this.isHclModule(modules)){
                     foundModules.set(moduleName,{
@@ -99,8 +96,7 @@ export class HclService {
                 }
             }
         } catch (error) {
-            console.log(error);
-            console.log("error parsing modules hcl file.")
+            console.log(`error parsing modules hcl file: ${error}`)
             return null;
         }
         return foundModules;
@@ -116,21 +112,20 @@ export class HclService {
         //const regex = new RegExp(/((source)\s*=\s*("(.*?)"))/g)
         let sources: DisplayHlcModule[] = [];
         try {
-            let hclFile = this.hcl2Parser.parseToObject(innerText) as IHclFile[];
+            let hclFile =  hcl.parseToObject(innerText) as IHclFile[];
             let terraformSources = this.findTerraformSources(hclFile);
             let moduleSources = this.findModuleSources(hclFile);
             const mergedSources = new Map<string,TerraformModule>(
                 [...terraformSources?.entries() ?? new Map<string,TerraformModule>(),
                     ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
-
-            for (let [moduleName,module] of mergedSources){
+            for (let [_,module] of mergedSources){
                 if(module.provider.source !== undefined){
                     sources.push(new DisplayHlcModule(window.location.href,module));
                 }
             }
 
         } catch (error) {
-            console.log("error parsing hcl file.")
+            console.log(`error parsing hcl file: ${error}`)
             return [];
         }
 

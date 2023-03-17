@@ -2,6 +2,7 @@ const {resolve} = require('path');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const {CleanWebpackPlugin} = require("clean-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 const tsRule = {
     test: /\.ts(x?)$/,
@@ -23,6 +24,10 @@ const plugins = [
         {from: "public", to: "."}
       ],
     }),
+    // new LoaderOptionsPlugin({
+    //     minimize: true,
+    //     debug: false
+    // }),
     new CleanWebpackPlugin(),
   ];
 
@@ -43,5 +48,10 @@ module.exports = {
     module : {
         rules: [tsRule]
     },
-    plugins
+    plugins,
+    devtool: false,
+    optimization: {
+        minimize: true,
+        minimizer: [new TerserPlugin({parallel:true})]
+    }
 }

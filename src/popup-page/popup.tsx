@@ -1,7 +1,5 @@
 import React, {FC, useEffect, useState} from 'react';
 import {render} from 'react-dom'
-import LastPageIcon from '@mui/icons-material/LastPage';
-import FirstPageIcon from '@mui/icons-material/FirstPage';
 import {
     Container,
     CssBaseline,
@@ -10,17 +8,19 @@ import {
     TableBody,
     TableContainer,
     TableFooter,
-    TableRow, TablePagination, IconButton, Box, useTheme, TableCell, Link
+    TableRow, TablePagination, TableCell, Link
 } from '@mui/material';
 import {DisplayHlcModule} from "../models/DisplayHclModule";
-import {KeyboardArrowLeft, KeyboardArrowRight} from "@mui/icons-material";
 import {SourceTypes} from "../types/SourceTypes";
+import {
+    TablePaginationActions
+} from "../components/TablePaginationComponent";
 
 interface IProps {}
 
 export const Popup: FC<IProps> = () => {
     
-    const [content, setContent] = useState<DisplayHlcModule[]>([])
+    const [content, setContent] = useState<DisplayHlcModule[]>([]);
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
     const [page, setPage] = React.useState(0);
 
@@ -67,74 +67,7 @@ export const Popup: FC<IProps> = () => {
     
     });
 
-
-    interface ITablePaginationActionsProps {
-        count: number;
-        page: number;
-        rowsPerPage: number;
-        onPageChange: (
-            event: React.MouseEvent<HTMLButtonElement>,
-            newPage: number,
-        ) => void;
-    }
-
-    function TablePaginationActions(props: ITablePaginationActionsProps) {
-        const theme = useTheme();
-        const { count, page, rowsPerPage, onPageChange } = props;
-
-        const firstPageButtonClickHandler = (
-            event: React.MouseEvent<HTMLButtonElement>,
-        ) => {
-            onPageChange(event, 0);
-        };
-
-        const BackButtonClickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
-            onPageChange(event, page - 1);
-        };
-
-        const nextButtonClickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
-            onPageChange(event, page + 1);
-        };
-
-        const lastPageButtonClickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
-            onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-        };
-
-        return (
-            <Box sx={{ flexShrink: 0, ml: 2.5 }}>
-                <IconButton
-                    onClick={firstPageButtonClickHandler}
-                    disabled={page === 0}
-                    aria-label="first page"
-                >
-                    {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
-                </IconButton>
-                <IconButton
-                    onClick={BackButtonClickHandler}
-                    disabled={page === 0}
-                    aria-label="previous page"
-                >
-                    {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
-                </IconButton>
-                <IconButton
-                    onClick={nextButtonClickHandler}
-                    disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                    aria-label="next page"
-                >
-                    {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
-                </IconButton>
-                <IconButton
-                    onClick={lastPageButtonClickHandler}
-                    disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                    aria-label="last page"
-                >
-                    {theme.direction === 'rtl' ? <FirstPageIcon /> : <LastPageIcon />}
-                </IconButton>
-            </Box>
-        );
-    }
-
-    // Avoid a layout jump when reaching the last page with empty rows.
+    //Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows =
         page > 0 ? Math.max(0, (1 + page) * rowsPerPage - content.length) : 0;
 
@@ -216,38 +149,3 @@ export const Popup: FC<IProps> = () => {
           
 render(<Popup />, document.getElementById("sources-popup"));
 
-/*
-<Grid
->
-</Grid><Grid
-    container
-    direction="row"
-    justifyContent="flex-start"
-    alignItems="flex-start"
-    sx={{height: '100vh', border: '1px solid #9eff49'}}
->
-    <Grid item container maxWidth='70vw'>
-        <Grid
-            item
-            xs={6}
-            sx={{
-                border: '1px solid grey',
-                height: 600,
-                backgroundColor: '#d6fff9',
-            }}
-        >
-            <Typography variant='h4'>Module Name</Typography>
-        </Grid>
-        <Grid
-            item
-            xs={6}
-            sx={{
-                border: '1px solid grey',
-                height: 600,
-                backgroundColor: '#e481ff',
-            }}
-        >
-            <Typography variant='h4'>Module Type</Typography>
-        </Grid>
-    </Grid>
-</Grid></>*/
