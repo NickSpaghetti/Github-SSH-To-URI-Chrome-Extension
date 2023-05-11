@@ -9,7 +9,7 @@
     "host_permissions": [
         "https://github.com/*"
     ],
-    "version":"0.0.0.6",
+    "version":"0.0.0.7",
     "action":{
         "default_popup": "index.html"
     },

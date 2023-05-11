@@ -1,41 +1,80 @@
 import {HclService} from "./services/HclService";
 import {DisplayHlcModule} from "./models/DisplayHclModule";
 import {GITHUB_ROUTES, SENDERS} from "./util/constants";
+import {IsSignedIn} from "./services/GitHubElementService";
 
 const hclService = new HclService();
+const IsSignedIntoGitHub = IsSignedIn();
+console.log(IsSignedIntoGitHub);
 const InjectHyperLinksToPage = () => {
         if(window.location.host !== GITHUB_ROUTES.HOST){
             return;
         }
 
-        let fileType = hclService.getFileType();
+        let fileType = hclService.getFileType(IsSignedIntoGitHub);
         if(fileType === null){
             return;
         }
-        let modules :DisplayHlcModule[] = hclService.findSources();
+        let modules :DisplayHlcModule[] = hclService.findSources(IsSignedIntoGitHub);
 
-        addHyperLinksToModuleSource(modules);
+        if(IsSignedIntoGitHub){
+            addHyperLinksToModuleSourceSignedIn(modules);
+        }
+        else {
+            addHyperLinksToModuleSourceSignedOut(modules)
+        }
     }
 
 
+function addHyperLinksToModuleSourceSignedOut(modules: DisplayHlcModule[]) {
+    //all strings are stored in class 'pl-s'
+    let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
+    modules.forEach(module => {
+        for(let i : number = 0; i < stringSpans.length; i++){
+            const spanElement = stringSpans[i] as HTMLElement;
+            const innerText = spanElement.innerText as string;
+            if(innerText === `"${module.source}"` && module.modifiedSourceType !== null){
+                let a = document.createElement('a');
+                a.href = module.modifiedSourceType;
+                a.rel = "noreferrer"
+                a.target = "_blank";
+                a.text = innerText;
+                spanElement.replaceWith(a);
+            }
+        }
+    });
+}
 
-function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
+function addHyperLinksToModuleSourceSignedIn(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
     let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
     modules.forEach(module => {
          for(let i : number = 0; i < stringSpans.length; i++){
-             const spanElement = stringSpans[i] as HTMLElement;
-             const innerText = spanElement.innerText as string;
-             if(innerText === `"${module.source}"` && module.modifiedSourceType !== null){
-                 let a = document.createElement('a');
-                 a.href = module.modifiedSourceType;
-                 a.rel = "noreferrer"
-                 a.target = "_blank";
-                 a.text = innerText;
-                 spanElement.replaceWith(a);
-             }
+             stringSpans[i].querySelectorAll('span').forEach((span) => {
+                 if(span.dataset['codeText'] === module.source && module.modifiedSourceType !== null){
+                     const innerText = span.dataset['codeText'] as string;
+                     if(innerText === `${module.source}` && module.modifiedSourceType !== null){
+                         let a = document.createElement('a');
+                         a.href = module.modifiedSourceType;
+                         a.rel = "noreferrer";
+                         a.target = "_blank";
+                         a.innerText = `"${innerText}"`
+                         stringSpans[i].replaceWith(a)
+                     }
+                 }
+             })
          }
     });
+
+    const dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement
+    let nextSibling = dataTargetElement.nextElementSibling;
+    while(nextSibling !== null){
+        if(nextSibling.tagName === "DIV"){
+            //we want to remove the class name since it is preventing the user to click <a/> tag
+            nextSibling.className = '';
+        }
+        nextSibling = nextSibling.nextElementSibling;
+    }
 }
 
 
@@ -56,7 +95,7 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         sendResponse([])
         return false;
     }
-    let fileType = hclService.getFileType();
+    let fileType = hclService.getFileType(IsSignedIntoGitHub);
     console.log(fileType);
     if(fileType === null){
         console.log("was not found in HCLFileTypes")
@@ -64,7 +103,8 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
        return false;
     }
     console.log("looking for modules")
-    let modules :DisplayHlcModule[] = hclService.findSources();
+    let modules :DisplayHlcModule[] = hclService.findSources(IsSignedIntoGitHub);
+    console.log(JSON.stringify(modules))
 
     sendResponse(modules);
     return false;
