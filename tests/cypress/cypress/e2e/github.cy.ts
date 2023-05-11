@@ -1,6 +1,9 @@
 it('should be able to navigate to github.com', () => {
-  cy.visit('https://github.com');
+    cy.clearAllCookies()
+    cy.clearLocalStorage()
+    cy.visit('https://github.com');
 });
+
 
 it('should be able to find the file extension on github.com', () => {
   cy.visit('https://github.com/NickSpaghetti/Salve-Amulet-Checker/blob/master/src/main/java/com/sac/SalveAmuletCheckerPlugin.java');
@@ -11,6 +14,7 @@ it('should be able to find the file extension on github.com', () => {
       });
 });
 
+
 it('should be able to find the java code on github.com', () => {
     cy.visit('https://github.com/NickSpaghetti/Salve-Amulet-Checker/blob/master/src/main/java/com/sac/SalveAmuletCheckerPlugin.java');
     cy.get('table')
@@ -19,3 +23,12 @@ it('should be able to find the java code on github.com', () => {
             cy.wrap(currentSubject[0].innerText).should('not.be.empty');
         });
 });
+
+it('should be signed out', () => {
+    cy.visit('https://github.com/NickSpaghetti/Salve-Amulet-Checker/blob/master/src/main/java/com/sac/SalveAmuletCheckerPlugin.java');
+    cy.contains('a','Sign up')
+        .should('be.visible')
+
+});
+
+

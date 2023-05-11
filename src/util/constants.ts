@@ -40,3 +40,8 @@ export const TERRAFORM_VERSION_CONSTRAINTS = {
     EXACT:                 "~>",
     Excludes:              "!=",
 }
+
+export const GITHUB_LINKS = {
+    SIGN_IN: 'Sign in',
+    SIGN_UP: 'Sign up'
+}
