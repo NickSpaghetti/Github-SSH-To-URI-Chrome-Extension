@@ -228,13 +228,13 @@ describe("Given a ssh host", () => {
 describe("Given a relative file path", () => {
     describe("When relative path is host is ../../base/ec2-baseline and the path is https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf", () => {
         test("Then I expect the url to be  https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline", () => {
-            expect<string>(hlcSourceService.pathToUrl("../../base/ec2-baseline", "https://github.com","/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
+            expect<string>(hlcSourceService.pathToUrl("../../base/ec2-baseline", "https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
                 .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline");
         });
     });
     describe("When relative path is host is ../base/ec2-baseline and the path is https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf", () => {
         test("Then I expect the url to be  https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline", () => {
-            expect<string>(hlcSourceService.pathToUrl("../base/ec2-baseline", "https://github.com","/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
+            expect<string>(hlcSourceService.pathToUrl("../base/ec2-baseline", "https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
                 .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/base/ec2-baseline");
         });
     });
@@ -297,7 +297,7 @@ describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
     describe("When path, ../foo/bar, foo, ''", () => {
         test("I expect the result to be ../foo/bar", ()=>{
             expect(hlcSourceService.ResolveSource(SourceTypes.path, "../foo/bar",'foo','',new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
-                .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/foo/bar");
+                .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/foo/bar");
         });
     });
 
