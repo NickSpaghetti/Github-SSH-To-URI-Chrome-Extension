@@ -30,7 +30,7 @@ export class HclSourceService {
         return null;
     }
 
-    ResolveSource = (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string): Nullable<string> => {
+    ResolveSource = (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string, url: URL): Nullable<string> => {
         if(sourceType === null){
             return null;
         }
@@ -41,7 +41,7 @@ export class HclSourceService {
             case SourceTypes.ssh:
                 return this.sshToUrl(source);
             case SourceTypes.path:
-                return source;
+                return this.pathToUrl(source,url.href);
             case SourceTypes.registry:
                 return this.registryToUrl(source, moduleName, sourceVersion);
             case SourceTypes.privateRegistry:
@@ -97,6 +97,13 @@ export class HclSourceService {
         }
 
         return `https://registry.terraform.io/${providerType}/${sourcePath}/${version}`
+    }
+
+    pathToUrl = (source: string, sourcePageUrl: string): string => {
+        if(!this.IsFilePath(source)){
+            throw new Error(`${source} is not of type ${SourceTypes.path.toString()}`);
+        }
+        return new URL(source,sourcePageUrl).href
     }
 
     IsHost = (source: string): boolean =>  {

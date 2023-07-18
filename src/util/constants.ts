@@ -45,3 +45,8 @@ export const GITHUB_LINKS = {
     SIGN_IN: 'Sign in',
     SIGN_UP: 'Sign up'
 }
+
+export const CacheKeys = {
+    MODULES: "MODULES",
+    CURRENT_TAB_URL: "CurrentTabUrl"
+}
