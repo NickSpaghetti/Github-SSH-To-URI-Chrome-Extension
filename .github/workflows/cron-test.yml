@@ -1,0 +1,35 @@
+name: Continuous Integration Chron
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "00 12 * * *"
+
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Run install
+        run: yarn install
+
+      - name: Install Cypress dependencies
+        working-directory: tests/cypress
+        run: yarn install
+
+      - name: Run build
+        run: yarn build
+
+      - name: Test the app
+        run: yarn test
+
+      - name: Run Cypress
+        working-directory: tests/cypress
+        run: yarn cypress:run
