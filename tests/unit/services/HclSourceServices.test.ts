@@ -210,6 +210,7 @@ describe("Given a ssh host", () => {
         });
     });
 
+
     describe("When ssh host is invalid", () => {
         test("Then I expect the url to be the original ssh host", () => {
             expect<string>(hlcSourceService.sshToUrl(""))
@@ -223,6 +224,21 @@ describe("Given a ssh host", () => {
         });
     });
 });
+
+describe("Given a relative file path", () => {
+    describe("When relative path is host is ../../base/ec2-baseline and the path is https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf", () => {
+        test("Then I expect the url to be  https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline", () => {
+            expect<string>(hlcSourceService.pathToUrl("../../base/ec2-baseline", "https://github.com","/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline");
+        });
+    });
+    describe("When relative path is host is ../base/ec2-baseline and the path is https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf", () => {
+        test("Then I expect the url to be  https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/base/ec2-baseline", () => {
+            expect<string>(hlcSourceService.pathToUrl("../base/ec2-baseline", "https://github.com","/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/base/ec2-baseline");
+        });
+    });
+})
 
 describe("Given a Source", () => {
     describe("When the Source is an Empty String", () => {
@@ -266,53 +282,54 @@ describe("Given a Source", () => {
 describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
     describe("When url, github.com, foo, ''", () => {
         test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.url, "github.com",'foo',''))
+            expect(hlcSourceService.ResolveSource(SourceTypes.url, "github.com",'foo','',new URL("https://github.com")))
                 .toBe("github.com");
         });
     });
 
     describe("When ssh, git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda.tf?ref=v2.0.0, foo, ''", () => {
         test("I expect the result to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/v2.0.0/modules/lambda", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.ssh, "git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v2.0.0",'foo',''))
+            expect(hlcSourceService.ResolveSource(SourceTypes.ssh, "git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v2.0.0",'foo','',new URL("https://github.com")))
                 .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v2.0.0/modules/lambda");
         });
     });
 
     describe("When path, ../foo/bar, foo, ''", () => {
         test("I expect the result to be ../foo/bar", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.path, "../foo/bar",'foo',''))
-                .toBe("../foo/bar");
+            expect(hlcSourceService.ResolveSource(SourceTypes.path, "../foo/bar",'foo','',new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
+                .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/foo/bar");
         });
     });
 
     describe("When path, ./foo/bar, foo, ''", () => {
         test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.path, "./foo/bar",'foo',''))
-                .toBe("./foo/bar");
+            expect(hlcSourceService.ResolveSource(SourceTypes.path, "./foo/bar",'foo','',new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
+                .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/foo/bar");
         });
     });
 
     describe("When registry, hashicorp/aws foo, ''", () => {
         test("I expect the result to be https://registry.terraform.io/modules/hashicorp/aws/", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo',''))
+            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo','',new URL("https://github.com")))
                 .toBe("https://registry.terraform.io/modules/hashicorp/aws/");
         });
     });
 
     describe("When registry, hashicorp/aws foo, '1.0.0'", () => {
         test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo','1.0.0'))
+            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo','1.0.0',new URL("https://github.com")))
                 .toBe("https://registry.terraform.io/modules/hashicorp/aws/1.0.0");
         });
     });
 
     describe("When private registry, bar.terraform.io/foo/aws foo, ''", () => {
         test("I expect the result to be bar.terraform.io/foo/aws", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.privateRegistry, "bar.terraform.io/foo/aws",'foo','1.0.0'))
+            expect(hlcSourceService.ResolveSource(SourceTypes.privateRegistry, "bar.terraform.io/foo/aws",'foo','1.0.0',new URL("https://github.com")))
                 .toBe("bar.terraform.io/foo/aws");
         });
     });
 })
+
 
 
 

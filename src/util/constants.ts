@@ -47,5 +47,6 @@ export const GITHUB_LINKS = {
 }
 
 export const CacheKeys = {
-    MODULES: 'MODULES'
+    MODULES: "MODULES",
+    CURRENT_TAB_URL: "CurrentTabUrl"
 }

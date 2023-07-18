@@ -1,59 +1,32 @@
 import {HclService} from "./services/HclService";
 import {DisplayHlcModule} from "./models/DisplayHclModule";
 import {CacheKeys, GITHUB_ROUTES, SENDERS} from "./util/constants";
-import {IsSignedIn} from "./services/GitHubElementService";
 import {Nullable} from "./types/Nullable";
 import {InMemoryCache} from "./services/InMemoryCache";
 
 const hclService = new HclService();
-const IsSignedIntoGitHub = IsSignedIn();
 const inMemoryCache = new InMemoryCache()
-//console.log(IsSignedIntoGitHub);
 const InjectHyperLinksToPage = () => {
         if(window.location.host !== GITHUB_ROUTES.HOST){
             return;
         }
 
-        let fileType = hclService.getFileType(IsSignedIntoGitHub);
+        let fileType = hclService.getFileType();
         if(fileType === null){
             return;
         }
         //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
         let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-        if( modules == null){
-            inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources(IsSignedIntoGitHub));
+        if( modules == null) {
+            inMemoryCache.Set(CacheKeys.MODULES, hclService.findSources());
             modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
         }
 
-        if(IsSignedIntoGitHub){
-            addHyperLinksToModuleSourceSignedIn(modules ?? new Array<DisplayHlcModule>());
-        }
-        else {
-            addHyperLinksToModuleSourceSignedOut(modules ?? new Array<DisplayHlcModule>())
-        }
+        addHyperLinksToModuleSource(modules ?? new Array<DisplayHlcModule>());
+
     }
 
-
-function addHyperLinksToModuleSourceSignedOut(modules: DisplayHlcModule[]) {
-    //all strings are stored in class 'pl-s'
-    let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
-    modules.forEach(module => {
-        for(let i : number = 0; i < stringSpans.length; i++){
-            const spanElement = stringSpans[i] as HTMLElement;
-            const innerText = spanElement.innerText as string;
-            if(innerText === `"${module.source}"` && module.modifiedSourceType !== null){
-                let a = document.createElement('a');
-                a.href = module.modifiedSourceType;
-                a.rel = "noreferrer"
-                a.target = "_blank";
-                a.text = innerText;
-                spanElement.replaceWith(a);
-            }
-        }
-    });
-}
-
-function addHyperLinksToModuleSourceSignedIn(modules: DisplayHlcModule[]) {
+function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
     // all text on page values are stored in data-code-text
     modules.forEach(module => {
@@ -107,12 +80,17 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         return false;
     }
     const currentUrl = new URL(currentTab.tabUrl);
+    let shouldModelsReHydrate = false;
+    if(inMemoryCache.Get(CacheKeys.CURRENT_TAB_URL) !== currentUrl){
+        inMemoryCache.Set(CacheKeys.CURRENT_TAB_URL,currentUrl);
+        shouldModelsReHydrate = true
+    }
     //console.log(currentUrl.hostname)
     if(currentUrl.hostname !== GITHUB_ROUTES.HOST ){
         sendResponse([])
         return false;
     }
-    let fileType = hclService.getFileType(IsSignedIntoGitHub);
+    let fileType = hclService.getFileType();
     //console.log(fileType);
     if(fileType === null){
         console.log("was not found in HCLFileTypes")
@@ -123,8 +101,8 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
     //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
     let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
     //console.log(modules)
-    if( modules == null){
-        inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources(IsSignedIntoGitHub));
+    if( modules == null || shouldModelsReHydrate){
+        inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources());
         modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
     }
 

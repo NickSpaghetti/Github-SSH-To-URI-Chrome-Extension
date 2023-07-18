@@ -30,7 +30,7 @@ export class HclSourceService {
         return null;
     }
 
-    ResolveSource = (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string): Nullable<string> => {
+    ResolveSource = (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string, url: URL): Nullable<string> => {
         if(sourceType === null){
             return null;
         }
@@ -41,7 +41,7 @@ export class HclSourceService {
             case SourceTypes.ssh:
                 return this.sshToUrl(source);
             case SourceTypes.path:
-                return source;
+                return this.pathToUrl(source,url.origin ,url.pathname);
             case SourceTypes.registry:
                 return this.registryToUrl(source, moduleName, sourceVersion);
             case SourceTypes.privateRegistry:
@@ -97,6 +97,20 @@ export class HclSourceService {
         }
 
         return `https://registry.terraform.io/${providerType}/${sourcePath}/${version}`
+    }
+
+    pathToUrl = (source: string, origin: string ,currentPath: string): string => {
+        if(!this.IsFilePath(source)){
+            throw new Error(`${source} is not of type ${SourceTypes.path.toString()}`);
+        }
+        let directoriesUpCount = 1;
+        [...source.split("./"),...source.split("../")].forEach(dp => {
+            if(dp === ""){
+                directoriesUpCount += 1
+            }
+        });
+        let splitCurrentPath = currentPath.split("/").filter(Boolean).slice(0,-1 * directoriesUpCount);
+        return `${origin}/${splitCurrentPath.join("/")}/${source.replaceAll("../","").replaceAll("./","")}`
     }
 
     IsHost = (source: string): boolean =>  {

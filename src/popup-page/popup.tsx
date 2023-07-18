@@ -3,18 +3,19 @@ import {render} from 'react-dom'
 import {
     Container,
     CssBaseline,
-    Typography,
+    Link,
     Table,
     TableBody,
+    TableCell,
     TableContainer,
     TableFooter,
-    TableRow, TablePagination, TableCell, Link
+    TablePagination,
+    TableRow,
+    Typography
 } from '@mui/material';
 import {DisplayHlcModule} from "../models/DisplayHclModule";
 import {SourceTypes} from "../types/SourceTypes";
-import {
-    TablePaginationActions
-} from "../components/TablePaginationComponent";
+import {TablePaginationActions} from "../components/TablePaginationComponent";
 
 interface IProps {}
 

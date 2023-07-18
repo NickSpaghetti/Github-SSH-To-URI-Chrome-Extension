@@ -17,8 +17,8 @@ export class HclService {
         );
     }
 
-    getFileType = (isSignedIn: boolean):Nullable<HclFileTypes> => {
-        const finalPath = isSignedIn ? document.getElementById("file-name-id") : document.querySelector('.final-path') as HTMLElement
+    getFileType = ():Nullable<HclFileTypes> => {
+        const finalPath =  document.getElementById("file-name-id") as HTMLElement
         const innerText = finalPath?.innerText ?? '';
         const fileType = innerText.split('.');
         if(fileType.length !== 2){
@@ -103,17 +103,11 @@ export class HclService {
     }
 
 
-    findSources = (isSignedIn: boolean):DisplayHlcModule[] => {
+    findSources = ():DisplayHlcModule[] => {
 
-        let dataTargetElement = null;
-        let innerText = '';
-        if(isSignedIn){
-            dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement;
-            innerText = dataTargetElement.value;
-        } else {
-            dataTargetElement = document.querySelector('table') as HTMLElement;
-            innerText = dataTargetElement.innerText;
-        }
+        let dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement;
+        let innerText = dataTargetElement.value;
+
         if(innerText === ''){
             return [];
         }
