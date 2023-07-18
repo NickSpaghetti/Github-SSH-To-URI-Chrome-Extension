@@ -1,11 +1,14 @@
 import {HclService} from "./services/HclService";
 import {DisplayHlcModule} from "./models/DisplayHclModule";
-import {GITHUB_ROUTES, SENDERS} from "./util/constants";
+import {CacheKeys, GITHUB_ROUTES, SENDERS} from "./util/constants";
 import {IsSignedIn} from "./services/GitHubElementService";
+import {Nullable} from "./types/Nullable";
+import {InMemoryCache} from "./services/InMemoryCache";
 
 const hclService = new HclService();
 const IsSignedIntoGitHub = IsSignedIn();
-console.log(IsSignedIntoGitHub);
+const inMemoryCache = new InMemoryCache()
+//console.log(IsSignedIntoGitHub);
 const InjectHyperLinksToPage = () => {
         if(window.location.host !== GITHUB_ROUTES.HOST){
             return;
@@ -15,13 +18,18 @@ const InjectHyperLinksToPage = () => {
         if(fileType === null){
             return;
         }
-        let modules :DisplayHlcModule[] = hclService.findSources(IsSignedIntoGitHub);
+        //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
+        let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+        if( modules == null){
+            inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources(IsSignedIntoGitHub));
+            modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+        }
 
         if(IsSignedIntoGitHub){
-            addHyperLinksToModuleSourceSignedIn(modules);
+            addHyperLinksToModuleSourceSignedIn(modules ?? new Array<DisplayHlcModule>());
         }
         else {
-            addHyperLinksToModuleSourceSignedOut(modules)
+            addHyperLinksToModuleSourceSignedOut(modules ?? new Array<DisplayHlcModule>())
         }
     }
 
@@ -47,24 +55,20 @@ function addHyperLinksToModuleSourceSignedOut(modules: DisplayHlcModule[]) {
 
 function addHyperLinksToModuleSourceSignedIn(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
-    let stringSpans = document.getElementsByClassName('pl-s') as HTMLCollection;
+    // all text on page values are stored in data-code-text
     modules.forEach(module => {
-         for(let i : number = 0; i < stringSpans.length; i++){
-             stringSpans[i].querySelectorAll('span').forEach((span) => {
-                 if(span.dataset['codeText'] === module.source && module.modifiedSourceType !== null){
-                     const innerText = span.dataset['codeText'] as string;
-                     if(innerText === `${module.source}` && module.modifiedSourceType !== null){
-                         let a = document.createElement('a');
-                         a.href = module.modifiedSourceType;
-                         a.rel = "noreferrer";
-                         a.target = "_blank";
-                         a.innerText = `"${innerText}"`
-                         stringSpans[i].replaceWith(a)
-                     }
-                 }
-             })
-         }
-    });
+        let stringSpans = document.querySelectorAll(`span[data-code-text="${CSS.escape(module.source)}"]`)
+        for (let i: number = 0; i < stringSpans.length; i++) {
+                let dataCodeText = stringSpans[i].attributes.getNamedItem('data-code-text')?.value
+                if(dataCodeText != null){
+                    modules.forEach(module => {
+                        if(module.source === dataCodeText && module.modifiedSourceType != null){
+                            replaceSourceSpanTag(stringSpans[i] as HTMLElement, module.modifiedSourceType, dataCodeText);
+                        }
+                    })
+                }
+        }
+    })
 
     const dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement
     let nextSibling = dataTargetElement.nextElementSibling;
@@ -75,6 +79,19 @@ function addHyperLinksToModuleSourceSignedIn(modules: DisplayHlcModule[]) {
         }
         nextSibling = nextSibling.nextElementSibling;
     }
+}
+
+function replaceSourceSpanTag(span: HTMLElement, modifiedSourceType: Nullable<string>, innerText: string) {
+    if(modifiedSourceType === null){
+        return;
+    }
+
+    let a = document.createElement('a');
+    a.href = modifiedSourceType
+    a.rel = "noreferrer";
+    a.target = "_blank";
+    a.innerText = innerText
+    span.replaceWith(a)
 }
 
 
@@ -90,22 +107,32 @@ chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
         return false;
     }
     const currentUrl = new URL(currentTab.tabUrl);
-    console.log(currentUrl.hostname)
+    //console.log(currentUrl.hostname)
     if(currentUrl.hostname !== GITHUB_ROUTES.HOST ){
         sendResponse([])
         return false;
     }
     let fileType = hclService.getFileType(IsSignedIntoGitHub);
-    console.log(fileType);
+    //console.log(fileType);
     if(fileType === null){
         console.log("was not found in HCLFileTypes")
         sendResponse([])
        return false;
     }
-    console.log("looking for modules")
-    let modules :DisplayHlcModule[] = hclService.findSources(IsSignedIntoGitHub);
-    console.log(JSON.stringify(modules))
+    //console.log("looking for modules")
+    //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
+    let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+    //console.log(modules)
+    if( modules == null){
+        inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources(IsSignedIntoGitHub));
+        modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+    }
 
+    //console.log(JSON.stringify(modules))
     sendResponse(modules);
     return false;
 });
+
+document.addEventListener("scroll", () => {
+    InjectHyperLinksToPage();
+})
