@@ -18,18 +18,16 @@ export class HclService {
     }
 
     getFileType = ():Nullable<HclFileTypes> => {
-        const finalPath =  document.getElementById("file-name-id") as HTMLElement
-        const innerText = finalPath?.innerText ?? '';
-        const fileType = innerText.split('.');
-        if(fileType.length !== 2){
-            return null;
+        const pathname = new URL(document.URL).pathname;
+        const fileType = pathname.substring(pathname.lastIndexOf('.')+1, pathname.length) || null
+        if(fileType == null){
+            return fileType;
         }
-        const tempFileType = fileType[1]?.trim();
-        if(!Object.values(HclFileTypes as unknown as string[]).includes(tempFileType)){
+        if(!Object.values(HclFileTypes as unknown as string[]).includes(fileType)){
             return null;
         }
 
-        return  tempFileType as unknown as HclFileTypes;
+        return  fileType as unknown as HclFileTypes;
     }
     //regex to get source = "foo" ((source)\s*=\s*("(.*?)"))
     findTerraformSources = (hclFile: IHclFile[]):Nullable<Map<string,TerraformModule>> => {
