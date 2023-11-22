@@ -1,6 +1,11 @@
 import {TERRAFORM_VERSION_CONSTRAINTS} from "../util/constants";
+import * as semver from "semver";
+import {ITerraformFetchService} from "./ITerraformFetchService";
+import {IHclVersionService} from "./IHclVersionService";
 
-export class HclVersionService {
+export class HclVersionService implements IHclVersionService{
+    constructor(private readonly terraformFetchService: ITerraformFetchService) {
+    }
     /**
      * Returns a map of {@link TERRAFORM_VERSION_CONSTRAINTS} found with their starting and ending indexs
      *
@@ -139,4 +144,32 @@ export class HclVersionService {
         }
         return leftVersion.trim();
     }
+
+
+    /**
+     * returns the terraform version that matches what is available via https:registry.terraform.io/
+     * @param providerSource the full source of the provider ie provider.hashicorp/aws
+     * @param providerType a provider type ie module or providers
+     * @param versionConstraint terraform version constraint ie >= 2.6.0
+     */
+    public async getTerraformProviderVersionAsync(providerSource:string, providerType: string, versionConstraint: string): Promise<string>{
+        const minimalTerraformVersion = this.getMinimalTerraformVersion(versionConstraint);
+        if(await this.terraformFetchService.verifyTerraformVersionAsync(providerSource,providerType,minimalTerraformVersion)){
+            return minimalTerraformVersion;
+        }
+        const allVersions = await this.terraformFetchService.getTerraformVersionsAsync(providerSource, providerType);
+        const formattedVersionConstraint =  this.formatTerraformVersion(minimalTerraformVersion);
+        const cleanVersion = semver.coerce(formattedVersionConstraint || formattedVersionConstraint.replace(/[\s<>=~]+/g, ""));
+        for(let i in allVersions){
+            if(semver.satisfies(allVersions[i],formattedVersionConstraint)){
+                return allVersions[i];
+            }
+        }
+        const greatestVersion = allVersions.at(-1);
+        if(greatestVersion === undefined){
+            throw new Error(`Could not find the highest version value for ${providerSource}`)
+        }
+        return greatestVersion;
+    }
+
 }

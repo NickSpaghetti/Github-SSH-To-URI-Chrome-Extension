@@ -8,9 +8,12 @@ import {
     TERRAFORM_SYNTAX
 } from "../util/constants";
 import {HclVersionService} from "./HclVersionService";
+import {ITerraformFetchService} from "./ITerraformFetchService";
 
 export class HclSourceService {
-    private readonly hlcVersionService = new HclVersionService();
+    constructor(private readonly terraformFetchService: ITerraformFetchService) {
+    }
+    private readonly hlcVersionService = new HclVersionService(this.terraformFetchService);
     GetSourceType = (source: string): Nullable<SourceTypes> => {
         if(this.IsHost(source)){
             return SourceTypes.url;
@@ -30,8 +33,8 @@ export class HclSourceService {
         return null;
     }
 
-    ResolveSource = (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string, url: URL): Nullable<string> => {
-        if(sourceType === null){
+    ResolveSource = async (sourceType: Nullable<SourceTypes>, source: string, moduleName: string, sourceVersion: string, url: URL): Promise<Nullable<string>> => {
+        if (sourceType === null) {
             return null;
         }
 
@@ -41,9 +44,9 @@ export class HclSourceService {
             case SourceTypes.ssh:
                 return this.sshToUrl(source);
             case SourceTypes.path:
-                return this.pathToUrl(source,url.href);
+                return this.pathToUrl(source, url.href);
             case SourceTypes.registry:
-                return this.registryToUrl(source, moduleName, sourceVersion);
+                return await this.registryToUrl(source, moduleName, sourceVersion);
             case SourceTypes.privateRegistry:
                 return source;
             default:
@@ -85,16 +88,17 @@ export class HclSourceService {
         }
     }
 
-    registryToUrl = (source: string, moduleName: string, sourceVersion: string):string => {
+    registryToUrl = async (source: string, moduleName: string, sourceVersion: string): Promise<string> => {
         let providerType = moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS)
             ? TERRAFORM_REGISTRY_ROUTES.PROVIDERS
             : TERRAFORM_REGISTRY_ROUTES.MODULES
-        let version = this.hlcVersionService.getMinimalTerraformVersion( sourceVersion?? '');
+        let version = await this.hlcVersionService.getTerraformProviderVersionAsync(source, providerType,sourceVersion ?? '')
         const sourcePaths = source.split("/");
         let sourcePath = source;
-        if(sourcePaths.length === 1 && providerType == TERRAFORM_REGISTRY_ROUTES.PROVIDERS){
+        if (sourcePaths.length === 1 && providerType == TERRAFORM_REGISTRY_ROUTES.PROVIDERS) {
             sourcePath = `${TERRAFORM_PROVIDERS.HASHICORP}/${source}`
         }
+
 
         return `https://registry.terraform.io/${providerType}/${sourcePath}/${version}`
     }

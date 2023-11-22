@@ -1,19 +1,21 @@
 import {Nullable} from "../types/Nullable";
 
 export class InMemoryCache {
-    //private static readonly _cache: Map<string,any> = new Map<string, any>()
-    private static readonly _cache: Map<string,any> = new Map<string, any>();
+    private readonly _cache: Map<string,any>;
+    constructor() {
+        this._cache = new Map<string,any>();
+    }
 
     Set<T>(key: string, value: T){
-        if(InMemoryCache._cache.has(key)){
-            InMemoryCache._cache.delete(key)
-            InMemoryCache._cache.set(key,value)
+        if(this._cache.has(key)){
+            this._cache.delete(key);
+            this._cache.set(key,value);
         }
-        InMemoryCache._cache.set(key,value)
+        this._cache.set(key,value)
     }
     Get<T>(key: string) : Nullable<T> {
-        if(InMemoryCache._cache.has(key)){
-            return InMemoryCache._cache.get(key) as T
+        if(this._cache.has(key)){
+            return this._cache.get(key) as T;
         }
         return null;
     }

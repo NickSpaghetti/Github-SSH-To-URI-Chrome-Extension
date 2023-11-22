@@ -6,8 +6,11 @@ import { IHclFile } from "../models/IHclFile";
 import {ProviderType, RequiredProvider, TerraformModule} from "../types/Terraform";
 import {TERRAFORM_SYNTAX} from "../util/constants";
 import * as hcl  from "hcl2-parser"
+import {ITerraformFetchService} from "./ITerraformFetchService";
 
 export class HclService {
+    constructor(private readonly terraformFetchService: ITerraformFetchService) {
+    }
 
     isHclModule(obj: any): obj is HclModule {
         return (
@@ -101,26 +104,26 @@ export class HclService {
     }
 
 
-    findSources = ():DisplayHlcModule[] => {
+    findSourcesAsync = async (): Promise<DisplayHlcModule[]> => {
 
         let dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement;
         let innerText = dataTargetElement.value;
 
-        if(innerText === ''){
+        if (innerText === '') {
             return [];
         }
         //const regex = new RegExp(/((source)\s*=\s*("(.*?)"))/g)
         let sources: DisplayHlcModule[] = [];
         try {
-            let hclFile =  hcl.parseToObject(innerText) as IHclFile[];
+            let hclFile = hcl.parseToObject(innerText) as IHclFile[];
             let terraformSources = this.findTerraformSources(hclFile);
             let moduleSources = this.findModuleSources(hclFile);
-            const mergedSources = new Map<string,TerraformModule>(
-                [...terraformSources?.entries() ?? new Map<string,TerraformModule>(),
-                    ...moduleSources?.entries() ?? new Map<string,TerraformModule>() ]);
-            for (let [_,module] of mergedSources){
-                if(module.provider.source !== undefined){
-                    sources.push(new DisplayHlcModule(window.location.href,module));
+            const mergedSources = new Map<string, TerraformModule>(
+                [...terraformSources?.entries() ?? new Map<string, TerraformModule>(),
+                    ...moduleSources?.entries() ?? new Map<string, TerraformModule>()]);
+            for (let [_, module] of mergedSources) {
+                if (module.provider.source !== undefined) {
+                    sources.push(await DisplayHlcModule.build(window.location.href, module,this.terraformFetchService));
                 }
             }
 
