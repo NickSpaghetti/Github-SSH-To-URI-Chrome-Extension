@@ -3,11 +3,16 @@ import {Nullable} from "../../../src/types/Nullable";
 import {SourceTypes} from "../../../src/types/SourceTypes";
 import { expect } from '@jest/globals';
 import {TERRAFORM_SYNTAX} from "../../../src/util/constants";
+import {ITerraformFetchService} from "../../../src/services/ITerraformFetchService";
+import {TerraformFetchService} from "../../../src/services/TerraformFetchService";
+import {TerraformDataAccess} from "../../../src/data-access/TerraformDataAccess";
+import {MockFetchService} from "./MockFetchService";
 
 
+const terraformFetchService: ITerraformFetchService = new TerraformFetchService(new TerraformDataAccess(new MockFetchService()));
 let hlcSourceService: HclSourceService;
 beforeAll(() => {
-    hlcSourceService = new HclSourceService();
+    hlcSourceService = new HclSourceService(terraformFetchService);
 });
 
 
@@ -113,17 +118,17 @@ describe('Given a Public Registry', () => {
         });
     });
     describe('When Public Registry is aws', () => {
-        test('Then I expect RegistryToUrl("aws","Provider.aws","") to be hashicorp/aws', () => {
-            expect<String>(hlcSourceService.registryToUrl("aws",`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.aws`,"")).toBe("https://registry.terraform.io/providers/hashicorp/aws/");
+        test('Then I expect RegistryToUrl("hashicorp/aws","Provider.hashicorp/aws","") to be hashicorp/aws', async () => {
+            expect<String>(await hlcSourceService.registryToUrl("hashicorp/aws", `${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.hashicorp/aws`, "")).toContain("https://registry.terraform.io/providers/hashicorp/aws/");
         });
-        test('Then I expect RegistryToUrl("required_provider.hashicorp/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',() => {
-            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",`${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.hashicorp/aws`,"4.58.0")).toBe("https://registry.terraform.io/providers/hashicorp/aws/4.58.0");
+        test('Then I expect RegistryToUrl("required_provider.hashicorp/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',async () => {
+            expect<String>(await hlcSourceService.registryToUrl("hashicorp/aws", `${TERRAFORM_SYNTAX.REQUIRED_PROVIDERS}.hashicorp/aws`, "4.58.0")).toBe("https://registry.terraform.io/providers/hashicorp/aws/4.58.0");
         });
-        test('Then I expect RegistryToUrl("module.hashicorp/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',() => {
-            expect<String>(hlcSourceService.registryToUrl("aws",'',"")).toBe("https://registry.terraform.io/modules/aws/");
-            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",'',"4.58.0")).toBe("https://registry.terraform.io/modules/hashicorp/aws/4.58.0");
-            expect<String>(hlcSourceService.registryToUrl("aws",`${TERRAFORM_SYNTAX.MODULE}.aws`,"")).toBe("https://registry.terraform.io/modules/aws/");
-            expect<String>(hlcSourceService.registryToUrl("hashicorp/aws",`${TERRAFORM_SYNTAX.MODULE}.hashicorp/aws`,"4.58.0")).toBe("https://registry.terraform.io/modules/hashicorp/aws/4.58.0");
+        test('Then I expect RegistryToUrl("module.terraform-aws-modules/vpc/aws","4.58.0") to be providers/hashicorp/aws/4.58.0',async () => {
+            expect<String>(await hlcSourceService.registryToUrl("hashicorp/consul/aws", '', "")).toContain("https://registry.terraform.io/modules/hashicorp/consul/aws/");
+            expect<String>(await hlcSourceService.registryToUrl("hashicorp/consul/aws", '', "0.11")).toBe("https://registry.terraform.io/modules/hashicorp/consul/aws/0.11.0");
+            expect<String>(await hlcSourceService.registryToUrl("terraform-aws-modules/vpc/aws", `${TERRAFORM_SYNTAX.MODULE}.vpc`, "")).toContain("https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/");
+            expect<String>(await hlcSourceService.registryToUrl("terraform-aws-modules/vpc/aws", `${TERRAFORM_SYNTAX.MODULE}.vpc`, "5.0.0")).toBe("https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/5.0.0");
         });
     });
     describe("When Public Registry is a ssh Host", () => {
@@ -281,50 +286,50 @@ describe("Given a Source", () => {
 
 describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
     describe("When url, github.com, foo, ''", () => {
-        test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.url, "github.com",'foo','',new URL("https://github.com")))
+        test("I expect the result to be github.com", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.url, "github.com", 'foo', '', new URL("https://github.com")))
                 .toBe("github.com");
         });
     });
 
     describe("When ssh, git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda.tf?ref=v2.0.0, foo, ''", () => {
-        test("I expect the result to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/v2.0.0/modules/lambda", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.ssh, "git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v2.0.0",'foo','',new URL("https://github.com")))
+        test("I expect the result to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/v2.0.0/modules/lambda", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.ssh, "git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v2.0.0", 'foo', '', new URL("https://github.com")))
                 .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v2.0.0/modules/lambda");
         });
     });
 
     describe("When path, ../foo/bar, foo, ''", () => {
-        test("I expect the result to be ../foo/bar", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.path, "../foo/bar",'foo','',new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
+        test("I expect the result to be ../foo/bar", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.path, "../foo/bar", 'foo', '', new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
                 .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/foo/bar");
         });
     });
 
     describe("When path, ./foo/bar, foo, ''", () => {
-        test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.path, "./foo/bar",'foo','',new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
+        test("I expect the result to be github.com", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.path, "./foo/bar", 'foo', '', new URL("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/main.tf")))
                 .toBe("https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/5/modules/services/webserver-cluster/foo/bar");
         });
     });
 
-    describe("When registry, hashicorp/aws foo, ''", () => {
-        test("I expect the result to be https://registry.terraform.io/modules/hashicorp/aws/", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo','',new URL("https://github.com")))
-                .toBe("https://registry.terraform.io/modules/hashicorp/aws/");
+    describe("When registry for module hashicorp/aws foo, ''", () => {
+        test("I expect the result to be https://registry.terraform.io/modules/hashicorp/consul/aws/", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/consul/aws", 'foo', '', new URL("https://github.com")))
+                .toContain("https://registry.terraform.io/modules/hashicorp/consul/aws/");
         });
     });
 
-    describe("When registry, hashicorp/aws foo, '1.0.0'", () => {
-        test("I expect the result to be github.com", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/aws",'foo','1.0.0',new URL("https://github.com")))
-                .toBe("https://registry.terraform.io/modules/hashicorp/aws/1.0.0");
+    describe("When registry for module hashicorp/consul/aws/ foo, '0.11.0'", () => {
+        test("I expect the result to be github.com", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.registry, "hashicorp/consul/aws", 'foo', '1.0.0', new URL("https://github.com")))
+                .toBe("https://registry.terraform.io/modules/hashicorp/consul/aws/0.11.0");
         });
     });
 
     describe("When private registry, bar.terraform.io/foo/aws foo, ''", () => {
-        test("I expect the result to be bar.terraform.io/foo/aws", ()=>{
-            expect(hlcSourceService.ResolveSource(SourceTypes.privateRegistry, "bar.terraform.io/foo/aws",'foo','1.0.0',new URL("https://github.com")))
+        test("I expect the result to be bar.terraform.io/foo/aws", async () => {
+            expect(await hlcSourceService.ResolveSource(SourceTypes.privateRegistry, "bar.terraform.io/foo/aws", 'foo', '1.0.0', new URL("https://github.com")))
                 .toBe("bar.terraform.io/foo/aws");
         });
     });

@@ -3,28 +3,49 @@ import {DisplayHlcModule} from "./models/DisplayHclModule";
 import {CacheKeys, GITHUB_ROUTES, SENDERS} from "./util/constants";
 import {Nullable} from "./types/Nullable";
 import {InMemoryCache} from "./services/InMemoryCache";
+import {TerraformFetchService} from "./services/TerraformFetchService";
+import {TerraformDataAccess} from "./data-access/TerraformDataAccess";
+import {ChromeRuntimeFetchService} from "./services/ChromeRuntimeFetchService";
+import {ITerraformDataAccess} from "./data-access/ITerraformDataAccess";
+import {IFetchService} from "./services/IFetchService";
+import {ITerraformFetchService} from "./services/ITerraformFetchService";
 
-const hclService = new HclService();
-const inMemoryCache = new InMemoryCache()
-const InjectHyperLinksToPage = () => {
-        if(window.location.host !== GITHUB_ROUTES.HOST){
-            return;
-        }
+const fetchService: IFetchService = new ChromeRuntimeFetchService();
+const terraformDataAccess: ITerraformDataAccess = new TerraformDataAccess(fetchService);
+const terraformFetchService: ITerraformFetchService = new TerraformFetchService(terraformDataAccess);
+const hclService = new HclService(terraformFetchService);
+const inMemoryCache = new InMemoryCache();
 
-        let fileType = hclService.getFileType();
-        if(fileType === null){
-            return;
-        }
-        //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
-        let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-        if( modules == null) {
-            inMemoryCache.Set(CacheKeys.MODULES, hclService.findSources());
-            modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-        }
-
-        addHyperLinksToModuleSource(modules ?? new Array<DisplayHlcModule>());
-
+const InjectHyperLinksToPageAsync =  async () => {
+    if (window.location.host !== GITHUB_ROUTES.HOST) {
+        return;
     }
+
+    let fileType = hclService.getFileType();
+    if (fileType === null) {
+        return;
+    }
+    //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
+    let modules = await hydrateModulesAsync();
+
+    addHyperLinksToModuleSource(modules ?? new Array<DisplayHlcModule>());
+}
+
+async function hydrateModulesAsync(): Promise<Array<DisplayHlcModule>> {
+    let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+    if (modules == null) {
+        modules =  await hclService.findSourcesAsync();
+        inMemoryCache.Set(CacheKeys.MODULES, modules);
+    }
+    return modules ?? [];
+}
+
+function shouldModelsRehydrate(): boolean{
+    const models = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
+    const url = inMemoryCache.Get<URL>(CacheKeys.CURRENT_TAB_URL);
+    return models == null && url == null;
+
+}
 
 function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
@@ -69,48 +90,48 @@ function replaceSourceSpanTag(span: HTMLElement, modifiedSourceType: Nullable<st
 
 
 //return false to tell chrome that this is not an async method
-chrome.runtime.onMessage.addListener((message, sender,sendResponse): boolean=> {
-    if(message === SENDERS.BACKGROUND){
-        InjectHyperLinksToPage();
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse): Promise<boolean> => {
+    if (message === SENDERS.BACKGROUND) {
+        await InjectHyperLinksToPageAsync();
         return false;
     }
     let currentTab = message;
-    if(currentTab == null || currentTab?.tabUrl === ''){
+    if (currentTab == null || currentTab?.tabUrl === '') {
         sendResponse([])
         return false;
     }
+    let isRehydrateNeeded = false;
     const currentUrl = new URL(currentTab.tabUrl);
-    let shouldModelsReHydrate = false;
-    if(inMemoryCache.Get(CacheKeys.CURRENT_TAB_URL) !== currentUrl){
-        inMemoryCache.Set(CacheKeys.CURRENT_TAB_URL,currentUrl);
-        shouldModelsReHydrate = true
+    if (inMemoryCache.Get<URL>(CacheKeys.CURRENT_TAB_URL)?.href !== currentUrl.href) {
+        inMemoryCache.Set(CacheKeys.CURRENT_TAB_URL, currentUrl);
+        isRehydrateNeeded = shouldModelsRehydrate();
     }
     //console.log(currentUrl.hostname)
-    if(currentUrl.hostname !== GITHUB_ROUTES.HOST ){
+    if (currentUrl.hostname !== GITHUB_ROUTES.HOST) {
         sendResponse([])
         return false;
     }
     let fileType = hclService.getFileType();
     //console.log(fileType);
-    if(fileType === null){
+    if (fileType === null) {
         console.log("was not found in HCLFileTypes")
         sendResponse([])
-       return false;
+        return false;
     }
     //console.log("looking for modules")
     //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
     let modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-    //console.log(modules)
-    if( modules == null || shouldModelsReHydrate){
-        inMemoryCache.Set(CacheKeys.MODULES,hclService.findSources());
+    if (isRehydrateNeeded) {
+        inMemoryCache.Set(CacheKeys.MODULES, await hclService.findSourcesAsync());
         modules = inMemoryCache.Get<Array<DisplayHlcModule>>(CacheKeys.MODULES);
     }
 
-    //console.log(JSON.stringify(modules))
-    sendResponse(modules);
+    if(modules != null){
+        sendResponse(modules);
+    }
     return false;
 });
 
-document.addEventListener("scroll", () => {
-    InjectHyperLinksToPage();
+document.addEventListener("scroll", async () => {
+    await InjectHyperLinksToPageAsync();
 })

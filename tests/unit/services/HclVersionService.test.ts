@@ -1,9 +1,14 @@
 import {expect} from "@jest/globals";
 import {HclVersionService} from "../../../src/services/HclVersionService";
 import {TERRAFORM_VERSION_CONSTRAINTS} from "../../../src/util/constants";
+import {ITerraformFetchService} from "../../../src/services/ITerraformFetchService";
+import {TerraformFetchService} from "../../../src/services/TerraformFetchService";
+import {TerraformDataAccess} from "../../../src/data-access/TerraformDataAccess";
+import {MockFetchService} from "./MockFetchService";
+const terraformFetchService: ITerraformFetchService = new TerraformFetchService(new TerraformDataAccess(new MockFetchService()));
 let hclVersionService: HclVersionService;
 beforeAll(() => {
-    hclVersionService = new HclVersionService();
+    hclVersionService = new HclVersionService(terraformFetchService);
 });
 
 describe("Given a version", () => {
