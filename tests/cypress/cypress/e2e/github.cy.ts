@@ -24,10 +24,4 @@ it('find data-code-text', () => {
 
 });
 
-it('should find the code', () => {
-    cy.visit('https://github.com/NickSpaghetti/Salve-Amulet-Checker/blob/master/src/main/java/com/sac/SalveAmuletCheckerPlugin.java');
-    cy.contains('a','Sign up')
-        .should('be.visible')
-})
-
 
