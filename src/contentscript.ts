@@ -50,6 +50,7 @@ function shouldModelsRehydrate(): boolean{
 function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
     // all text on page values are stored in data-code-text
+    overrideZIndex();
     modules.forEach(module => {
         let stringSpans = document.querySelectorAll(`span[data-code-text="${CSS.escape(module.source)}"]`)
         for (let i: number = 0; i < stringSpans.length; i++) {
@@ -64,6 +65,7 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
         }
     })
 
+    //<a href="https://registry.terraform.io/providers/hashicorp/aws/3.72.0" rel="noreferrer" target="_blank">hashicorp/aws</a>
     const dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement
     let nextSibling = dataTargetElement.nextElementSibling;
     while(nextSibling !== null){
@@ -86,6 +88,15 @@ function replaceSourceSpanTag(span: HTMLElement, modifiedSourceType: Nullable<st
     a.target = "_blank";
     a.innerText = innerText
     span.replaceWith(a)
+}
+
+function overrideZIndex(){
+    // the text area read-only-cursor-text-area has a style zIndex = 1 which will block the anchor tag being clicked
+    const textArea = document.querySelector(`#read-only-cursor-text-area`) as HTMLElement;
+    if(textArea == null) {
+        return;
+    }
+    textArea.style.zIndex = '-1';
 }
 
 
