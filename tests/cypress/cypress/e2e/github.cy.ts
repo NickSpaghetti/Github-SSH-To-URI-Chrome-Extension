@@ -24,4 +24,13 @@ it('find data-code-text', () => {
 
 });
 
+it('read-only-cursor-text-area has z-index 1 style', () => {
+    cy.visit('https://github.com/NickSpaghetti/terraform-up-and-running-3rd-edition/blob/main/Chapters/6/main.tf');
+    cy.get('#read-only-cursor-text-area')
+        .should('not.be.undefined')
+        .should('have.css','z-index','1');
+
+});
+
+
 
