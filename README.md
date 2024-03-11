@@ -1,4 +1,5 @@
 # <img src="public/icons/icon96.png" align="absmiddle"> Github-SSH-To-URI-Chrome-Extension
+![Tests](https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension/actions/workflows/cron-test.yml/badge.svg)
 
 ## Installing the Extension
 You can install the Chrome extension from the [store](https://chrome.google.com/webstore/detail/github-terraform-sources/opnokndmmanolamphnpknbpdkdbcfidl?hl=en&authuser=0).
