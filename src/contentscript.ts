@@ -49,12 +49,13 @@ function shouldModelsRehydrate(): boolean{
 
 function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     //all strings are stored in class 'pl-s'
+    //gets all the TextNodes that contain the values between .pl-pds which are ".
     let childTextNodes = Array.from(document.querySelectorAll(`div[id^="LC"] > span.pl-s > span.pl-pds`))
-        .map((value, index, array) => value.parentElement)
-        .filter((value, index, self) => value != null && self != null && self.indexOf(value) === index)
-        .map(div => {
+        .map((element) => element.parentElement)
+        .filter((htmlElement, index, self) => htmlElement != null && self != null && self.indexOf(htmlElement) === index)
+        .map(htmlElement => {
             const text: ChildNode[] = []
-            const childNodes = div?.childNodes
+            const childNodes = htmlElement?.childNodes
             if(childNodes != null){
                 for (let i = 0; i < childNodes.length; i++){
                     const node = childNodes[i];
@@ -80,40 +81,20 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
         })
     }
 
-    //overrideZIndex();
+   }
 
-    //<a href="https://registry.terraform.io/providers/hashicorp/aws/3.72.0" rel="noreferrer" target="_blank">hashicorp/aws</a>
-    const dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement
-    let nextSibling = dataTargetElement.nextElementSibling;
-    while(nextSibling !== null){
-        if(nextSibling.tagName === "DIV"){
-            //we want to remove the class name since it is preventing the user to click <a/> tag
-           // nextSibling.className = '';
-        }
-        nextSibling = nextSibling.nextElementSibling;
-    }
-}
-
-function replaceSourceSpanTag(span: HTMLElement | ChildNode, modifiedSourceType: Nullable<string>, innerText: string) {
+function replaceSourceSpanTag(span: HTMLElement | ChildNode, modifiedSourceType: Nullable<string>, innerText: string,) {
     if(modifiedSourceType === null){
         return;
     }
 
     let a = document.createElement('a');
+    a.id=`GithubTerraformSourceUrl-${crypto.randomUUID()}`
     a.href = modifiedSourceType
     a.rel = "noreferrer";
     a.target = "_blank";
     a.innerText = innerText
     span.replaceWith(a)
-}
-
-function overrideZIndex(){
-    // the text area read-only-cursor-text-area has a style zIndex = 1 which will block the anchor tag being clicked
-    const textArea = document.querySelector(`#read-only-cursor-text-area`) as HTMLElement;
-    if(textArea == null) {
-        return;
-    }
-    textArea.style.zIndex = '-1';
 }
 
 
