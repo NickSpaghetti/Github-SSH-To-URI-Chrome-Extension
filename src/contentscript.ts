@@ -76,25 +76,26 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
         const text = parent.textContent.trim().replace(/"/g,'');
         modules.forEach(module => {
             if(module.source === text && module.modifiedSourceType != null){
-                replaceSourceSpanTag(childTextNodes[i], module.modifiedSourceType, text);
+                replaceSourceTag(childTextNodes[i], module.modifiedSourceType, text, parent?.parentElement?.id)
             }
         })
     }
 
    }
 
-function replaceSourceSpanTag(span: HTMLElement | ChildNode, modifiedSourceType: Nullable<string>, innerText: string,) {
+function replaceSourceTag(childNode: HTMLElement | ChildNode, modifiedSourceType: Nullable<string>, innerText: string, lineCount: string | undefined) {
     if(modifiedSourceType === null){
         return;
     }
 
     let a = document.createElement('a');
-    a.id=`GithubTerraformSourceUrl-${crypto.randomUUID()}`
+    a.id=`GithubTerraformSourceUrl-${lineCount === undefined ? crypto.randomUUID() : lineCount}`
     a.href = modifiedSourceType
     a.rel = "noreferrer";
     a.target = "_blank";
     a.innerText = innerText
-    span.replaceWith(a)
+    a.style.setProperty("pointer-events", "all", "important")
+    childNode.replaceWith(a)
 }
 
 
