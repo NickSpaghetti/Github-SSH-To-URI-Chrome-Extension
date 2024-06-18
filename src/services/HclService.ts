@@ -106,10 +106,10 @@ export class HclService {
 
     findSourcesAsync = async (): Promise<DisplayHlcModule[]> => {
 
-        let dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement;
-        let innerText = dataTargetElement.value;
+        const dataTargetElement = document.getElementById('read-only-cursor-text-area') as HTMLTextAreaElement;
+        const innerText = dataTargetElement?.value;
 
-        if (innerText === '') {
+        if (innerText == null || innerText === '') {
             return [];
         }
         //const regex = new RegExp(/((source)\s*=\s*("(.*?)"))/g)
