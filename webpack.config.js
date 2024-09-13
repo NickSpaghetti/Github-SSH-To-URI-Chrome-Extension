@@ -3,6 +3,7 @@ const HTMLWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const tsRule = {
     test: /\.ts(x?)$/,
@@ -18,6 +19,11 @@ const plugins = [
       template: 'src/popup-page/popup.html',
       filename: 'index.html',
       chunks: ['popup'],
+    }),
+    new HtmlWebpackPlugin({
+      template: '/src/options-page/options.html',
+      filename: 'options.html',
+      chunks: ['options'],
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -35,8 +41,9 @@ module.exports = {
     mode: "production",
     entry: {
         index:              './src/popup-page/popup.tsx',
+        options:            './src/options-page/options.tsx',
         contentscript:      './src/contentscript.ts',
-        backgroundscript:   './src/backgroundscript.ts'
+        backgroundscript:   './src/backgroundscript.ts',
     },
     resolve:{
       extensions:['.js','.jsx','.ts','.tsx'],

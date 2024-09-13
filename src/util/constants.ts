@@ -20,6 +20,13 @@ export const GITHUB_ROUTES = {
     MAIN: "main"
 }
 
+export const BITBUCKET_ROUTES = {
+    HOST: "bitbucket.org",
+    PROJECTS: "projects",
+    REPOS: "repos",
+    BROWSE: "browse"
+}
+
 export const FileExtensions = {
     TF:".tf",
     HCL:".hcl",
