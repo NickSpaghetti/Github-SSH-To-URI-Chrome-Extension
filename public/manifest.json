@@ -13,7 +13,7 @@
         "https://registry.terraform.io/*",
         "https://bitbucket.org/*"
     ],
-    "version":"0.0.0.14",
+    "version":"0.0.0.15",
     "action":{
         "default_popup": "index.html"
     },
