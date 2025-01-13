@@ -1,6 +1,6 @@
 import {HclService} from "./services/HclService";
 import {DisplayHlcModule} from "./models/DisplayHclModule";
-import {CacheKeys, GITHUB_ROUTES, SENDERS} from "./util/constants";
+import {BITBUCKET_ROUTES, CacheKeys, GITHUB_ROUTES, SENDERS} from "./util/constants";
 import {Nullable} from "./types/Nullable";
 import {InMemoryCache} from "./services/InMemoryCache";
 import {TerraformFetchService} from "./services/TerraformFetchService";
@@ -9,6 +9,7 @@ import {ChromeRuntimeFetchService} from "./services/ChromeRuntimeFetchService";
 import {ITerraformDataAccess} from "./data-access/ITerraformDataAccess";
 import {IFetchService} from "./services/IFetchService";
 import {ITerraformFetchService} from "./services/ITerraformFetchService";
+import { SourceControlUiDisplayer } from "./services/source-control-ui-display/SourceControlUiDisplayer";
 
 const fetchService: IFetchService = new ChromeRuntimeFetchService();
 const terraformDataAccess: ITerraformDataAccess = new TerraformDataAccess(fetchService);
@@ -17,9 +18,7 @@ const hclService = new HclService(terraformFetchService);
 const inMemoryCache = new InMemoryCache();
 
 const InjectHyperLinksToPageAsync =  async () => {
-    if (window.location.host !== GITHUB_ROUTES.HOST) {
-        return;
-    }
+    const sourceUiDisplay = new SourceControlUiDisplayer(window.location.host)
 
     let fileType = hclService.getFileType();
     if (fileType === null) {
@@ -28,7 +27,7 @@ const InjectHyperLinksToPageAsync =  async () => {
     //we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
     let modules = await hydrateModulesAsync();
 
-    addHyperLinksToModuleSource(modules ?? new Array<DisplayHlcModule>());
+    sourceUiDisplay.AddHyperLinksToModuleSource(modules ?? new Array<DisplayHlcModule>());
 }
 
 async function hydrateModulesAsync(): Promise<Array<DisplayHlcModule>> {
@@ -117,7 +116,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse): Prom
         isRehydrateNeeded = shouldModelsRehydrate();
     }
     //console.log(currentUrl.hostname)
-    if (currentUrl.hostname !== GITHUB_ROUTES.HOST) {
+    if (currentUrl.hostname !== GITHUB_ROUTES.HOST || currentUrl.hostname != BITBUCKET_ROUTES.HOST) {
         sendResponse([])
         return false;
     }

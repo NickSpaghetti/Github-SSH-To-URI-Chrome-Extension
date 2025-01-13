@@ -4,16 +4,16 @@ import { render } from "react-dom";
 import { ManageOptions } from "../components/ManageOptionComponent";
 import { SaveOptions } from "../components/SaveOptionComponent";
 import { OptionsSideBar } from "../components/OptionsSideBar";
-import { Route, Routes } from "react-router-dom";
 import { Link, Router } from "react-chrome-extension-router";
 
 export const Options: React.FC = () => {
         return (
             <div>
                 <Router>
-                    <SaveOptions></SaveOptions>
+                    <SaveOptions/>
                 </Router>
             </div>
+
         )
     
 }

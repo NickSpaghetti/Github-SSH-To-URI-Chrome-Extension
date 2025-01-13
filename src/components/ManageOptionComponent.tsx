@@ -44,5 +44,3 @@ export const ManageOptions: React.FC = () => {
         </div>
     );
 };
-
-//render(<ManageOptions />, document.getElementById("manage-options-page"));

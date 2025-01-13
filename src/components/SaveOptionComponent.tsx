@@ -3,7 +3,7 @@ import { render } from "react-dom";
 import { SaveOption } from "../types/SaveOption";
 import { Handshake } from "@mui/icons-material";
 import { ManageOptions } from "./ManageOptionComponent";
-import { goTo, Link } from "react-chrome-extension-router";
+import { goTo } from "react-chrome-extension-router";
 
 export const SaveOptions: React.FC = () => {
     const [domain, setDomain] = useState<string>(window.location.hostname)
@@ -43,10 +43,6 @@ export const SaveOptions: React.FC = () => {
             </div>
             <br></br>
             <button onClick={ () => goTo(ManageOptions)}>Manage Domains</button>
-            <Link component={ManageOptions}>Manage Domains</Link>
-            <ManageOptions></ManageOptions>
         </div>
     )
 }
-
-//render(<SaveOptions />, document.getElementById("save-options-page"));
