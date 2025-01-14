@@ -118,61 +118,6 @@ function replaceSourceTag(childNode: HTMLElement | ChildNode, modifiedSourceType
     childNode.replaceWith(a)
 }
 
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     console.log(`msg: ${JSON.stringify(message)} from: ${JSON.stringify(sender)}`)
-//     const handleMessage = (async () => {
-//         if (message === SENDERS.BACKGROUND) {
-//             await chromeStroageCache.ClearAsync();
-//             await InjectHyperLinksToPageAsync();
-//             sendResponse([]);
-//             return true;
-//         }
-//         let currentTab = message;
-//         if (currentTab == null || currentTab?.tabUrl === '') {
-//             sendResponse([])
-//             return false;
-//         }
-//         let isRehydrateNeeded = false;
-//         const currentUrl = new URL(currentTab.tabUrl);
-//         const cachedCurrentUrl = await chromeStroageCache.GetAsync<URL>(CacheKeys.CURRENT_TAB_URL);
-//         if (cachedCurrentUrl?.href !== currentUrl.href) {
-//             await chromeStroageCache.SetAsync(CacheKeys.CURRENT_TAB_URL, currentUrl);
-//             isRehydrateNeeded = await shouldModelsRehydrateAsync();
-//         }
-
-//         //console.log(currentUrl.hostname)
-//         if (currentUrl.hostname !== GITHUB_ROUTES.HOST) {
-//             sendResponse([])
-//             return false;
-//         }
-//         let fileType = hclService.getFileType();
-//         //console.log(fileType);
-//         if (fileType === null) {
-//             console.log("was not found in HCLFileTypes")
-//             sendResponse([])
-//             return false;
-//         }
-//         //console.log("looking for modules")
-//         // we cache the modules because we do not want to parse the TF evey time we scroll if the page is long
-//         let modules = await chromeStroageCache.GetAsync<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-//         if (isRehydrateNeeded) {
-//             await chromeStroageCache.SetAsync(CacheKeys.MODULES, await hclService.findSourcesAsync());
-//             modules = await chromeStroageCache.GetAsync<Array<DisplayHlcModule>>(CacheKeys.MODULES);
-//         }
-//         if (modules != null) {
-//             sendResponse(modules);
-//             return true;
-//         }
-//     })();
-//     let shouldKeepChannelOpen = true; // Keep message channel open initally
-//     handleMessage.then((keepChannelOpen) => {
-//         if (!keepChannelOpen) {
-//           sendResponse([]); // Ensure a response is sent if we're closing the channel
-//         }
-//         shouldKeepChannelOpen = keepChannelOpen ?? false;
-//       });
-//     return shouldKeepChannelOpen;
-// });
 let shouldKeepChannelOpen = true;  // Keep message channel open initally
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let currentTab = message;
@@ -219,7 +164,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return false;
         }
     })();
-    console.log(shouldKeepChannelOpen)
     handleMessage.then((keepChannelOpen) => {
         if (!keepChannelOpen) {
             sendResponse([]); // Ensure a response is sent if we're closing the channel
