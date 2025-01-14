@@ -84,9 +84,12 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
     }
 
     //Changes the Z index so our a tag can be clicked on
+    const reactLineNumbers = document.querySelector('.react-line-numbers') as HTMLElement;
+    let reactLineNumbersZIndex = reactLineNumbers?.style?.zIndex ?? '2'
+    console.log(reactLineNumbersZIndex)
     const reactCodeLines = document.querySelector('.react-code-lines') as HTMLElement;
     if (reactCodeLines !== null){
-        reactCodeLines.style.zIndex='3';
+        reactCodeLines.style.zIndex = String(reactLineNumbersZIndex + 1)
     }
 }
 
