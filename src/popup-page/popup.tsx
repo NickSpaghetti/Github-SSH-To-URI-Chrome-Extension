@@ -16,6 +16,8 @@ import {
 import { DisplayHlcModule } from '../models/DisplayHclModule';
 import { SourceTypes } from '../types/SourceTypes';
 import { TablePaginationActions } from '../components/TablePaginationComponent';
+import { ChromeStorageCache } from '../services/ChromeStorageCache';
+import { CacheKeys } from '../util/constants';
 
 interface IProps {}
 
@@ -24,6 +26,7 @@ export const Popup: FC<IProps> = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
+    const chromeStorageCahce = new ChromeStorageCache();
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -52,7 +55,14 @@ export const Popup: FC<IProps> = () => {
         };
 
         const fetchData = async () => {
-            if (isFetching) return; // Prevent multiple fetches
+            const cachedModules = await chromeStorageCahce.GetAsync<DisplayHlcModule[]>(CacheKeys.MODULES);
+            if(cachedModules){
+                setContent(cachedModules);
+                return;
+            }
+            if (isFetching){
+                return; // Prevent multiple fetches
+            } 
             setIsFetching(true);
 
             try {
