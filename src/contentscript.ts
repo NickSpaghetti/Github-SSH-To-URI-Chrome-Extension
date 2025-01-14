@@ -75,11 +75,19 @@ function addHyperLinksToModuleSource(modules: DisplayHlcModule[]) {
         const text = parent.textContent.trim().replace(/"/g, '');
         modules.forEach(module => {
             if (module.source === text && module.modifiedSourceType != null) {
+                //Removes the attribute that prevents our a tag from being clicked on
+                const grandParent = parent.closest('[inert]');
+                grandParent?.removeAttribute('inert')
                 replaceSourceTag(childTextNodes[i], module.modifiedSourceType, text, parent?.parentElement?.id)
             }
         })
     }
 
+    //Changes the Z index so our a tag can be clicked on
+    const reactCodeLines = document.querySelector('.react-code-lines') as HTMLElement;
+    if (reactCodeLines !== null){
+        reactCodeLines.style.zIndex='3';
+    }
 }
 
 function replaceSourceTag(childNode: HTMLElement | ChildNode, modifiedSourceType: Nullable<string>, innerText: string, lineCount: string | undefined) {
@@ -208,6 +216,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return false;
         }
     })();
+    console.log(shouldKeepChannelOpen)
     handleMessage.then((keepChannelOpen) => {
         if (!keepChannelOpen) {
             sendResponse([]); // Ensure a response is sent if we're closing the channel
