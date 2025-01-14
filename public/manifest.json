@@ -5,13 +5,14 @@
     "permissions": [
         "tabs",
         "scripting",
-        "activeTab"
+        "activeTab",
+        "storage"
     ],
     "host_permissions": [
         "https://github.com/*",
         "https://registry.terraform.io/*"
     ],
-    "version":"0.0.0.13",
+    "version":"0.0.0.14",
     "action":{
         "default_popup": "index.html"
     },

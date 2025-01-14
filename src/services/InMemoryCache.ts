@@ -19,4 +19,8 @@ export class InMemoryCache {
         }
         return null;
     }
+
+    Clear() {
+        this._cache.clear()
+    }
 }
