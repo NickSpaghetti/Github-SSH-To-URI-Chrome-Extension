@@ -81,7 +81,7 @@ export class HclService {
         let foundModules: Map<string,TerraformModule> = new Map<string,TerraformModule>();
         try {
             if(hclFile[0] === null || hclFile[0].module === undefined) {
-                console.log('No module found file');
+                console.log('No module found in file');
                 return null;
             }
             for (let [moduleName, modules] of Object.entries(hclFile[0].module)) {
