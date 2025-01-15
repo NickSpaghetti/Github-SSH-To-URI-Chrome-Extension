@@ -173,13 +173,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return shouldKeepChannelOpen;
 });
 
-
+let scrollTimeout: NodeJS.Timeout;
 document.addEventListener("scroll", async () => {
-    await InjectHyperLinksToPageAsync();
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(async () => {
+            await InjectHyperLinksToPageAsync();
+        },100)
 });
 
 document.addEventListener('visibilitychange', async function () {
-    if (document.hidden) {
+    var documentURL = new URL(document.URL);
+    if (document.hidden && documentURL.hostname === GITHUB_ROUTES.HOST) {
         await chromeStroageCache.ClearAsync();
     }
 });
