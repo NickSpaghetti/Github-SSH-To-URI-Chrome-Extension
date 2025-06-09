@@ -94,6 +94,16 @@ describe('Given a url', () => {
             expect<boolean>(hlcSourceService.IsHost("")).toBe(false);
         });
     });
+    describe("When string is git::https://github.com", () => {
+        test('Then I expect IsHost to be true', () => {
+            expect<boolean>(hlcSourceService.IsHost("git::https://github.com")).toBe(true);
+        });
+    });
+        describe("When string is git::'git::https://github.com/gruntwork-io/terraform-aws-data-storage.git//modules/aurora?ref=v0.40.6'", () => {
+        test('Then I expect IsHost to be true', () => {
+            expect<boolean>(hlcSourceService.IsHost("git::https://github.com/gruntwork-io/terraform-aws-data-storage.git//modules/aurora?ref=v0.40.6")).toBe(true);
+        });
+    });
 });
 
 describe('Given a Public Registry', () => {
@@ -229,6 +239,51 @@ describe("Given a ssh host", () => {
         });
     });
 });
+
+describe("Given a host", () => {
+    describe("When host is git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v0.21.6", () => {
+        test("Then I expect the url to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/lambda", () => {
+            expect<string>(hlcSourceService.hostToUrl("git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v0.21.6"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/lambda");
+        });
+    });
+
+    describe("When host is git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/lambda", () => {
+        test("Then I expect the url to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/main/modules/lambda", () => {
+            expect<string>(hlcSourceService.hostToUrl("git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/lambda"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/main/modules/lambda");
+        });
+    });
+
+    describe("When ssh host is git::https://github.com/gruntwork-io/terraform-aws-lambda.git", () => {
+        test("Then I expect the url to be https://github.com/gruntwork-io/terraform-aws-lambda/tree/main/", () => {
+            expect<string>(hlcSourceService.hostToUrl("git::https://github.com/gruntwork-io/terraform-aws-lambda.git"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/tree/main/");
+        });
+    });
+
+    describe("When host is is git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/main.tf", () => {
+        test("Then I expect the url to be https://github.com/gruntwork-io/terraform-aws-lambda/blob/main/modules/main.tf", () => {
+            expect<string>(hlcSourceService.hostToUrl("git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/main.tf"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/blob/main/modules/main.tf");
+        });
+    });
+
+    describe("When host is is git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/main.tf?ref=2.0.0", () => {
+        test("Then I expect the url to be https://github.com/gruntwork-io/terraform-aws-lambda/blob/2.0.0/modules/main.tf", () => {
+            expect<string>(hlcSourceService.hostToUrl("git::https://github.com/gruntwork-io/terraform-aws-lambda.git//modules/main.tf?ref=2.0.0"))
+                .toBe("https://github.com/gruntwork-io/terraform-aws-lambda/blob/2.0.0/modules/main.tf");
+        });
+    });
+
+    describe("When host is is https://github.com/NickSpaghetti/foobar", () => {
+        test("Then I expect the url to be  https://github.com/NickSpaghetti/foobar", () => {
+            expect<string>(hlcSourceService.hostToUrl(" https://github.com/NickSpaghetti/foobar"))
+                .toBe(" https://github.com/NickSpaghetti/foobar");
+        });
+    });
+});
+
 
 describe("Given a relative file path", () => {
     describe("When relative path is host is ../../base/ec2-baseline and the path is https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules/mgmt/lambdas/main.tf", () => {
