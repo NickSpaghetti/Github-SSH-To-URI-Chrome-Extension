@@ -40,7 +40,7 @@ export class HclSourceService {
 
         switch (sourceType) {
             case SourceTypes.url:
-                return source;
+                return this.hostToUrl(source);
             case SourceTypes.ssh:
                 return this.sshToUrl(source);
             case SourceTypes.path:
@@ -52,6 +52,37 @@ export class HclSourceService {
             default:
                 return null;
         }
+    }
+
+    //"git::https://github.com/gruntwork-io/terraform-aws-data-storage.git//modules/aurora?ref=v0.40.6"
+    //"https://github.com/gruntwork-io/terraform-aws-data-storage/tree/v0.40.6/modules/aurora"
+    hostToUrl = (source:string): string => {
+        if (!source.startsWith("git::http")) {
+            return source
+        }
+
+        let stripedSource = source.replace("git::","");
+        var uri = new URL(stripedSource);
+        let fullName = uri.pathname.replace(".git","");
+        let isRef = uri.searchParams.get("ref") !== null
+            let branchTag = uri.searchParams.get("ref") ?? "main";
+            let dirName =
+                uri.pathname.lastIndexOf(FileExtensions.TF) !== -1 || uri.pathname.lastIndexOf(FileExtensions.HCL) !== -1
+                    ? GITHUB_ROUTES.BLOB
+                    : GITHUB_ROUTES.TREE;
+            if(isRef){
+                fullName = fullName.replace(`?ref=${branchTag}`,"")
+            }
+            if(fullName.indexOf("//") === -1){
+                fullName += `/${dirName}/${branchTag}/`
+            }
+            else{
+                fullName = fullName.replace("//",`/${dirName}/${branchTag}/`)
+            }
+
+
+        return `${uri.origin}${fullName}`;
+
     }
     //git::git@github.com:gruntwork-io/terraform-aws-lambda.git//modules/lambda?ref=v0.21.6
     //https://github.com/gruntwork-io/terraform-aws-lambda/tree/v0.21.6/modules
@@ -112,11 +143,14 @@ export class HclSourceService {
 
     IsHost = (source: string): boolean =>  {
         try {
+            if (source.startsWith("git::http")) {
+                source = source.replace("git::","")
+            }
             let url = new URL(source);
             const position = url.toString().lastIndexOf(url.protocol);
             const domainExtensionPosition = url.toString().lastIndexOf('.');
             return (
-                position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 && url.toString().length - domainExtensionPosition > 2
+                position === 0 && ['http:', 'https:'].indexOf(url.protocol) !== -1 && url.toString().length - domainExtensionPosition >= 2
             );
         }
         catch($error){
