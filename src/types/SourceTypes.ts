@@ -3,5 +3,5 @@ export enum SourceTypes {
     path,
     ssh,
     registry,
-    privateRegistry
+    privateRegistry,
 }

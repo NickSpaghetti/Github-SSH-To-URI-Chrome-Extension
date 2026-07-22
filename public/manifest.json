@@ -1,26 +1,20 @@
 {
     "manifest_version": 3,
-    "name":"Github Terraform Sources To Url",
-    "description":"Converts Terraform modules sources on github to clickable links that take you to the module definition page.",
-    "permissions": [
-        "tabs",
-        "scripting",
-        "activeTab",
-        "storage"
-    ],
-    "host_permissions": [
-        "https://github.com/*",
-        "https://registry.terraform.io/*"
-    ],
-    "version":"0.0.0.16",
-    "action":{
+    "name": "Github Terraform Sources To Url",
+    "description": "Converts Terraform modules sources on github to clickable links that take you to the module definition page.",
+    "permissions": ["tabs", "scripting", "activeTab", "storage"],
+    "host_permissions": ["https://github.com/*", "https://registry.terraform.io/*"],
+    "version": "0.0.0.16",
+    "action": {
         "default_popup": "index.html"
     },
-    "content_scripts":[{
-        "matches":["https://github.com/?*"],
-        "js": ["contentscript.js"],
-        "run_at": "document_end"
-    }],
+    "content_scripts": [
+        {
+            "matches": ["https://github.com/?*"],
+            "js": ["contentscript.js"],
+            "run_at": "document_end"
+        }
+    ],
     "background": {
         "service_worker": "backgroundscript.js"
     },
@@ -29,5 +23,5 @@
         "48": "icons/icon48.png",
         "96": "icons/icon96.png",
         "128": "icons/icon128.png"
-      }
+    }
 }

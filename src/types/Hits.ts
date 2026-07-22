@@ -1,4 +1,4 @@
-type Hit ={
-    start: number,
-    end: number,
-}
+export type Hit = {
+    start: number;
+    end: number;
+};

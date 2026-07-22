@@ -1,49 +1,83 @@
 {
-  "name": "github-ssh-to-uri-chrome-extension",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "webpack",
-    "test": "jest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension.git"
-  },
-  "keywords": [],
-  "author": "Nick Spaghetti",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension/issues"
-  },
-  "homepage": "https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension#readme",
-  "dependencies": {
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
-    "@mui/icons-material": "^5.11.9",
-    "@mui/material": "^5.11.9",
-    "@types/semver": "^7.5.4",
-    "hcl2-parser": "^1.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.0.202",
-    "@types/jest": "^29.4.0",
-    "@types/react": "^18.0.25",
-    "@types/react-dom": "^18.0.9",
-    "clean-webpack-plugin": "^4.0.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "html-webpack-plugin": "^5.5.0",
-    "jest": "^29.4.3",
-    "terser-webpack-plugin": "^5.3.7",
-    "ts-jest": "^29.0.5",
-    "ts-loader": "^9.4.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.3",
-    "webpack": "5.76.0",
-    "webpack-cli": "^5.0.1"
-  },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+    "name": "github-ssh-to-uri-chrome-extension",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "engines": {
+        "node": ">=24"
+    },
+    "scripts": {
+        "build": "webpack",
+        "test": "jest",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "audit:prod": "yarn audit --groups dependencies",
+        "audit:dev": "yarn audit --groups devDependencies",
+        "prepare": "husky"
+    },
+    "resolutions": {
+        "@emotion/react/@emotion/babel-plugin/babel-plugin-macros/cosmiconfig/yaml": "^1.10.3",
+        "@babel/runtime": "^7.26.10"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.tsx": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension.git"
+    },
+    "keywords": [],
+    "author": "Nick Spaghetti",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension/issues"
+    },
+    "homepage": "https://github.com/NickSpaghetti/Github-SSH-To-URI-Chrome-Extension#readme",
+    "dependencies": {
+        "@emotion/react": "^11.10.5",
+        "@emotion/styled": "^11.10.5",
+        "@mui/icons-material": "^5.11.9",
+        "@mui/material": "^5.11.9",
+        "@types/semver": "^7.5.4",
+        "hcl2-parser": "^1.0.3",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/chrome": "^0.0.202",
+        "@types/jest": "^29.4.0",
+        "@types/react": "^18.0.25",
+        "@types/react-dom": "^18.0.9",
+        "clean-webpack-plugin": "^4.0.0",
+        "copy-webpack-plugin": "^11.0.0",
+        "eslint": "^10.7.0",
+        "eslint-config-prettier": "^10.1.8",
+        "html-webpack-plugin": "^5.5.0",
+        "husky": "^9.1.7",
+        "jest": "^29.4.3",
+        "lint-staged": "^17.1.1",
+        "prettier": "^3.9.6",
+        "terser-webpack-plugin": "^5.3.7",
+        "ts-jest": "^29.0.5",
+        "ts-loader": "^9.4.1",
+        "ts-node": "^10.9.1",
+        "typescript": "^4.9.3",
+        "typescript-eslint": "^8.65.0",
+        "webpack": "5.76.0",
+        "webpack-cli": "^5.0.1"
+    },
+    "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

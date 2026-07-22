@@ -4,21 +4,21 @@ concurrency:
 
 on:
   push:
-    branches: ['**']
+    branches: ["**"]
   pull_request:
-    branches: ['main']
+    branches: ["main"]
 
 jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Set Node.js 18.x
-        uses: actions/setup-node@v4
+      - name: Set Node.js 26.x
+        uses: actions/setup-node@v7
         with:
-          node-version: 18.x
+          node-version: 26.x
 
       - name: Run install
         run: yarn install
@@ -26,6 +26,19 @@ jobs:
       - name: Install Cypress dependencies
         working-directory: tests/cypress
         run: yarn install
+
+      - name: Run lint
+        run: yarn lint
+
+      - name: Run format check
+        run: yarn format:check
+
+      - name: Audit production dependencies
+        run: yarn audit:prod
+
+      - name: Audit dev dependencies
+        run: yarn audit:dev
+        continue-on-error: true
 
       - name: Run build
         run: yarn build
