@@ -33,6 +33,13 @@ jobs:
       - name: Run format check
         run: yarn format:check
 
+      - name: Audit production dependencies
+        run: yarn audit:prod
+
+      - name: Audit dev dependencies
+        run: yarn audit:dev
+        continue-on-error: true
+
       - name: Run build
         run: yarn build
 

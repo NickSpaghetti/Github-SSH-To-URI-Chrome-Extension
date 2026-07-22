@@ -1,4 +1,4 @@
-.PHONY: install build test lint lint-fix format format-check check clean
+.PHONY: install build test lint lint-fix format format-check audit audit-dev check clean
 
 install:
 	yarn install
@@ -21,7 +21,13 @@ format:
 format-check:
 	yarn format:check
 
-check: lint format-check test
+audit:
+	yarn audit:prod
+
+audit-dev:
+	-yarn audit:dev
+
+check: lint format-check audit test
 
 clean:
 	rm -rf dist

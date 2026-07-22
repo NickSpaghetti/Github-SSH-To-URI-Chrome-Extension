@@ -13,7 +13,13 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "audit:prod": "yarn audit --groups dependencies",
+        "audit:dev": "yarn audit --groups devDependencies",
         "prepare": "husky"
+    },
+    "resolutions": {
+        "@emotion/react/@emotion/babel-plugin/babel-plugin-macros/cosmiconfig/yaml": "^1.10.3",
+        "@babel/runtime": "^7.26.10"
     },
     "lint-staged": {
         "*.ts": [
