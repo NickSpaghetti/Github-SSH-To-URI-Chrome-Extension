@@ -1,4 +1,4 @@
 export type Module = {
-    source?: string
-    version?: string
-}
+    source?: string;
+    version?: string;
+};

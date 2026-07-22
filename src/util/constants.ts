@@ -1,52 +1,52 @@
 export const TERRAFORM_SYNTAX = {
     TERRAFORM: "terraform",
     REQUIRED_PROVIDERS: "required_providers",
-    MODULE:   "module",
-}
+    MODULE: "module",
+};
 
 export const TERRAFORM_PROVIDERS = {
-    HASHICORP: "hashicorp"
-}
+    HASHICORP: "hashicorp",
+};
 
-export const TERRAFORM_REGISTRY_ROUTES ={
+export const TERRAFORM_REGISTRY_ROUTES = {
     PROVIDERS: "providers",
-    MODULES:   "modules",
-}
+    MODULES: "modules",
+};
 
 export const GITHUB_ROUTES = {
-    HOST:"github.com",
+    HOST: "github.com",
     BLOB: "blob",
     TREE: "tree",
-    MAIN: "main"
-}
+    MAIN: "main",
+};
 
-export const FileExtensions = {
-    TF:".tf",
-    HCL:".hcl",
-    GIT:".git"
-}
+export const FILE_EXTENSIONS = {
+    TF: ".tf",
+    HCL: ".hcl",
+    GIT: ".git",
+};
 
 export const SENDERS = {
-    BACKGROUND:"background",
-    POPUP:"popup"
-}
+    BACKGROUND: "background",
+    POPUP: "popup",
+};
 
 export const TERRAFORM_VERSION_CONSTRAINTS = {
-    EQUAL:                 "=",
-    LESS_THAN:             "<",
-    LESS_THAN_OR_EQUAL:    "<=",
-    GREATER_THAN:          ">",
+    EQUAL: "=",
+    LESS_THAN: "<",
+    LESS_THAN_OR_EQUAL: "<=",
+    GREATER_THAN: ">",
     GREATER_THAN_OR_EQUAL: ">=",
-    EXACT:                 "~>",
-    Excludes:              "!=",
-}
+    EXACT: "~>",
+    Excludes: "!=",
+};
 
 export const GITHUB_LINKS = {
-    SIGN_IN: 'Sign in',
-    SIGN_UP: 'Sign up'
-}
+    SIGN_IN: "Sign in",
+    SIGN_UP: "Sign up",
+};
 
-export const CacheKeys = {
+export const CACHE_KEYS = {
     MODULES: "MODULES",
-    CURRENT_TAB_URL: "CurrentTabUrl"
-}
+    CURRENT_TAB_URL: "CurrentTabUrl",
+};

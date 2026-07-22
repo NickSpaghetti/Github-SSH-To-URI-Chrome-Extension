@@ -1,5 +1,5 @@
-import React, { FC, useEffect, useState, useCallback } from 'react';
-import { render } from 'react-dom';
+import React, { FC, useEffect, useState, useCallback } from "react";
+import { render } from "react-dom";
 import {
     Container,
     CssBaseline,
@@ -12,16 +12,14 @@ import {
     TablePagination,
     TableRow,
     Typography,
-} from '@mui/material';
-import { DisplayHlcModule } from '../models/DisplayHclModule';
-import { SourceTypes } from '../types/SourceTypes';
-import { TablePaginationActions } from '../components/TablePaginationComponent';
-import { ChromeStorageCache } from '../services/ChromeStorageCache';
-import { CacheKeys } from '../util/constants';
+} from "@mui/material";
+import { DisplayHlcModule } from "../models/DisplayHclModule";
+import { SourceTypes } from "../types/SourceTypes";
+import { TablePaginationActions } from "../components/TablePaginationComponent";
+import { ChromeStorageCache } from "../services/ChromeStorageCache";
+import { CACHE_KEYS } from "../util/constants";
 
-interface IProps {}
-
-export const Popup: FC<IProps> = () => {
+export const Popup: FC = () => {
     const [content, setContent] = useState<DisplayHlcModule[]>([]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(0);
@@ -42,7 +40,7 @@ export const Popup: FC<IProps> = () => {
 
         const sendMessage = async (
             currentTabId: number,
-            message: any
+            message: any,
         ): Promise<DisplayHlcModule[]> => {
             return await chrome.tabs.sendMessage(currentTabId, message);
         };
@@ -50,19 +48,21 @@ export const Popup: FC<IProps> = () => {
         const loadContentScript = async (tabId: number) => {
             return await chrome.scripting.executeScript({
                 target: { tabId: tabId, allFrames: true },
-                files: ['contentscript.js'],
+                files: ["contentscript.js"],
             });
         };
 
         const fetchData = async () => {
-            const cachedModules = await chromeStorageCahce.GetAsync<DisplayHlcModule[]>(CacheKeys.MODULES);
-            if(cachedModules){
+            const cachedModules = await chromeStorageCahce.getAsync<DisplayHlcModule[]>(
+                CACHE_KEYS.MODULES,
+            );
+            if (cachedModules) {
                 setContent(cachedModules);
                 return;
             }
-            if (isFetching){
+            if (isFetching) {
                 return; // Prevent multiple fetches
-            } 
+            }
             setIsFetching(true);
 
             try {
@@ -72,7 +72,7 @@ export const Popup: FC<IProps> = () => {
                 await loadContentScript(tab.id);
                 const result = await sendMessage(tab.id, {
                     tabId: tab.id,
-                    tabUrl: tab.url || '',
+                    tabUrl: tab.url || "",
                 });
 
                 if (Array.isArray(result) && result.length !== 0) {
@@ -82,7 +82,7 @@ export const Popup: FC<IProps> = () => {
                 if (signal.aborted) {
                     return;
                 }
-                console.error('Error fetching data:', err);
+                console.error("Error fetching data:", err);
             } finally {
                 setIsFetching(false);
             }
@@ -92,7 +92,7 @@ export const Popup: FC<IProps> = () => {
             if (signal.aborted) {
                 return; // Ignore aborted errors
             }
-            console.error('Error fetching data:', err);
+            console.error("Error fetching data:", err);
         });
 
         return () => {
@@ -100,14 +100,13 @@ export const Popup: FC<IProps> = () => {
         };
     }, []); // Empty dependency array means this effect runs once on mount
 
-    const emptyRows =
-        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - content.length) : 0;
+    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - content.length) : 0;
 
     const changePageHandler = useCallback(
         (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
             setPage(newPage);
         },
-        []
+        [],
     );
 
     const changeRowsPerPageHandler = useCallback(
@@ -118,7 +117,7 @@ export const Popup: FC<IProps> = () => {
                 setPage(0);
             }
         },
-        [rowsPerPage]
+        [rowsPerPage],
     );
 
     return (
@@ -126,7 +125,7 @@ export const Popup: FC<IProps> = () => {
             <CssBaseline />
             <Container maxWidth={false}>
                 {content.length === 0 ? (
-                    <Typography variant='h6'>No Modules Found</Typography>
+                    <Typography variant="h6">No Modules Found</Typography>
                 ) : (
                     <TableContainer>
                         <Table sx={{ minWidth: 100 }} aria-label="Modules">
@@ -134,7 +133,7 @@ export const Popup: FC<IProps> = () => {
                                 {(rowsPerPage > 0
                                     ? content.slice(
                                           page * rowsPerPage,
-                                          page * rowsPerPage + rowsPerPage
+                                          page * rowsPerPage + rowsPerPage,
                                       )
                                     : content
                                 ).map((content) => (
@@ -151,7 +150,7 @@ export const Popup: FC<IProps> = () => {
                                         </TableCell>
                                         <TableCell component="th" scope="row">
                                             {content?.sourceType === null
-                                                ? 'Not Available'
+                                                ? "Not Available"
                                                 : SourceTypes[content.sourceType]}
                                         </TableCell>
                                     </TableRow>
@@ -165,14 +164,14 @@ export const Popup: FC<IProps> = () => {
                             <TableFooter>
                                 <TableRow>
                                     <TablePagination
-                                        rowsPerPageOptions={[5, 10, { label: 'All', value: -1 }]}
+                                        rowsPerPageOptions={[5, 10, { label: "All", value: -1 }]}
                                         colSpan={3}
                                         count={content.length}
                                         rowsPerPage={rowsPerPage}
                                         page={page}
                                         SelectProps={{
                                             inputProps: {
-                                                'aria-label': 'rows per page',
+                                                "aria-label": "rows per page",
                                             },
                                             native: true,
                                         }}
@@ -190,13 +189,12 @@ export const Popup: FC<IProps> = () => {
     );
 };
 
-render(<Popup />, document.getElementById('sources-popup'));
-
+render(<Popup />, document.getElementById("sources-popup"));
 
 // interface IProps {}
 
 // export const Popup: FC<IProps> = () => {
-    
+
 //     const [content, setContent] = useState<DisplayHlcModule[]>([]);
 //     const [rowsPerPage, setRowsPerPage] = React.useState(5);
 //     const [page, setPage] = React.useState(0);
@@ -217,8 +215,7 @@ render(<Popup />, document.getElementById('sources-popup'));
 //                 files: ['contentscript.js'],
 //             });
 //         }
-        
-        
+
 //         queryChromeTab().then((tab) => {
 //             let tabId = tab?.id || 0 ;
 //             if(tab.id != null || 0){
@@ -242,7 +239,7 @@ render(<Popup />, document.getElementById('sources-popup'));
 //                 });
 //             }
 //         });
-    
+
 //     });
 
 //     //Avoid a layout jump when reaching the last page with empty rows.
@@ -322,6 +319,5 @@ render(<Popup />, document.getElementById('sources-popup'));
 //                 </Container>
 //             </>
 //           );
-//     };        
+//     };
 //render(<Popup />, document.getElementById("sources-popup"));
-

@@ -1,11 +1,11 @@
-import {TERRAFORM_VERSION_CONSTRAINTS} from "../util/constants";
+import { TERRAFORM_VERSION_CONSTRAINTS } from "../util/constants";
 import * as semver from "semver";
-import {ITerraformFetchService} from "./ITerraformFetchService";
-import {IHclVersionService} from "./IHclVersionService";
+import { ITerraformFetchService } from "./ITerraformFetchService";
+import { IHclVersionService } from "./IHclVersionService";
+import { Hit } from "../types/Hits";
 
-export class HclVersionService implements IHclVersionService{
-    constructor(private readonly terraformFetchService: ITerraformFetchService) {
-    }
+export class HclVersionService implements IHclVersionService {
+    constructor(private readonly terraformFetchService: ITerraformFetchService) {}
     /**
      * Returns a map of {@link TERRAFORM_VERSION_CONSTRAINTS} found with their starting and ending indexs
      *
@@ -14,26 +14,26 @@ export class HclVersionService implements IHclVersionService{
      * @returns Map<TERRAFORM_VERSION_CONSTRAINTS,Hit[]>
      *
      */
-    findTerraformConstraintIndexes = (version: string): Map<string,Hit[]> => {
-        const searchResults = new Map<string,Hit[]>();
+    findTerraformConstraintIndexes = (version: string): Map<string, Hit[]> => {
+        const searchResults = new Map<string, Hit[]>();
         //look for any of the version constraints of size 1 or 2 and matches the group after the main exp does not include in result
         const signRegex = /[><=~=!]{1,2}(?=\d)/g;
-        version = version.replace(/[, ]+/g, '');
+        version = version.replace(/[, ]+/g, "");
         const matches = Array.from(version.matchAll(signRegex));
         for (const match of matches) {
             const sign = match[0];
-            if(match.index !== undefined){
+            if (match.index !== undefined) {
                 const startIndex = match.index;
                 const endIndex = startIndex + sign.length - 1;
-                if(searchResults.has(sign)){
-                    searchResults.get(sign)?.push({start: startIndex, end: endIndex});
+                if (searchResults.has(sign)) {
+                    searchResults.get(sign)?.push({ start: startIndex, end: endIndex });
                 } else {
-                    searchResults.set(sign,[{start: startIndex, end: endIndex}])
+                    searchResults.set(sign, [{ start: startIndex, end: endIndex }]);
                 }
             }
         }
         return searchResults;
-    }
+    };
 
     /**
      * Returns the Terraform formatted version
@@ -44,46 +44,49 @@ export class HclVersionService implements IHclVersionService{
      *
      */
     formatTerraformVersion = (version: string): string => {
-        if(!isNaN(parseFloat(version))){
+        if (!isNaN(parseFloat(version))) {
             return version;
         }
-        version = version.replace(/[, ]+/g, '');
+        version = version.replace(/[, ]+/g, "");
         const searchResultMap = this.findTerraformConstraintIndexes(version);
-        if(version === '' || searchResultMap.size === 0){
-            return '';
+        if (version === "" || searchResultMap.size === 0) {
+            return "";
         }
 
-        const sortedSearchResults = new Map([...searchResultMap.entries()].filter(([_,vs])  => vs.sort((a,b) => a.end - b.end)));
+        const sortedSearchResults = new Map(
+            [...searchResultMap.entries()].filter(([_, vs]) => vs.sort((a, b) => a.end - b.end)),
+        );
 
         const keys = Array.from(sortedSearchResults.keys());
-        let outputVersion = ''
-        if(keys.length === 1){
-            let signs = sortedSearchResults.get(keys[0]) ?? [];
-            if(signs.length >= 2){
+        let outputVersion = "";
+        if (keys.length === 1) {
+            const signs = sortedSearchResults.get(keys[0]) ?? [];
+            if (signs.length >= 2) {
                 let signCount = 1;
-                signs.forEach(sign => {
-                    outputVersion += `${signCount %2 === 0 ? ', ' : ''}${version.substring(sign.start,sign.end + 1)} ${this.extractVersion(version,sign.end)}${signCount %2 === 0 ? ', ' : ''}`;
+                signs.forEach((sign) => {
+                    outputVersion += `${signCount % 2 === 0 ? ", " : ""}${version.substring(sign.start, sign.end + 1)} ${this.extractVersion(version, sign.end)}${signCount % 2 === 0 ? ", " : ""}`;
                     signCount++;
                 });
+            } else if (signs.length === 1) {
+                outputVersion = version.replace(
+                    version.slice(signs[0].start, signs[0].end + 1),
+                    version.slice(signs[0].start, signs[0].end + 1) + " ",
+                );
             }
-            else if (signs.length === 1){
-                outputVersion = version.replace(version.slice(signs[0].start,signs[0].end + 1), version.slice(signs[0].start,signs[0].end + 1) + ' ');
-            }
-        }
-        else {
+        } else {
             let signCount = 1;
-            for(let [_,hits] of sortedSearchResults.entries()){
-                hits.forEach(sign => {
-                    outputVersion += `${signCount %2 === 0 ? ', ' : ''}${version.substring(sign.start,sign.end + 1)} ${this.extractVersion(version,sign.end)}${signCount %2 === 0 ? ', ' : ''}`;
+            for (const [_, hits] of sortedSearchResults.entries()) {
+                hits.forEach((sign) => {
+                    outputVersion += `${signCount % 2 === 0 ? ", " : ""}${version.substring(sign.start, sign.end + 1)} ${this.extractVersion(version, sign.end)}${signCount % 2 === 0 ? ", " : ""}`;
                     signCount++;
                 });
             }
         }
-        if(outputVersion.endsWith(', ')){
-            outputVersion = outputVersion.substring(0,outputVersion.lastIndexOf(','));
+        if (outputVersion.endsWith(", ")) {
+            outputVersion = outputVersion.substring(0, outputVersion.lastIndexOf(","));
         }
         return outputVersion;
-    }
+    };
 
     /**
      * Returns the Terraform version that is used when looking up the documentation.
@@ -94,19 +97,22 @@ export class HclVersionService implements IHclVersionService{
      * @returns Terraform version number ie: '3.5.0'
      *
      */
-    extractVersion = (version:string,endOfSignIndex: number): string => {
+    extractVersion = (version: string, endOfSignIndex: number): string => {
         let i = endOfSignIndex + 2;
-        let extractedVersion = version.substring(endOfSignIndex + 1,i);
-        while(i < version.length){
-            let testVersion = version.substring(i, i + 1);
-            if(isNaN(extractedVersion + testVersion as unknown as number) && Object.values(TERRAFORM_VERSION_CONSTRAINTS).some(c => c.includes(testVersion))){
+        let extractedVersion = version.substring(endOfSignIndex + 1, i);
+        while (i < version.length) {
+            const testVersion = version.substring(i, i + 1);
+            if (
+                isNaN((extractedVersion + testVersion) as unknown as number) &&
+                Object.values(TERRAFORM_VERSION_CONSTRAINTS).some((c) => c.includes(testVersion))
+            ) {
                 break;
             }
             extractedVersion += testVersion;
             i++;
         }
         return extractedVersion;
-    }
+    };
 
     /**
      * Returns the Terraform version that is used when looking up the documentation.
@@ -116,35 +122,38 @@ export class HclVersionService implements IHclVersionService{
      * @returns Terraform version used to look up the documentation`
      *
      */
-    public getMinimalTerraformVersion = (version: string): string =>{
-        if(version === ''){
+    public getMinimalTerraformVersion = (version: string): string => {
+        if (version === "") {
             return version;
         }
-        if(!version.includes(' ')){
+        if (!version.includes(" ")) {
             version = this.formatTerraformVersion(version);
         }
-        const [leftConstraint, rightConstraint] = version.split(', ');
-        if(!rightConstraint){
-            if(!isNaN(parseFloat(version))){
+        const [leftConstraint, rightConstraint] = version.split(", ");
+        if (!rightConstraint) {
+            if (!isNaN(parseFloat(version))) {
                 return version.trim();
             }
-            const [sign, versionConstraint] = leftConstraint.split(' ');
-            return !parseFloat(sign) ? versionConstraint?.trim() ?? '' : sign?.trim() ?? '';
+            const [sign, versionConstraint] = leftConstraint.split(" ");
+            return !parseFloat(sign) ? (versionConstraint?.trim() ?? "") : (sign?.trim() ?? "");
         }
-        const [leftSign, leftVersion] = leftConstraint.split(' ');
-        const [rightSign, rightVersion] = rightConstraint.split(' ');
-        if(leftSign !== TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL && (rightSign === TERRAFORM_VERSION_CONSTRAINTS.LESS_THAN_OR_EQUAL || rightSign === TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL)){
+        const [leftSign, leftVersion] = leftConstraint.split(" ");
+        const [rightSign, rightVersion] = rightConstraint.split(" ");
+        if (
+            leftSign !== TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL &&
+            (rightSign === TERRAFORM_VERSION_CONSTRAINTS.LESS_THAN_OR_EQUAL ||
+                rightSign === TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL)
+        ) {
             return rightVersion.trim();
         }
-        if(leftSign === TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL){
+        if (leftSign === TERRAFORM_VERSION_CONSTRAINTS.GREATER_THAN_OR_EQUAL) {
             return leftVersion.trim();
         }
-        if(rightSign === TERRAFORM_VERSION_CONSTRAINTS.LESS_THAN_OR_EQUAL){
+        if (rightSign === TERRAFORM_VERSION_CONSTRAINTS.LESS_THAN_OR_EQUAL) {
             return rightVersion.trim();
         }
         return leftVersion.trim();
-    }
-
+    };
 
     /**
      * returns the terraform version that matches what is available via https:registry.terraform.io/
@@ -152,24 +161,35 @@ export class HclVersionService implements IHclVersionService{
      * @param providerType a provider type ie module or providers
      * @param versionConstraint terraform version constraint ie >= 2.6.0
      */
-    public async getTerraformProviderVersionAsync(providerSource:string, providerType: string, versionConstraint: string): Promise<string>{
+    public async getTerraformProviderVersionAsync(
+        providerSource: string,
+        providerType: string,
+        versionConstraint: string,
+    ): Promise<string> {
         const minimalTerraformVersion = this.getMinimalTerraformVersion(versionConstraint);
-        if(await this.terraformFetchService.verifyTerraformVersionAsync(providerSource,providerType,minimalTerraformVersion)){
+        if (
+            await this.terraformFetchService.verifyTerraformVersionAsync(
+                providerSource,
+                providerType,
+                minimalTerraformVersion,
+            )
+        ) {
             return minimalTerraformVersion;
         }
-        const allVersions = await this.terraformFetchService.getTerraformVersionsAsync(providerSource, providerType);
-        const formattedVersionConstraint =  this.formatTerraformVersion(minimalTerraformVersion);
-        const cleanVersion = semver.coerce(formattedVersionConstraint || formattedVersionConstraint.replace(/[\s<>=~]+/g, ""));
-        for(let i in allVersions){
-            if(semver.satisfies(allVersions[i],formattedVersionConstraint)){
-                return allVersions[i];
+        const allVersions = await this.terraformFetchService.getTerraformVersionsAsync(
+            providerSource,
+            providerType,
+        );
+        const formattedVersionConstraint = this.formatTerraformVersion(minimalTerraformVersion);
+        for (const candidateVersion of allVersions) {
+            if (semver.satisfies(candidateVersion, formattedVersionConstraint)) {
+                return candidateVersion;
             }
         }
         const greatestVersion = allVersions.at(-1);
-        if(greatestVersion === undefined){
-            throw new Error(`Could not find the highest version value for ${providerSource}`)
+        if (greatestVersion === undefined) {
+            throw new Error(`Could not find the highest version value for ${providerSource}`);
         }
         return greatestVersion;
     }
-
 }
