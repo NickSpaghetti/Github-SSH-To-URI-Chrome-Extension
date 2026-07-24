@@ -4,7 +4,7 @@
     "description": "Converts Terraform modules sources on github to clickable links that take you to the module definition page.",
     "permissions": ["tabs", "scripting", "activeTab", "storage"],
     "host_permissions": ["https://github.com/*", "https://registry.terraform.io/*"],
-    "version": "0.0.0.16",
+    "version": "0.0.0.17",
     "action": {
         "default_popup": "index.html"
     },
