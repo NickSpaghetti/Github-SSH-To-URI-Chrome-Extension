@@ -41,6 +41,7 @@ function upsertEnvValue(filePath, key, value) {
 
 const BROWSER_OPENERS = {
     darwin: { command: "open", args: [] },
+    linux: { command: "xdg-open", args: [] },
     win32: {
         command: "powershell",
         args: ["-NoProfile", "-NonInteractive", "-Command", "Start-Process", "-FilePath"],
