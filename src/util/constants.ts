@@ -50,3 +50,5 @@ export const CACHE_KEYS = {
     MODULES: "MODULES",
     CURRENT_TAB_URL: "CurrentTabUrl",
 };
+
+export const ALLOWED_FETCH_HOSTS = ["registry.terraform.io"];

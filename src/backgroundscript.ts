@@ -1,5 +1,6 @@
-import { GITHUB_ROUTES, SENDERS } from "./util/constants";
+import { ALLOWED_FETCH_HOSTS, GITHUB_ROUTES, SENDERS } from "./util/constants";
 import { RunTimeFetchResponse } from "./services/IFetchService";
+import { isAllowedFetchHost } from "./util/urlSafety";
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (tab.url === undefined) {
@@ -19,6 +20,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.contentScriptQuery === "fetchData") {
+        if (!isAllowedFetchHost(request.url, ALLOWED_FETCH_HOSTS)) {
+            sendResponse({ ok: false, error: "Host not allowed" });
+            return true;
+        }
         fetch(request.url, { cache: request.cache })
             .then((response) => {
                 response

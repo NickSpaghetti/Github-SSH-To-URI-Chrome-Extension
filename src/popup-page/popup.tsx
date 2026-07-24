@@ -18,6 +18,7 @@ import { SourceTypes } from "../types/SourceTypes";
 import { TablePaginationActions } from "../components/TablePaginationComponent";
 import { ChromeStorageCache } from "../services/ChromeStorageCache";
 import { CACHE_KEYS } from "../util/constants";
+import { isSafeHttpUrl } from "../util/urlSafety";
 
 export const Popup: FC = () => {
     const [content, setContent] = useState<DisplayHlcModule[]>([]);
@@ -139,14 +140,19 @@ export const Popup: FC = () => {
                                 ).map((content) => (
                                     <TableRow key={content.moduleName}>
                                         <TableCell component="th" scope="row">
-                                            <Link
-                                                target="_blank"
-                                                underline="always"
-                                                rel="noreferrer"
-                                                href={`${content.modifiedSourceType}`}
-                                            >
-                                                {content.moduleName}
-                                            </Link>
+                                            {content.modifiedSourceType !== null &&
+                                            isSafeHttpUrl(content.modifiedSourceType) ? (
+                                                <Link
+                                                    target="_blank"
+                                                    underline="always"
+                                                    rel="noreferrer"
+                                                    href={content.modifiedSourceType}
+                                                >
+                                                    {content.moduleName}
+                                                </Link>
+                                            ) : (
+                                                content.moduleName
+                                            )}
                                         </TableCell>
                                         <TableCell component="th" scope="row">
                                             {content?.sourceType === null
