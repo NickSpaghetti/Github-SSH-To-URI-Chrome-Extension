@@ -244,6 +244,39 @@ describe("Given a Private Registry", () => {
             ).toBe(true);
         });
     });
+    describe("When Private Registry contains a javascript: scheme smuggling attempt", () => {
+        test("Then I expect isPrivateRegistry to be false", () => {
+            expect<boolean>(
+                hlcSourceService.isPrivateRegistry(
+                    "javascript:x.terraform.io/foo,alert(document.domain)",
+                ),
+            ).toBe(false);
+        });
+    });
+    describe("When Private Registry contains a backslash + decimal-IP host-confusion attempt", () => {
+        test("Then I expect isPrivateRegistry to be false", () => {
+            expect<boolean>(
+                hlcSourceService.isPrivateRegistry("3325256838\\a.terraform.io/path"),
+            ).toBe(false);
+        });
+    });
+    describe("When Private Registry contains userinfo smuggling", () => {
+        test("Then I expect isPrivateRegistry to be false", () => {
+            expect<boolean>(hlcSourceService.isPrivateRegistry("user@a.terraform.io/path")).toBe(
+                false,
+            );
+        });
+    });
+    describe("When Private Registry has a backslash after the host but no userinfo/IP confusion", () => {
+        test("Then I expect isPrivateRegistry to still be true (resolves to the real terraform.io host)", () => {
+            expect<boolean>(hlcSourceService.isPrivateRegistry("a.terraform.io\\@evil.com/x")).toBe(
+                true,
+            );
+            expect<string>(new URL(`https://${"a.terraform.io\\@evil.com/x"}`).hostname).toBe(
+                "a.terraform.io",
+            );
+        });
+    });
 });
 
 describe("Given a ssh host", () => {
@@ -459,6 +492,16 @@ describe("Given a Source", () => {
             ).toBe(SourceTypes.privateRegistry);
         });
     });
+
+    describe("When the Source is a javascript: scheme smuggling attempt", () => {
+        test("Then I expect SourceTypes to be null", () => {
+            expect<Nullable<SourceTypes>>(
+                hlcSourceService.getSourceType(
+                    "javascript:x.terraform.io/foo,alert(document.domain)",
+                ),
+            ).toBe(null);
+        });
+    });
 });
 
 describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
@@ -557,7 +600,7 @@ describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
     });
 
     describe("When private registry, bar.terraform.io/foo/aws foo, ''", () => {
-        test("I expect the result to be bar.terraform.io/foo/aws", async () => {
+        test("I expect the result to be https://bar.terraform.io/foo/aws", async () => {
             expect(
                 await hlcSourceService.resolveSourceAsync(
                     SourceTypes.privateRegistry,
@@ -566,7 +609,7 @@ describe("Given a SourceType, Source,  ModuleName, and Source Version", () => {
                     "1.0.0",
                     new URL("https://github.com"),
                 ),
-            ).toBe("bar.terraform.io/foo/aws");
+            ).toBe("https://bar.terraform.io/foo/aws");
         });
     });
 });

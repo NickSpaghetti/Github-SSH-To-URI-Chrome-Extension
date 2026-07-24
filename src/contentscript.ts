@@ -9,6 +9,7 @@ import { ITerraformDataAccess } from "./data-access/ITerraformDataAccess";
 import { IFetchService } from "./services/IFetchService";
 import { ITerraformFetchService } from "./services/ITerraformFetchService";
 import { ChromeStorageCache } from "./services/ChromeStorageCache";
+import { isSafeHttpUrl } from "./util/urlSafety";
 
 const fetchService: IFetchService = new ChromeRuntimeFetchService();
 const terraformDataAccess: ITerraformDataAccess = new TerraformDataAccess(fetchService);
@@ -110,7 +111,7 @@ function replaceSourceTag(
     innerText: string,
     lineCount: string | undefined,
 ) {
-    if (modifiedSourceType === null) {
+    if (modifiedSourceType === null || !isSafeHttpUrl(modifiedSourceType)) {
         return;
     }
 
