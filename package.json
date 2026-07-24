@@ -13,12 +13,11 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "audit:prod": "yarn audit --groups dependencies",
-        "audit:dev": "yarn audit --groups devDependencies",
+        "audit:prod": "yarn npm audit --environment production --no-deprecations",
+        "audit:dev": "yarn npm audit --environment development --no-deprecations",
         "prepare": "husky"
     },
     "resolutions": {
-        "@emotion/react/@emotion/babel-plugin/babel-plugin-macros/cosmiconfig/yaml": "^1.10.3",
         "@babel/runtime": "^7.26.10"
     },
     "lint-staged": {
@@ -79,5 +78,5 @@
         "webpack": "5.76.0",
         "webpack-cli": "^5.0.1"
     },
-    "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+    "packageManager": "yarn@4.17.1+sha512.ccbfabf7d7b6b32075088be9386fb9a2e00bb6887ef07fa56effabc890a56d53da1ccc4128d62db245fcbd3961b236d75335bdf7d5320ed6eafb7588b7ad4697"
 }

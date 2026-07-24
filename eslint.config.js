@@ -5,11 +5,19 @@ const eslintConfigPrettier = require("eslint-config-prettier");
 
 module.exports = tseslint.config(
     {
-        ignores: ["dist/**", "node_modules/**", "tests/cypress/**", "coverage/**", "**/*.js"],
+        ignores: [
+            "dist/**",
+            "node_modules/**",
+            "tests/cypress/**",
+            "coverage/**",
+            "eslint.config.js",
+            "webpack.config.js",
+        ],
     },
     eslint.configs.recommended,
-    ...tseslint.configs.recommendedTypeChecked,
     {
+        files: ["**/*.ts", "**/*.tsx"],
+        extends: [...tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
                 projectService: true,
@@ -123,5 +131,38 @@ module.exports = tseslint.config(
             "@typescript-eslint/no-explicit-any": "off",
         },
     },
+    {
+        files: ["scripts/**/*.js"],
+        languageOptions: {
+            sourceType: "commonjs",
+            globals: {
+                require: "readonly",
+                module: "writable",
+                process: "readonly",
+                console: "readonly",
+                __dirname: "readonly",
+                __filename: "readonly",
+                URL: "readonly",
+                URLSearchParams: "readonly",
+                fetch: "readonly",
+                setTimeout: "readonly",
+                clearTimeout: "readonly",
+            },
+        },
+        rules: {
+            "prefer-const": "error",
+            "no-var": "error",
+            eqeqeq: ["error", "always", { null: "ignore" }],
+            curly: ["error", "all"],
+            "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+        },
+    },
     eslintConfigPrettier,
+    {
+        // eslint-config-prettier disables "curly" project-wide; reassert it since
+        // brace requirements aren't a Prettier formatting concern.
+        rules: {
+            curly: ["error", "all"],
+        },
+    },
 );

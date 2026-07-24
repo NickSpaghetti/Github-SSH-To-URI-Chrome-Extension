@@ -1,4 +1,4 @@
-.PHONY: install build test lint lint-fix format format-check audit audit-dev check clean
+.PHONY: install build test lint lint-fix format format-check audit audit-dev check clean refresh-chrome-token
 
 install:
 	yarn install
@@ -31,3 +31,6 @@ check: lint format-check audit test
 
 clean:
 	rm -rf dist
+
+refresh-chrome-token:
+	node ./scripts/refresh-chrome-token.js

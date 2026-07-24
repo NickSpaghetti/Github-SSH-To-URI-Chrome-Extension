@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: 26.x
 
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Run install
         run: yarn install
 
