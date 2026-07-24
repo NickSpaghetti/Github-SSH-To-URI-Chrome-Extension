@@ -68,7 +68,9 @@ export const Popup: FC = () => {
 
             try {
                 const tab = await queryChromeTab();
-                if (!tab || !tab.id) return;
+                if (!tab || !tab.id) {
+                    return;
+                }
 
                 await loadContentScript(tab.id);
                 const result = await sendMessage(tab.id, {

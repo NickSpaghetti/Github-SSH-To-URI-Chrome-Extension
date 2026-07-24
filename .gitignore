@@ -275,6 +275,15 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Yarn Berry
+**/.yarn/*
+!**/.yarn/patches
+!**/.yarn/plugins
+!**/.yarn/releases
+!**/.yarn/sdks
+!**/.yarn/versions
+**/.pnp.*
+
 # Visual Studio 6 build log
 *.plg
 
