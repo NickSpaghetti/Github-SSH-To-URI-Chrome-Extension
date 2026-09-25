@@ -2,6 +2,8 @@ import type { Config } from "@jest/types";
 // Sync object
 const config: Config.InitialOptions = {
     verbose: true,
+    // Playwright drives a real browser and has its own runner.
+    testPathIgnorePatterns: ["/node_modules/", "/tests/e2e/"],
     transform: {
         "^.+\\.tsx?$": "ts-jest",
     },

@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState, useCallback } from "react";
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 import {
     Container,
     CssBaseline,
@@ -13,19 +13,49 @@ import {
     TableRow,
     Typography,
 } from "@mui/material";
-import { DisplayHlcModule } from "../models/DisplayHclModule";
-import { SourceTypes } from "../types/SourceTypes";
+import { DisplayModule } from "../types/DisplayModule";
+import { toSourceTypeLabel } from "../types/SourceTypes";
 import { TablePaginationActions } from "../components/TablePaginationComponent";
-import { ChromeStorageCache } from "../services/ChromeStorageCache";
-import { CACHE_KEYS } from "../util/constants";
-import { isSafeHttpUrl } from "../util/urlSafety";
+import { CACHE_KEYS, ChromeStorageCache } from "../services/ChromeStorageCache";
+import { isSafeHttpUrl } from "../util/UrlSafety";
+import { SENDERS, TabMessage } from "../types/TabMessage";
+import { normalizeConstraint } from "../domain/VersionConstraint";
 
+const RESOLVES_TO = "\u2192";
+
+/**
+ * Every cell is `nowrap`, so a row is always one line, and the table sizes to
+ * its content rather than to the popup. The name is the only cell that can be
+ * arbitrarily long, so it is the only one that ellipsizes: that cap is what
+ * keeps the table inside the 800px Chrome allows a popup.
+ */
+const NAME_CELL = {
+    whiteSpace: "nowrap",
+    maxWidth: 460,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+} as const;
+
+const FITTED_CELL = { whiteSpace: "nowrap" } as const;
+
+const versionSummary = (module: DisplayModule): string => {
+    if (module.versionConstraint === "") {
+        return "";
+    }
+    const constraint = normalizeConstraint(module.versionConstraint);
+    if (module.resolvedVersion === "" || module.resolvedVersion === constraint) {
+        return constraint;
+    }
+    return `${constraint} ${RESOLVES_TO} ${module.resolvedVersion}`;
+};
+
+/** The extension's popup: the modules on the current tab, and their links. */
 export const Popup: FC = () => {
-    const [content, setContent] = useState<DisplayHlcModule[]>([]);
+    const [content, setContent] = useState<DisplayModule[]>([]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
-    const chromeStorageCahce = new ChromeStorageCache();
+    const storageCache = new ChromeStorageCache();
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -41,8 +71,8 @@ export const Popup: FC = () => {
 
         const sendMessage = async (
             currentTabId: number,
-            message: any,
-        ): Promise<DisplayHlcModule[]> => {
+            message: TabMessage,
+        ): Promise<DisplayModule[]> => {
             return await chrome.tabs.sendMessage(currentTabId, message);
         };
 
@@ -54,9 +84,7 @@ export const Popup: FC = () => {
         };
 
         const fetchData = async () => {
-            const cachedModules = await chromeStorageCahce.getAsync<DisplayHlcModule[]>(
-                CACHE_KEYS.MODULES,
-            );
+            const cachedModules = await storageCache.getAsync<DisplayModule[]>(CACHE_KEYS.MODULES);
             if (cachedModules) {
                 setContent(cachedModules);
                 return;
@@ -74,6 +102,7 @@ export const Popup: FC = () => {
 
                 await loadContentScript(tab.id);
                 const result = await sendMessage(tab.id, {
+                    sender: SENDERS.POPUP,
                     tabId: tab.id,
                     tabUrl: tab.url || "",
                 });
@@ -126,12 +155,12 @@ export const Popup: FC = () => {
     return (
         <>
             <CssBaseline />
-            <Container maxWidth={false}>
+            <Container maxWidth={false} disableGutters sx={{ px: 1 }}>
                 {content.length === 0 ? (
                     <Typography variant="h6">No Modules Found</Typography>
                 ) : (
                     <TableContainer>
-                        <Table sx={{ minWidth: 100 }} aria-label="Modules">
+                        <Table sx={{ width: "auto" }} aria-label="Modules">
                             <TableBody>
                                 {(rowsPerPage > 0
                                     ? content.slice(
@@ -141,14 +170,19 @@ export const Popup: FC = () => {
                                     : content
                                 ).map((content) => (
                                     <TableRow key={content.moduleName}>
-                                        <TableCell component="th" scope="row">
-                                            {content.modifiedSourceType !== null &&
-                                            isSafeHttpUrl(content.modifiedSourceType) ? (
+                                        <TableCell
+                                            component="th"
+                                            scope="row"
+                                            sx={NAME_CELL}
+                                            title={content.moduleName}
+                                        >
+                                            {content.resolvedUrl !== null &&
+                                            isSafeHttpUrl(content.resolvedUrl) ? (
                                                 <Link
                                                     target="_blank"
                                                     underline="always"
                                                     rel="noreferrer"
-                                                    href={content.modifiedSourceType}
+                                                    href={content.resolvedUrl}
                                                 >
                                                     {content.moduleName}
                                                 </Link>
@@ -156,16 +190,17 @@ export const Popup: FC = () => {
                                                 content.moduleName
                                             )}
                                         </TableCell>
-                                        <TableCell component="th" scope="row">
-                                            {content?.sourceType === null
-                                                ? "Not Available"
-                                                : SourceTypes[content.sourceType]}
+                                        <TableCell component="th" scope="row" sx={FITTED_CELL}>
+                                            {toSourceTypeLabel(content.sourceType)}
+                                        </TableCell>
+                                        <TableCell component="th" scope="row" sx={FITTED_CELL}>
+                                            {versionSummary(content)}
                                         </TableCell>
                                     </TableRow>
                                 ))}
                                 {emptyRows > 0 && (
                                     <TableRow style={{ height: 53 * emptyRows }}>
-                                        <TableCell colSpan={2} />
+                                        <TableCell colSpan={3} />
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -197,135 +232,7 @@ export const Popup: FC = () => {
     );
 };
 
-render(<Popup />, document.getElementById("sources-popup"));
-
-// interface IProps {}
-
-// export const Popup: FC<IProps> = () => {
-
-//     const [content, setContent] = useState<DisplayHlcModule[]>([]);
-//     const [rowsPerPage, setRowsPerPage] = React.useState(5);
-//     const [page, setPage] = React.useState(0);
-
-//     useEffect( () => {
-//         const queryChromeTab = async ():Promise<chrome.tabs.Tab> => {
-//             const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-//             return tab;
-//         }
-
-//         const sendMessage = async (currentTabId: number, message: any): Promise<DisplayHlcModule[]> => {
-//           return await chrome.tabs.sendMessage(currentTabId,message);
-//         }
-
-//         const loadContentScript = async (tabId: number) => {
-//            return await chrome.scripting.executeScript({
-//                 target: {tabId: tabId, allFrames: true},
-//                 files: ['contentscript.js'],
-//             });
-//         }
-
-//         queryChromeTab().then((tab) => {
-//             let tabId = tab?.id || 0 ;
-//             if(tab.id != null || 0){
-//                 console.log(tabId);
-//                 console.log(tab.url);
-//                 loadContentScript(tabId).then((loadResult) => {
-//                     if(!loadResult){
-//                         return;
-//                     }
-//                     console.log("Sending my message")
-//                     sendMessage(tabId, {tabId: tab.id, tabUrl: tab?.url || ''}).then((result) => {
-//                         console.log("I got a response");
-//                         console.log(result)
-//                         if(Array.isArray(result) && result.length !== 0){
-//                             //console.log(JSON.stringify(result));
-//                             setContent(result);
-//                         }
-//                     }).catch(err => {
-//                         console.log(err);
-//                     });
-//                 });
-//             }
-//         });
-
-//     });
-
-//     //Avoid a layout jump when reaching the last page with empty rows.
-//     const emptyRows =
-//         page > 0 ? Math.max(0, (1 + page) * rowsPerPage - content.length) : 0;
-
-//     const changePageHandler = (
-//         event: React.MouseEvent<HTMLButtonElement> | null,
-//         newPage: number,
-//     ) => {
-//         setPage(newPage);
-//     };
-
-//     const changeRowsPerPageHandler = (
-//         event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-//     ) => {
-//         setRowsPerPage(parseInt(event.target.value, 10));
-//         setPage(0);
-//     };
-
-//         return (
-//             <>
-//                 <CssBaseline />
-//                 <Container maxWidth={false}>
-//                     {content.length === 0 ? (
-//                             <Typography variant='h6'>No Modules Found</Typography>
-//                     ) : (
-//                         <>
-//                             <TableContainer>
-//                                 <Table sx={{ minWidth: 100}} aria-label="Modules">
-//                                     <TableBody>
-//                                         {(rowsPerPage > 0
-//                                                 ? content.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-//                                                 : content
-//                                         ).map((content) => (
-//                                             <TableRow key={content.moduleName}>
-//                                                 <TableCell component="th" scope="row">
-//                                                     <Link target="_blank" underline="always" rel="noreferrer" href={`${content.modifiedSourceType}`}>
-//                                                         {content.moduleName}
-//                                                     </Link>
-//                                                 </TableCell>
-//                                                 <TableCell component="th" scope="row">
-//                                                     {content?.sourceType === null ? "Not Available" : SourceTypes[content.sourceType] }
-//                                                 </TableCell>
-//                                             </TableRow>
-//                                         ))}
-//                                         {emptyRows > 0 && (
-//                                             <TableRow style={{ height: 53 * emptyRows }}>
-//                                                 <TableCell colSpan={2} />
-//                                             </TableRow>
-//                                         )}
-//                                     </TableBody>
-//                                     <TableFooter>
-//                                         <TableRow>
-//                                             <TablePagination
-//                                                 rowsPerPageOptions={[5, 10, { label: 'All', value: -1 }]}
-//                                                 colSpan={3}
-//                                                 count={content.length}
-//                                                 rowsPerPage={rowsPerPage}
-//                                                 page={page}
-//                                                 SelectProps={{
-//                                                 inputProps: {
-//                                                     'aria-label': 'rows per page',
-//                                                 },
-//                                                 native: true,
-//                                             }}
-//                                                 onPageChange={changePageHandler}
-//                                                 onRowsPerPageChange={changeRowsPerPageHandler}
-//                                                 ActionsComponent={TablePaginationActions}
-//                                             />
-//                                         </TableRow>
-//                                     </TableFooter>
-//                                 </Table>
-//                             </TableContainer>
-//                         </>
-//                     )}
-//                 </Container>
-//             </>
-//           );
-//     };
-//render(<Popup />, document.getElementById("sources-popup"));
+const container = document.getElementById("sources-popup");
+if (container !== null) {
+    createRoot(container).render(<Popup />);
+}

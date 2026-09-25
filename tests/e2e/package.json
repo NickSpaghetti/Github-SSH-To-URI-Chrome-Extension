@@ -1,0 +1,14 @@
+{
+    "name": "iac-module-linker-e2e",
+    "private": true,
+    "description": "End to end tests that load the built extension in Chromium.",
+    "scripts": {
+        "e2e": "playwright test",
+        "e2e:headed": "playwright test --headed",
+        "e2e:report": "playwright show-report"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.63.0"
+    },
+    "packageManager": "yarn@4.17.1"
+}

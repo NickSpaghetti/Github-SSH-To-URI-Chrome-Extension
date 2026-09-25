@@ -1,1 +1,7 @@
 npx lint-staged
+
+# lint-staged only sees staged files, and the type aware rules mean a change in
+# one file can leave an error in another. Errors only here: warnings do not
+# block a commit, and printing them every time hides the one that does. CI runs
+# the full `yarn lint`.
+yarn lint:errors

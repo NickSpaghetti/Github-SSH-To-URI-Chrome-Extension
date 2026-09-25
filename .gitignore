@@ -397,4 +397,6 @@ dist.*
 # Ignore cypresss
 tests/cypress/cypress/videos/*
 tests/cypress/cypress/screenshots/*
-
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.yarn/

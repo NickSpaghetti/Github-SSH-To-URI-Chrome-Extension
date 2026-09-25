@@ -1,0 +1,201 @@
+import { expect } from "@jest/globals";
+import { gzipSync } from "zlib";
+import { HclParser } from "../../../src/services/HclParser";
+import { IHclFile } from "../../../src/types/IHclFile";
+import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
+
+/**
+ * The wasm load is stubbed at its three boundaries: `chrome.runtime.getURL`,
+ * `fetch`, and the Go runtime that `wasm_exec.js` installs on import. The gzip
+ * stream is left real, because node has `DecompressionStream` and a fake one
+ * would only test the fake.
+ */
+
+type Mutable = Record<string, unknown>;
+type ParseResult = { json?: string; error?: string };
+
+const globals = globalThis as unknown as Mutable;
+const realInstantiate = WebAssembly.instantiate;
+const realGo = globals.Go;
+
+/** `starting` is a private static, and a cached load would leak across tests. */
+const resetParser = (): void => {
+    (HclParser as unknown as { starting: unknown }).starting = null;
+    delete globals.tofuParseToString;
+};
+
+/** Skips the wasm load entirely, for the tests about what the parser answers. */
+const parserAnswers = (result: ParseResult): void => {
+    (HclParser as unknown as { starting: Promise<void> }).starting = Promise.resolve();
+    globals.tofuParseToString = () => result;
+};
+
+const gzippedStream = (): ReadableStream<Uint8Array> => {
+    const compressed = new Uint8Array(gzipSync(Uint8Array.from([0, 97, 115, 109])));
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(compressed);
+            controller.close();
+        },
+    });
+};
+
+const stubFetch = (body: ReadableStream<Uint8Array> | null): void => {
+    globals.fetch = () => Promise.resolve({ body: body });
+};
+
+beforeEach(() => {
+    resetParser();
+    stubChromeRuntime(() => undefined);
+});
+
+afterEach(() => {
+    clearChromeRuntime();
+    resetParser();
+    delete globals.fetch;
+    globals.Go = realGo;
+    (WebAssembly as unknown as Mutable).instantiate = realInstantiate;
+});
+
+describe("Given a Terraform JSON file", () => {
+    describe("When it is parsed", () => {
+        test("Then I expect the JSON reader used, without loading the wasm", async () => {
+            let fetched = false;
+            globals.fetch = () => {
+                fetched = true;
+                return Promise.reject(new Error("the wasm must not be loaded for JSON"));
+            };
+
+            const parsed = await HclParser.parseAsync(
+                '{"module":{"vpc":{"source":"./modules/vpc"}}}',
+                "main.tf.json",
+            );
+
+            expect<boolean>(fetched).toBe(false);
+            expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
+        });
+    });
+});
+
+describe("Given the wasm parser is loaded", () => {
+    describe("When it parses the file", () => {
+        test("Then I expect the config it emitted", async () => {
+            parserAnswers({ json: '{"module":{"vpc":[{"source":"./modules/vpc"}]}}' });
+
+            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
+                module: { vpc: [{ source: "./modules/vpc" }] },
+            });
+        });
+    });
+
+    describe("When it reports a parse error", () => {
+        test("Then I expect that error surfaced", async () => {
+            parserAnswers({ error: "main.tf:3,1-2: Argument or block definition required" });
+
+            await expect(HclParser.parseAsync("module {", "main.tf")).rejects.toThrow(
+                "Argument or block definition required",
+            );
+        });
+    });
+
+    describe("When it answers with neither json nor an error", () => {
+        test("Then I expect a throw rather than an undefined config", async () => {
+            parserAnswers({});
+
+            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
+                "the parser returned nothing",
+            );
+        });
+    });
+
+    describe("When its output is not valid JSON", () => {
+        test("Then I expect a throw", async () => {
+            parserAnswers({ json: "{not json" });
+
+            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow();
+        });
+    });
+});
+
+describe("Given the wasm binary cannot be read", () => {
+    describe("When a file is parsed", () => {
+        test("Then I expect a throw naming the file", async () => {
+            stubFetch(null);
+
+            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
+                "could not read main.wasm.gz",
+            );
+        });
+    });
+});
+
+describe("Given the Go runtime registers the parser after a few polls", () => {
+    describe("When a file is parsed", () => {
+        test("Then I expect the whole load to run and the config to come back", async () => {
+            stubFetch(gzippedStream());
+            (WebAssembly as unknown as Mutable).instantiate = () =>
+                Promise.resolve({ instance: {}, module: {} });
+            globals.Go = class {
+                importObject = {};
+                run() {
+                    // The real runtime registers on its own schedule, so the
+                    // parser is not callable the instant `run` returns.
+                    setTimeout(() => {
+                        globals.tofuParseToString = () => ({ json: '{"module":{}}' });
+                    }, 25);
+                }
+            };
+
+            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
+                module: {},
+            });
+        });
+    });
+});
+
+describe("Given a load that already failed once", () => {
+    describe("When a file is parsed again", () => {
+        test("Then I expect the load retried, not the failure cached", async () => {
+            stubFetch(null);
+            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
+                "could not read main.wasm.gz",
+            );
+
+            stubFetch(gzippedStream());
+            (WebAssembly as unknown as Mutable).instantiate = () =>
+                Promise.resolve({ instance: {}, module: {} });
+            globals.Go = class {
+                importObject = {};
+                run() {
+                    globals.tofuParseToString = () => ({ json: '{"module":{}}' });
+                }
+            };
+
+            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
+                module: {},
+            });
+        });
+    });
+});
+
+describe("Given the Go runtime never registers the parser", () => {
+    describe("When a file is parsed", () => {
+        // The only slow test here: it has to sit out the whole poll window,
+        // READY_ATTEMPTS * READY_POLL_MS, because that is the thing under test.
+        test("Then I expect a throw once the wait is over", async () => {
+            stubFetch(gzippedStream());
+            (WebAssembly as unknown as Mutable).instantiate = () =>
+                Promise.resolve({ instance: {}, module: {} });
+            globals.Go = class {
+                importObject = {};
+                run() {
+                    // Registers nothing, which is what a wasm build mismatch looks like.
+                }
+            };
+
+            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
+                "the parser did not register itself",
+            );
+        });
+    });
+});

@@ -23,10 +23,6 @@ jobs:
       - name: Run install
         run: yarn install
 
-      - name: Install Cypress dependencies
-        working-directory: tests/cypress
-        run: yarn install
-
       - name: Run lint
         run: yarn lint
 
@@ -46,6 +42,19 @@ jobs:
       - name: Test the app
         run: yarn test
 
-      - name: Run Cypress
-        working-directory: tests/cypress
-        run: yarn cypress:run
+      - name: Check the corpus still matches the fixture repository
+        run: make check-corpus-sync
+
+      - name: Install end to end dependencies
+        working-directory: tests/e2e
+        run: yarn install
+
+      - name: Install Chromium for Playwright
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end to end tests
+        working-directory: tests/e2e
+        # Extensions need a full browser, so the run is headed under a
+        # virtual display rather than headless.
+        run: xvfb-run -a yarn e2e

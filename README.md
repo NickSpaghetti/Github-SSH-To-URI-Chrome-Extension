@@ -12,7 +12,7 @@ A new Chrome Web Store listing is pending. Until it is live, build from source w
 
 ### on page load
 
-When the page loads the extension will try and parse the sources of your modules in your terraform file from an ssh to a clickable uri. The extension supports parsing `.tf` and `.hcl` file types. You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
+When the page loads the extension parses the module sources in your file and turns them into clickable links. It supports `.tf`, `.tofu`, `.hcl`, `.tf.json` and `.tofu.json` files, and both the Terraform and OpenTofu registries. You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
 
 ![Module sources in a .tf file on GitHub rendered as clickable links](docs/screenshots/sshUrlATag.png)
 
@@ -56,19 +56,36 @@ Note you must do this each time you run `yarn build` and update the extension.
 
 # Testing
 
-This project uses [jest](https://jestjs.io/docs/getting-started) and [cypress](https://docs.cypress.io/guides/tooling/typescript-support).
+Unit tests run with [jest](https://jestjs.io/docs/getting-started). End to end
+tests load the built extension into Chromium with
+[Playwright](https://playwright.dev).
 
-### To run the Jest unit tests
+### Unit tests
 
-`yarn tests`
-
-### To run cypress e2e testing run:
-
-```cd tests\cypress\cypress
-   yarn cypress:run
+```
+yarn test
 ```
 
-To see cypress running instead run `yarn cypress:open`
+They run offline. Registry responses are recorded in
+`tests/unit/fixtures/registry-responses.json`, so no test reaches the network.
+Refresh them with `make record-fixtures`.
+
+### End to end tests
+
+```
+make e2e
+```
+
+That builds the extension, installs the test dependencies and runs Playwright
+against [iac-module-linker-fixtures](https://github.com/NickSpaghetti/iac-module-linker-fixtures),
+a repository of Terraform files covering every module source form.
+
+These load a real browser and visit real GitHub pages, so they are slower and
+subject to rate limiting. They run on a schedule and before a release rather
+than on every pull request.
+
+Extensions cannot be loaded by a headless browser, so the run is headed. On a
+machine with no display, put `xvfb-run -a` in front of it.
 
 # Credit
 

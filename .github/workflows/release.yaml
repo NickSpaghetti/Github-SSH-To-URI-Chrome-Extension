@@ -5,6 +5,12 @@ on:
     types: [published]
     tags:
       - v.*.*.*
+  workflow_dispatch:
+    inputs:
+      skip_e2e:
+        description: "Publish without running end to end tests"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -24,19 +30,28 @@ jobs:
       - name: Run install
         run: yarn install
 
-      - name: Install Cypress dependencies
-        working-directory: tests/cypress
-        run: yarn install
-
       - name: Run build
         run: yarn build
 
       - name: Test the app
         run: yarn test
 
-      - name: Run Cypress
-        working-directory: tests/cypress
-        run: yarn cypress:run
+      - name: Install end to end dependencies
+        if: ${{ inputs.skip_e2e != true }}
+        working-directory: tests/e2e
+        run: yarn install
+
+      - name: Install Chromium for Playwright
+        if: ${{ inputs.skip_e2e != true }}
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end to end tests
+        if: ${{ inputs.skip_e2e != true }}
+        working-directory: tests/e2e
+        # Extensions need a full browser, so the run is headed under a
+        # virtual display rather than headless.
+        run: xvfb-run -a yarn e2e
 
       - name: add chrome-webstore-cli
         working-directory: src/

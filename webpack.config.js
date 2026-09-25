@@ -1,7 +1,6 @@
 const { resolve } = require("path");
 const HTMLWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 
 const tsRule = {
@@ -23,7 +22,6 @@ const plugins = [
     //     minimize: true,
     //     debug: false
     // }),
-    new CleanWebpackPlugin(),
 ];
 
 module.exports = {
@@ -39,6 +37,7 @@ module.exports = {
     output: {
         filename: "[name].js",
         path: resolve(__dirname, "dist"),
+        clean: true,
     },
     module: {
         rules: [tsRule],

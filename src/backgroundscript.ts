@@ -1,26 +1,36 @@
-import { ALLOWED_FETCH_HOSTS, GITHUB_ROUTES, SENDERS } from "./util/constants";
-import { RunTimeFetchResponse } from "./services/IFetchService";
-import { isAllowedFetchHost } from "./util/urlSafety";
+import { BackgroundRefresh } from "./types/TabMessage";
+import { GITHUB_HOST } from "./util/Constants";
+import { isAllowedFetchHost, isFetchRequest, isParseRequest } from "./WorkerRequestGuards";
+import { SENDERS } from "./types/TabMessage";
+import { HclParser } from "./services/HclParser";
+import { RunTimeFetchResponse } from "./types/RunTimeFetchResponse";
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (tab.url === undefined) {
         return;
     }
     const currentUrl = new URL(tab.url);
-    if (currentUrl.hostname === GITHUB_ROUTES.HOST) {
+    if (currentUrl.hostname === GITHUB_HOST) {
         if (changeInfo.status === "complete") {
             await chrome.scripting.executeScript({
                 target: { tabId: tabId, allFrames: true },
                 files: ["contentscript.js"],
             });
-            await chrome.tabs.sendMessage(tabId, SENDERS.BACKGROUND);
+            const refresh: BackgroundRefresh = { sender: SENDERS.BACKGROUND };
+            await chrome.tabs.sendMessage(tabId, refresh);
         }
     }
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.contentScriptQuery === "fetchData") {
-        if (!isAllowedFetchHost(request.url, ALLOWED_FETCH_HOSTS)) {
+chrome.runtime.onMessage.addListener((request: unknown, sender, sendResponse) => {
+    if (isParseRequest(request)) {
+        HclParser.parseAsync(request.contents, request.fileName)
+            .then((hclFile) => sendResponse({ ok: true, hclFile: hclFile }))
+            .catch((error) => sendResponse({ ok: false, error: String(error) }));
+        return true;
+    }
+    if (isFetchRequest(request)) {
+        if (!isAllowedFetchHost(request.url)) {
             sendResponse({ ok: false, error: "Host not allowed" });
             return true;
         }

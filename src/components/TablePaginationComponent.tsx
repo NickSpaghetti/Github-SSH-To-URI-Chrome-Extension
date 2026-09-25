@@ -2,9 +2,18 @@ import { Box, IconButton, useTheme } from "@mui/material";
 import React from "react";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
-import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
-import { ITablePaginationActionsProps } from "../models/ITablePaginationActionsProps";
+import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 
+/** Props of this component and nothing else, so they live with it. */
+interface ITablePaginationActionsProps {
+    count: number;
+    page: number;
+    rowsPerPage: number;
+    onPageChange: (event: React.MouseEvent<HTMLButtonElement>, newPage: number) => void;
+}
+
+/** The first, previous, next and last buttons under the popup's table. */
 export function TablePaginationActions(props: ITablePaginationActionsProps) {
     const theme = useTheme();
     const { count, page, rowsPerPage, onPageChange } = props;

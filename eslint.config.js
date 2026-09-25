@@ -9,6 +9,8 @@ module.exports = tseslint.config(
             "dist/**",
             "node_modules/**",
             "tests/cypress/**",
+            "tests/e2e/**",
+            "src/vendor/**",
             "coverage/**",
             "eslint.config.js",
             "webpack.config.js",
@@ -121,6 +123,50 @@ module.exports = tseslint.config(
                 {
                     selector: "import",
                     format: null,
+                },
+            ],
+        },
+    },
+    {
+        // The layers, enforced rather than remembered. `domain` is the pure
+        // Terraform rules: no I/O, so it can be read and tested without a
+        // browser, a registry or a chrome runtime.
+        files: ["src/domain/**/*.ts"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/data-access/*", "**/services/*"],
+                            message:
+                                "domain is pure: it may not reach a layer that does I/O. Take what it needs as an argument instead.",
+                        },
+                    ],
+                },
+            ],
+            "no-restricted-globals": [
+                "error",
+                { name: "chrome", message: "domain does no I/O." },
+                { name: "fetch", message: "domain does no I/O." },
+            ],
+        },
+    },
+    {
+        // `util` is what is left when a module knows neither the domain nor a
+        // boundary: generic helpers only.
+        files: ["src/util/**/*.ts"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/domain/*", "**/data-access/*", "**/services/*"],
+                            message:
+                                "util holds no domain knowledge and no I/O. If it needs one, it is not a util.",
+                        },
+                    ],
                 },
             ],
         },
