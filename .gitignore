@@ -400,3 +400,8 @@ tests/cypress/cypress/screenshots/*
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 tests/e2e/.yarn/
+dist-bench/
+tests/e2e/benchmarks/.recorded/
+
+# Working docs: reviews, benchmark notes. Local only.
+docs/*.md
