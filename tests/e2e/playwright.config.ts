@@ -6,17 +6,23 @@ import { defineConfig } from "@playwright/test";
  * system browser is used when it is present.
  */
 export default defineConfig({
-    testDir: "./specs",
-    // Real GitHub pages. Slower and rate limited, so these are not part of
-    // the unit suite and do not run on every pull request.
     timeout: 60_000,
     expect: { timeout: 15_000 },
     fullyParallel: false,
     workers: 1,
-    retries: 1,
     reporter: [["list"]],
     use: {
         screenshot: "only-on-failure",
         trace: "retain-on-failure",
     },
+    projects: [
+        { name: "e2e", testDir: "./specs", retries: 1 },
+        {
+            name: "benchmark",
+            testDir: "./benchmarks",
+            testMatch: "**/*.bench.ts",
+            retries: 0,
+            timeout: 180_000,
+        },
+    ],
 });

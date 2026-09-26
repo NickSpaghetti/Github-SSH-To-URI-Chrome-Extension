@@ -1,4 +1,4 @@
-.PHONY: install build test e2e lint lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm
+.PHONY: install build test e2e benchmark record-baseline lint lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm
 
 install:
 	yarn install
@@ -12,6 +12,17 @@ test:
 e2e:
 	yarn build
 	cd tests/e2e && yarn install && yarn e2e
+
+
+benchmark:
+	yarn build:bench
+	cd tests/e2e && yarn install && yarn benchmark
+
+record-baseline:
+	yarn build:bench
+	rm -rf tests/e2e/benchmarks/.recorded
+	cd tests/e2e && yarn install && yarn benchmark || true
+	node -r ts-node/register ./scripts/RecordBaseline.ts
 
 lint:
 	yarn lint

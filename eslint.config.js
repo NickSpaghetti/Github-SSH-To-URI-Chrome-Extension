@@ -7,6 +7,7 @@ module.exports = tseslint.config(
     {
         ignores: [
             "dist/**",
+            "dist-bench/**",
             "node_modules/**",
             "tests/cypress/**",
             "tests/e2e/**",

@@ -1,0 +1,59 @@
+{
+    "recorded": "2026-09-26",
+    "ceiling": 10,
+    "scrolling": {
+        "fingerprint": {
+            "lines": 605,
+            "declarations": 16,
+            "bytes": 15424
+        },
+        "counts": {
+            "injections": 6,
+            "resolutions": 16
+        },
+        "lostCacheResolutions": 16
+    },
+    "worker": {
+        "residentMb": 57,
+        "jsHeapKb": 1598
+    },
+    "resolution": {
+        "small": {
+            "modules": 10,
+            "spanMs": 939
+        },
+        "large": {
+            "modules": 40,
+            "spanMs": 2731
+        },
+        "concurrency": 1
+    },
+    "popup": {
+        "rowsPerPage": 5,
+        "warmToTableMs": 284,
+        "bundleLoadMs": 254,
+        "bundleKb": 2,
+        "coldMs": 9254,
+        "coldResolutions": 40,
+        "pagedRows": 5,
+        "allRows": 40
+    },
+    "parse": {
+        "smallLines": 504,
+        "largeLines": 1992,
+        "sizeRatio": 4.04,
+        "smallToFirstLinkMs": 7886,
+        "largeToFirstLinkMs": 2991,
+        "latencyRatio": 0.38,
+        "smallBytes": 11963,
+        "largeBytes": 48277
+    },
+    "userExperience": {
+        "cpuSharePercent": 0.12,
+        "allocSharePercent": 0.41,
+        "cpuMs": 3.6,
+        "longTasks": 7,
+        "cycles": 3,
+        "allocKb": 4.2
+    }
+}

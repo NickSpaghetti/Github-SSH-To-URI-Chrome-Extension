@@ -2,7 +2,11 @@ import { test as base, chromium, BrowserContext, Worker } from "@playwright/test
 import * as fs from "fs";
 import * as path from "path";
 
-const DIST = path.resolve(__dirname, "../../dist");
+/**
+ * Benchmarks need the instrumented build, everything else the shipped one.
+ * `yarn benchmark` sets this; without it the tests load what users get.
+ */
+const DIST = path.resolve(__dirname, "../..", process.env.IAC_BUILD ?? "dist");
 
 /**
  * The bundled headless shell cannot load extensions. A full Chromium can, so
@@ -20,7 +24,9 @@ const findBrowser = (): string | undefined => {
 export const test = base.extend<{ context: BrowserContext; extensionId: string }>({
     context: async ({}, use) => {
         if (!fs.existsSync(path.join(DIST, "manifest.json"))) {
-            throw new Error(`no build found at ${DIST}. Run 'yarn build' in the project root.`);
+            throw new Error(
+                `no build found at ${DIST}. Run 'yarn build' or 'yarn build:bench' in the project root.`,
+            );
         }
         const context = await chromium.launchPersistentContext("", {
             // Playwright's bundled headless shell cannot load extensions.

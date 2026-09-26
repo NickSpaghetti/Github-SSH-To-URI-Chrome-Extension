@@ -8,6 +8,7 @@
     },
     "scripts": {
         "build": "webpack",
+        "build:bench": "IAC_READABLE=1 webpack",
         "test": "jest",
         "lint": "eslint .",
         "lint:errors": "eslint . --quiet",

@@ -3,6 +3,8 @@ const HTMLWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 
+const readable = process.env.IAC_READABLE === "1";
+
 const tsRule = {
     test: /\.ts(x?)$/,
     exclude: ["/node_modules/", "/tests/"],
@@ -36,7 +38,7 @@ module.exports = {
     },
     output: {
         filename: "[name].js",
-        path: resolve(__dirname, "dist"),
+        path: resolve(__dirname, readable ? "dist-bench" : "dist"),
         clean: true,
     },
     module: {
@@ -45,7 +47,7 @@ module.exports = {
     plugins,
     devtool: false,
     optimization: {
-        minimize: true,
+        minimize: !readable,
         minimizer: [new TerserPlugin({ parallel: true })],
     },
 };

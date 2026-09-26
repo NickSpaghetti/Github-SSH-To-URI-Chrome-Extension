@@ -3,8 +3,9 @@
     "private": true,
     "description": "End to end tests that load the built extension in Chromium.",
     "scripts": {
-        "e2e": "playwright test",
-        "e2e:headed": "playwright test --headed",
+        "e2e": "playwright test --project=e2e",
+        "benchmark": "IAC_BUILD=dist-bench playwright test --project=benchmark",
+        "e2e:headed": "playwright test --project=e2e --headed",
         "e2e:report": "playwright show-report"
     },
     "devDependencies": {
