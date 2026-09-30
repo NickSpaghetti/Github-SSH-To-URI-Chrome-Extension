@@ -7,8 +7,8 @@
         "node": ">=24"
     },
     "scripts": {
-        "build": "webpack",
-        "build:bench": "IAC_READABLE=1 webpack",
+        "build": "node scripts/build.mts",
+        "build:bench": "IAC_READABLE=1 node scripts/build.mts",
         "test": "jest",
         "lint": "eslint .",
         "typecheck": "svelte-check --tsconfig ./tsconfig.json --output human",
@@ -57,29 +57,20 @@
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@types/chrome": "^0.3.0",
         "@types/jest": "^29.4.0",
-        "copy-webpack-plugin": "^14.0.0",
-        "css-loader": "^7.1.5",
         "eslint": "^10.7.0",
         "eslint-config-prettier": "^10.1.8",
-        "html-webpack-plugin": "^5.6.8",
         "husky": "^9.1.7",
         "jest": "^29.4.3",
         "jest-environment-jsdom": "^30.5.2",
         "lint-staged": "^17.1.1",
         "prettier": "^3.9.6",
-        "style-loader": "^4.0.0",
         "svelte": "^5.57.1",
         "svelte-check": "^4.7.6",
-        "svelte-loader": "^3.2.4",
-        "terser-webpack-plugin": "^5.6.1",
         "ts-jest": "^29.4.13",
-        "ts-loader": "^9.6.2",
         "ts-node": "^10.9.1",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.70.1",
-        "vite": "^8.3.1",
-        "webpack": "^5.111.1",
-        "webpack-cli": "^7.2.3"
+        "vite": "^8.3.1"
     },
     "packageManager": "yarn@4.17.1+sha512.ccbfabf7d7b6b32075088be9386fb9a2e00bb6887ef07fa56effabc890a56d53da1ccc4128d62db245fcbd3961b236d75335bdf7d5320ed6eafb7588b7ad4697"
 }

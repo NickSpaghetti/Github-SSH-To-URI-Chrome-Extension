@@ -8,8 +8,6 @@ module.exports = tseslint.config(
         ignores: [
             "dist/**",
             "dist-bench/**",
-            "dist-vite/**",
-            "dist-vite-bench/**",
             "node_modules/**",
             // Go's module and build cache for the wasm container, not ours.
             ".gocache/**",
@@ -18,12 +16,11 @@ module.exports = tseslint.config(
             "src/vendor/**",
             "coverage/**",
             "eslint.config.js",
-            "webpack.config.js",
         ],
     },
     eslint.configs.recommended,
     {
-        files: ["**/*.ts", "**/*.tsx"],
+        files: ["**/*.ts", "**/*.mts", "**/*.tsx"],
         extends: [...tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {

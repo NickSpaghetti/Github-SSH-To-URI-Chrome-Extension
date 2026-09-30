@@ -15,13 +15,13 @@
         "lostCacheRebuiltModules": 16
     },
     "worker": {
-        "residentMb": 63,
-        "jsHeapKb": 2180
+        "residentMb": 64,
+        "jsHeapKb": 2177
     },
     "resolution": {
         "small": {
             "modules": 10,
-            "spanMs": 246,
+            "spanMs": 172,
             "fingerprint": {
                 "lines": 55,
                 "bytes": 974
@@ -29,7 +29,7 @@
         },
         "large": {
             "modules": 40,
-            "spanMs": 477,
+            "spanMs": 485,
             "fingerprint": {
                 "lines": 205,
                 "bytes": 4029
@@ -38,9 +38,9 @@
         "concurrency": 10
     },
     "popup": {
-        "warmToTableMs": 109,
-        "bundleLoadMs": 39,
-        "shippedBundleBytes": 70004,
+        "warmToTableMs": 130,
+        "bundleLoadMs": 37,
+        "shippedBundleBytes": 45130,
         "coldRequests": 10,
         "renderedRows": 40,
         "bodyWidth": 380
@@ -49,19 +49,19 @@
         "smallLines": 504,
         "largeLines": 1992,
         "sizeRatio": 4.04,
-        "smallToFirstLinkMs": 2780,
-        "largeToFirstLinkMs": 2959,
-        "latencyRatio": 1.06,
+        "smallToFirstLinkMs": 2910,
+        "largeToFirstLinkMs": 3477,
+        "latencyRatio": 1.19,
         "smallBytes": 11963,
         "largeBytes": 48277
     },
     "userExperience": {
         "cpuSharePercent": 0.31,
-        "allocSharePercent": 1.94,
-        "cpuMs": 7.1,
+        "allocSharePercent": 4.54,
+        "cpuMs": 8.8,
         "longTasks": 6,
         "cycles": 3,
-        "allocKb": 14
+        "allocKb": 52.6
     },
     "softNavigation": {
         "navigations": 3,
@@ -71,22 +71,22 @@
     "browsing": {
         "files": 16,
         "cachedFiles": 16,
-        "residentBeforeMb": 99,
-        "residentLowMb": 145,
-        "residentHighMb": 174,
-        "residentAfterMb": 149,
+        "residentBeforeMb": 103,
+        "residentLowMb": 151,
+        "residentHighMb": 180,
+        "residentAfterMb": 155,
         "storedBytes": 16293,
         "storedBytesPerEntry": 1018,
-        "cpuMs": 1.5,
-        "cpuSharePercent": 0.26
+        "cpuMs": 1.8,
+        "cpuSharePercent": 0.28
     },
     "tabs": {
         "open": 21,
         "workerBeforeMb": 100,
-        "workerAfterMb": 208,
+        "workerAfterMb": 210,
         "anchorsLive": 100,
-        "storedKeys": 21,
-        "storedBytes": 35323,
-        "cachedFiles": 21
+        "storedKeys": 20,
+        "storedBytes": 34629,
+        "cachedFiles": 20
     }
 }

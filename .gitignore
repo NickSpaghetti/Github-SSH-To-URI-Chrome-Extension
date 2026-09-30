@@ -390,7 +390,7 @@ sensitive
 #Jetbrains IDE
 .idea
 
-# Ignore webpack bundle
+# Build output
 dist
 dist.*
 
@@ -405,10 +405,6 @@ tests/e2e/benchmarks/.recorded/
 
 # Working docs: reviews, benchmark notes. Local only.
 docs/*.md
-
-# Vite proof of concept output
-dist-vite/
-dist-vite-bench/
 
 # Built by `make build-wasm` from wasm/. Both come out of the same container
 # run and have to match, so neither is committed.
