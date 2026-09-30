@@ -9,9 +9,9 @@ const isPlainObject = (value: unknown): value is Recorded =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
- * @param into the values already recorded for an axis
- * @param from the values being added
- * @returns the two merged, with nested objects combined rather than replaced
+ * @param into The values already recorded for an axis.
+ * @param from The values being added.
+ * @returns The two merged, with nested objects combined instead of replaced.
  */
 const merge = (into: Recorded, from: Recorded): Recorded => {
     const merged: Recorded = { ...into };
@@ -29,8 +29,8 @@ const merge = (into: Recorded, from: Recorded): Recorded => {
  * Call this at measurement time, before asserting. A run that fails its
  * assertions is exactly the run whose numbers someone needs to look at, so
  * the measurement must survive the failure.
- * @param axis the baseline key this belongs under, such as `scrolling`
- * @param values what was measured
+ * @param axis The baseline key this belongs under, such as `scrolling`.
+ * @param values What was measured.
  */
 export const record = (axis: string, values: Recorded): void => {
     fs.mkdirSync(RECORDED_DIR, { recursive: true });

@@ -26,6 +26,11 @@ const baseline = JSON.parse(
 
 const linker = stubModuleSourceLinker();
 
+/**
+ * Runs one corpus row through the whole pipeline the way the extension does.
+ * @param row The corpus row to classify and resolve.
+ * @returns What this build makes of that row, including anything it threw.
+ */
 async function classifyAsync(row: (typeof MODULE_SOURCE_CORPUS)[number]): Promise<BaselineRow> {
     const moduleSource = classify(detect(split(row.source)));
     const result: BaselineRow = {
@@ -46,38 +51,59 @@ async function classifyAsync(row: (typeof MODULE_SOURCE_CORPUS)[number]): Promis
 describe("Given the module source corpus", () => {
     describe("When every row is classified by the current implementation", () => {
         test("Then I expect the result to match the recorded baseline", async () => {
+            // Arrange
             const actual: Record<string, BaselineRow> = {};
+
+            // Act
             for (const row of MODULE_SOURCE_CORPUS) {
                 actual[row.id] = await classifyAsync(row);
             }
+
+            // Assert
             expect(actual).toStrictEqual(baseline.rows);
         });
     });
 
     describe("When the corpus is compared against the authored expectations", () => {
         test("Then I expect the known gap count to be unchanged", () => {
+            // Act
+            const gaps = baseline.gaps.length;
+
+            // Assert
             // Drops as each batch lands. Reaching 0 is the definition of done.
-            expect<number>(baseline.gaps.length).toBe(0);
+            expect<number>(gaps).toBe(0);
         });
 
         test("Then I expect every corpus row to have an expectation", () => {
-            for (const row of MODULE_SOURCE_CORPUS) {
-                expect<string>(row.expectedSourceType).not.toBe("");
-            }
+            // Act
+            const unexpected = MODULE_SOURCE_CORPUS.filter(
+                (row) => row.expectedSourceType === "",
+            ).map((row) => row.id);
+
+            // Assert
+            expect<string[]>(unexpected).toEqual([]);
             expect<number>(MODULE_SOURCE_CORPUS.length).toBe(baseline.total);
         });
     });
 
     describe("When a row is marked as a correct rejection", () => {
         test("Then I expect it to expect unknown with no link", () => {
+            // Arrange
             const rejections = MODULE_SOURCE_CORPUS.filter(
                 (row) => row.file === "14-security-cases.tf" && row.note === "must be rejected",
             );
+
+            // Act
+            const expectations = rejections.map((row) => ({
+                sourceType: row.expectedSourceType,
+                resolvedUrl: row.expectedResolvedUrl,
+            }));
+
+            // Assert
             expect<number>(rejections.length).toBe(3);
-            for (const row of rejections) {
-                expect<string>(row.expectedSourceType).toBe("unknown");
-                expect<string | null>(row.expectedResolvedUrl).toBeNull();
-            }
+            expect(expectations).toEqual(
+                rejections.map(() => ({ sourceType: "unknown", resolvedUrl: null })),
+            );
         });
     });
 });

@@ -19,11 +19,10 @@ export class OpenTofuRegistryDataAccess {
     constructor(private readonly fetchService: IFetchService) {}
 
     /**
-     * @param address module or provider address ex: terraform-aws-modules/vpc/aws
-     * @param target whether the address names a module or a provider
-     * @returns every version the registry publishes for the address
-     * @throws when the registry answers with a non ok status
-     * @throws when the registry publishes no versions for the address
+     * @param address Module or provider address ex: terraform-aws-modules/vpc/aws.
+     * @param target Whether the address names a module or a provider.
+     * @returns Every version the registry publishes for the address, which may be none.
+     * @throws When the registry answers with a non ok status.
      */
     public async getVersionsAsync(address: string, target: RegistryTarget): Promise<string[]> {
         const response = await this.fetchService.fetchDataAsync<OpenTofuVersionsResponse>(
@@ -35,10 +34,6 @@ export class OpenTofuRegistryDataAccess {
         }
 
         const entries = response.data?.modules?.[0]?.versions ?? response.data?.versions ?? [];
-        const versions = entries.map((entry) => entry.version);
-        if (versions.length === 0) {
-            throw new Error(`the opentofu registry publishes no versions for ${address}`);
-        }
-        return versions;
+        return entries.map((entry) => entry.version);
     }
 }

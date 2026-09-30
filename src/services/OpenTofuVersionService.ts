@@ -1,4 +1,4 @@
-import * as semver from "semver";
+import valid from "semver/functions/valid";
 import { OpenTofuRegistryDataAccess } from "../data-access/OpenTofuRegistryDataAccess";
 import { Nullable } from "../types/Nullable";
 import { RegistryTarget } from "../types/RegistryTarget";
@@ -16,11 +16,12 @@ export class OpenTofuVersionService {
     constructor(private readonly registry: OpenTofuRegistryDataAccess) {}
 
     /**
-     * @param address module or provider address ex: terraform-aws-modules/vpc/aws
-     * @param target whether the address names a module or a provider
-     * @param versionConstraint the block's version constraint, or ""
-     * @returns the version the constraint selects, or null when nothing does
-     * @throws when the registry is unreachable or publishes nothing for the address
+     * Returns the version a constraint selects from the OpenTofu registry.
+     * @param address Module or provider address ex: terraform-aws-modules/vpc/aws.
+     * @param target Whether the address names a module or a provider.
+     * @param versionConstraint The block's version constraint, or "".
+     * @returns The version the constraint selects, or null when nothing does.
+     * @throws When the registry is unreachable.
      */
     public async selectVersionAsync(
         address: string,
@@ -32,7 +33,7 @@ export class OpenTofuVersionService {
         }
         const published = await this.registry.getVersionsAsync(address, target);
         const selected = selectVersion(
-            published.filter((version) => semver.valid(version) !== null),
+            published.filter((version) => valid(version) !== null),
             toVersionConstraint(versionConstraint),
         );
         return selected === "" ? null : selected;

@@ -22,15 +22,15 @@ export class BrowserCdp {
     }
 
     /**
-     * @param listener called for every protocol event, which carry no id
+     * @param listener Called for every protocol event, which carry no id.
      */
     public onEvent(listener: (method: string, params: Record<string, unknown>) => void): void {
         this.listener = listener;
     }
 
     /**
-     * @param port the port Chrome was given as `--remote-debugging-port`
-     * @returns a client connected to the browser endpoint
+     * @param port The port Chrome was given as `--remote-debugging-port`.
+     * @returns A client connected to the browser endpoint.
      */
     public static async connectAsync(port: number): Promise<BrowserCdp> {
         const response = await fetch(`http://127.0.0.1:${port}/json/version`);
@@ -48,10 +48,10 @@ export class BrowserCdp {
     }
 
     /**
-     * @param method a CDP method name
-     * @param params its parameters
-     * @param sessionId the attached session to send it to, browser level when absent
-     * @returns whatever the method returned
+     * @param method A CDP method name.
+     * @param params Its parameters.
+     * @param sessionId The attached session to send it to, browser level when absent.
+     * @returns Whatever the method returned.
      */
     public async sendAsync<T>(
         method: string,
@@ -69,7 +69,7 @@ export class BrowserCdp {
         });
     }
 
-    /** @returns every target the browser knows about */
+    /** @returns Every target the browser knows about. */
     public async targetsAsync(): Promise<CdpTarget[]> {
         const { targetInfos } = await this.sendAsync<{ targetInfos: CdpTarget[] }>(
             "Target.getTargets",
@@ -78,8 +78,8 @@ export class BrowserCdp {
     }
 
     /**
-     * @param targetId the target to attach to
-     * @returns the session id to pass to `sendAsync`
+     * @param targetId The target to attach to.
+     * @returns The session id to pass to `sendAsync`.
      */
     public async attachAsync(targetId: string): Promise<string> {
         const { sessionId } = await this.sendAsync<{ sessionId: string }>("Target.attachToTarget", {

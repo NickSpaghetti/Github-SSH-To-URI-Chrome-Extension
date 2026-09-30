@@ -12,39 +12,58 @@ const DECLARATIONS = baseline.scrolling.fingerprint.declarations;
 /** Enough steps to bring the bottom of the fixture into view. */
 const SCROLL_STEPS = 5;
 
-test("scrolling a long file resolves its modules once", async ({ context }) => {
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+test("scrolling a long file resolves nothing it already resolved", async ({ context }) => {
+    // Arrange
+    const worker = context.serviceWorkers()[0];
+    await worker.evaluate(async () => await chrome.storage.session.clear());
 
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
-    await CallCounts.startAsync((method, params) => cdp.send(method as never, params as never));
+    const send = (method: string, params?: Record<string, unknown>) =>
+        cdp.send(method as never, params as never);
+    await CallCounts.startAsync(send);
 
+    // Act
     await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
     await settle(page);
+
+    // The total comes from what was stored rather than from a call count. V8
+    // counts a resumption of an async function as another entry to it, so a
+    // count off the resolver is not a total.
+    const cached = (await worker.evaluate(async () => {
+        const all = await chrome.storage.session.get(null);
+        const entry = Object.values(all)[0] as { modules?: unknown[] } | undefined;
+        return entry?.modules?.length ?? 0;
+    })) as number;
+
+    // Resets the counters, so what follows is what scrolling costs rather
+    // than what the first render cost.
+    await CallCounts.takeAsync(send);
     await scrollThrough(page, SCROLL_STEPS);
 
-    const counts = await CallCounts.takeAsync((method, params) =>
-        cdp.send(method as never, params as never),
-    );
-    const injections = counts.callsTo("injectHyperLinksToPageAsync");
+    const counts = await CallCounts.takeAsync(send);
+    const injections = counts.callsTo("addHyperLinksToModuleSource");
     const resolutions = counts.callsTo("buildDisplayModuleAsync");
     const fingerprint = await readFingerprint(page);
-    console.log(`BENCH scrolling: injections ${injections}, resolutions ${resolutions}`);
-    record("scrolling", { counts: { injections, resolutions }, fingerprint });
+    console.log(
+        `BENCH scrolling: ${cached} cached on render, then ${injections} injections and ${resolutions} resolver entries across ${SCROLL_STEPS} pauses`,
+    );
+    record("scrolling", {
+        cachedOnRender: cached,
+        counts: { injections, resolutions },
+        fingerprint,
+    });
 
-    // Every count the harness reads must be real. Zero means the name moved
-    // and the benchmark is measuring nothing, which reads like a pass.
+    // Assert
+    // Every declaration resolved once, read off the entry the page wrote.
+    expect(cached).toBe(DECLARATIONS);
+
+    // The cache assertion. Scrolling causes no resolution at all, and zero is
+    // the one thing a resumption cannot inflate.
+    expect(resolutions).toBe(0);
+
+    // Injection still has to be happening, or the rest measures nothing.
     expect(injections).toBeGreaterThan(0);
-
-    // The cache assertion. Each declaration is resolved once for the whole
-    // scroll, not once per pause.
-    expect(resolutions).toBe(DECLARATIONS);
-
-    // One injection per scroll pause, plus the one on first render. Ranged
-    // because injection is debounce driven and a loaded machine can coalesce
-    // two pauses or fire an extra. The upper bound is the one that matters.
-    expect(injections).toBeGreaterThanOrEqual(SCROLL_STEPS);
-    expect(injections).toBeLessThanOrEqual(SCROLL_STEPS + 2);
 
     // The fixture is in another repository and can grow without this one
     // knowing, which would leave the counts describing a different file.
@@ -53,8 +72,9 @@ test("scrolling a long file resolves its modules once", async ({ context }) => {
 });
 
 test("a lost cache makes the next scroll pay for everything again", async ({ context }) => {
+    // Arrange
     const worker = context.serviceWorkers()[0];
-    await worker.evaluate(async () => await chrome.storage.local.clear());
+    await worker.evaluate(async () => await chrome.storage.session.clear());
 
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -62,27 +82,42 @@ test("a lost cache makes the next scroll pay for everything again", async ({ con
         cdp.send(method as never, params as never);
     await CallCounts.startAsync(send);
 
+    /** @returns The one cache entry, its module count, and the store's size. */
+    const readEntry = async () =>
+        (await worker.evaluate(async () => {
+            const all = await chrome.storage.session.get(null);
+            const [key, entry] = (Object.entries(all)[0] ?? [null, undefined]) as [
+                string | null,
+                { modules?: unknown[] } | undefined,
+            ];
+            return { key, modules: entry?.modules?.length ?? 0, bytes: JSON.stringify(all).length };
+        })) as { key: string | null; modules: number; bytes: number };
+
+    // Act
     await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
     await settle(page);
-    // Taking the counts resets them, so this both reads the first round and
-    // starts a fresh window for what the lost cache causes.
-    const firstRound = (await CallCounts.takeAsync(send)).callsTo("buildDisplayModuleAsync");
-    expect(firstRound).toBe(DECLARATIONS);
+    const onLoad = await readEntry();
 
-    // Stands in for tabbing away. `contentscript.ts` empties the cache on
-    // visibilitychange, and the harness cannot hide a tab: the content script
-    // runs in an isolated world, so an override of `document.hidden` in the
-    // page is not visible to it.
-    await worker.evaluate(async () => await chrome.storage.local.clear());
+    // Resets the counters, so what follows is what the lost cache causes.
+    await CallCounts.takeAsync(send);
+    await worker.evaluate(async () => await chrome.storage.session.clear());
     await scrollThrough(page, 1);
 
-    const afterLoss = (await CallCounts.takeAsync(send)).callsTo("buildDisplayModuleAsync");
+    const afterLoss = await readEntry();
+    const entries = (await CallCounts.takeAsync(send)).callsTo("buildDisplayModuleAsync");
     console.log(
-        `BENCH lost cache: ${firstRound} resolutions on load, ${afterLoss} more after losing it`,
+        `BENCH lost cache: ${onLoad.bytes}B under ${JSON.stringify(onLoad.key)}, ${onLoad.modules} modules, rebuilt to ${afterLoss.modules} after losing it`,
     );
-    record("scrolling", { lostCacheResolutions: afterLoss });
+    record("scrolling", { lostCacheRebuiltModules: afterLoss.modules });
 
-    // Every declaration resolved a second time. This documents the cost of
-    // the visibilitychange defect and should drop to zero when it is fixed.
-    expect(afterLoss).toBe(DECLARATIONS);
+    // Assert
+    // One entry per file, so browsing does not accumulate a history of every
+    // file opened.
+    expect(onLoad.modules).toBe(DECLARATIONS);
+
+    // The whole file resolved again, read off the entry rather than counted.
+    expect(afterLoss.modules).toBe(DECLARATIONS);
+
+    // And it was the resolver that rebuilt it, not a stale entry reappearing.
+    expect(entries).toBeGreaterThan(0);
 });

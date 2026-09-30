@@ -42,9 +42,11 @@ export type ModuleSource = {
 };
 
 /**
- * The zero value: unusable but valid, so callers never check for null and an
- * unparseable source still reaches the popup as a labeled row.
- * @returns an inert module source
+ * Creates the zero value for a module source.
+ *
+ * Unusable but valid, so callers never check for null and an unparseable
+ * source still reaches the popup as a labeled row.
+ * @returns An inert module source.
  */
 export const emptyModuleSource = (): ModuleSource => ({
     raw: "",
@@ -62,18 +64,18 @@ export const emptyModuleSource = (): ModuleSource => ({
 });
 
 /**
- * @param source the module source to read
- * @param flag one or more bits from MODULE_SOURCE_FLAGS
- * @returns whether every bit in flag is set
+ * @param source The module source to read.
+ * @param flag One or more bits from MODULE_SOURCE_FLAGS.
+ * @returns true if every bit in flag is set; otherwise, false.
  */
 export const hasFlag = (source: ModuleSource, flag: number): boolean =>
     (source.flags & flag) === flag;
 
 /**
  * Mutates rather than copies: one source per module, built once.
- * @param source the module source to change
- * @param flag the bits to set
- * @returns the same source, so construction chains
+ * @param source The module source to change.
+ * @param flag The bits to set.
+ * @returns The same source, so construction chains.
  */
 export const setFlag = (source: ModuleSource, flag: number): ModuleSource => {
     source.flags |= flag;
@@ -81,9 +83,9 @@ export const setFlag = (source: ModuleSource, flag: number): ModuleSource => {
 };
 
 /**
- * @param source the module source to change
- * @param flag the bits to clear
- * @returns the same source, so construction chains
+ * @param source The module source to change.
+ * @param flag The bits to clear.
+ * @returns The same source, so construction chains.
  */
 export const clearFlag = (source: ModuleSource, flag: number): ModuleSource => {
     source.flags &= ~flag;
@@ -91,9 +93,9 @@ export const clearFlag = (source: ModuleSource, flag: number): ModuleSource => {
 };
 
 /**
- * Readable flag names, for test failure messages and debugging only.
- * @param source the module source to describe
- * @returns the set flags joined by `|`, or "None"
+ * Returns readable flag names, for test failure messages and debugging only.
+ * @param source The module source to describe.
+ * @returns The set flags joined by `|`, or "None".
  */
 export const describeFlags = (source: ModuleSource): string => {
     const names = Object.entries(MODULE_SOURCE_FLAGS)

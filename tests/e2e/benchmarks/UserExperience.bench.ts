@@ -29,7 +29,8 @@ const LONG_TASK_MS = 50;
  * which is why its duration is two orders of magnitude above its cpu.
  */
 test("the extension is a rounding error on the page's cpu and allocations", async ({ context }) => {
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    // Arrange
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
 
@@ -53,6 +54,7 @@ test("the extension is a rounding error on the page's cpu and allocations", asyn
     await cdp.send("Profiler.setSamplingInterval", { interval: SAMPLE_INTERVAL_US });
     await cdp.send("HeapProfiler.enable");
 
+    // Act
     const samples: { cpuShare: number; cpuMs: number; allocShare: number; allocKb: number }[] = [];
     let totalCpuMs = 0;
     for (let cycle = 0; cycle < CYCLES; cycle += 1) {
@@ -90,6 +92,11 @@ test("the extension is a rounding error on the page's cpu and allocations", asyn
         });
     }
 
+    /**
+     * Takes the highest reading of one measure across the cycles.
+     * @param key The measure to read.
+     * @returns Its highest value.
+     */
     const peak = <K extends keyof (typeof samples)[number]>(key: K) =>
         Math.max(...samples.map((sample) => sample[key]));
     const cpuShare = peak("cpuShare");
@@ -114,6 +121,7 @@ test("the extension is a rounding error on the page's cpu and allocations", asyn
         longTasks: longTasks.length,
     });
 
+    // Assert
     expect(cpuShare).toBeLessThan(baseline.userExperience.cpuSharePercent * baseline.ceiling);
     // Allocations are recorded and not gated. Both forms of the number were
     // tried as a ceiling and neither holds: the share moves with whatever

@@ -23,8 +23,8 @@ const withLeadingSeparator = (path: string): string =>
 
 /**
  * Resolves what a locator is, expanding shorthand into explicit fields.
- * @param source a module source that has been through split
- * @returns the same source with scheme, user, host, path and flags set. `path` always carries a leading separator.
+ * @param source A module source that has been through split.
+ * @returns The same source with scheme, user, host, path and flags set. `path` always carries a leading separator.
  */
 export const detect = (source: ModuleSource): ModuleSource => {
     const locator = source.locator;

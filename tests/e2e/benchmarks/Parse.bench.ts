@@ -13,16 +13,21 @@ const fixture = (name: string) => `${FIXTURES}/blob/main/benchmarks/parse/${name
 const WORK_MS = 12_000;
 const LINK = 'a[id^="GithubTerraformSourceUrl"]';
 
+/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),
     );
 
 /**
+ * Times how long one fixture takes to show its first link.
+ *
  * Parsing happens in the worker, which Playwright cannot open a session on,
  * so this goes through the browser endpoint. Nothing in the extension is
  * instrumented: call counts come from V8's coverage and cpu time from its
  * profiler.
+ * @param name The fixture file to open.
+ * @returns The wait, and the shape of the file that was measured.
  */
 const measureAsync = async (
     name: string,
@@ -63,6 +68,7 @@ const measureAsync = async (
 };
 
 test("a four times larger file is not four times slower to show links", async () => {
+    // Act
     const small = await measureAsync("small.tf");
     const large = await measureAsync("large.tf");
     const ratio = Math.round((large.toFirstLinkMs / Math.max(small.toFirstLinkMs, 1)) * 100) / 100;
@@ -80,6 +86,7 @@ test("a four times larger file is not four times slower to show links", async ()
         latencyRatio: ratio,
     });
 
+    // Assert
     // The size ratio is the whole assertion below, so a fixture that grew
     // without the baseline being re-recorded has to fail here rather than
     // quietly compare against the wrong number.

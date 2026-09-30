@@ -1,11 +1,23 @@
 import * as fs from "fs";
 import * as path from "path";
 
+const BENCHMARK_DIR = path.resolve(__dirname, "../tests/e2e/benchmarks");
 const RECORDED_DIR = path.resolve(__dirname, "../tests/e2e/benchmarks/.recorded");
+const STALE_AFTER_MS = 30 * 60 * 1000;
 const BASELINE = path.resolve(__dirname, "../tests/e2e/benchmarks/baseline.json");
 
 /** Every axis a full run is expected to produce. */
-const AXES = ["scrolling", "worker", "resolution", "popup", "parse", "userExperience"];
+const AXES = [
+    "scrolling",
+    "softNavigation",
+    "worker",
+    "resolution",
+    "popup",
+    "parse",
+    "userExperience",
+    "browsing",
+    "tabs",
+];
 
 /**
  * Values a spec multiplies by `ceiling` to bound a measurement, rather than
@@ -22,9 +34,9 @@ const isPlainObject = (value: unknown): value is Values =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
- * @param into the baseline as it stands
- * @param from what the run measured
- * @returns the two merged, measured values winning
+ * @param into The baseline as it stands.
+ * @param from What the run measured.
+ * @returns The two merged, with measured values winning.
  */
 const merge = (into: Values, from: Values): Values => {
     const merged: Values = { ...into };
@@ -37,9 +49,9 @@ const merge = (into: Values, from: Values): Values => {
 };
 
 /**
- * @param values any nested object
- * @param prefix the path walked so far
- * @returns one entry per leaf, keyed by dotted path
+ * @param values Any nested object.
+ * @param prefix The path walked so far.
+ * @returns One entry per leaf, keyed by dotted path.
  */
 const leaves = (values: Values, prefix = ""): Map<string, unknown> => {
     const flat = new Map<string, unknown>();
@@ -68,7 +80,7 @@ const drift = (was: unknown, now: unknown): string => {
  * Prose next to a number goes stale the moment the number is re-recorded,
  * and nothing detects it. Anything worth saying about an axis belongs in the
  * spec, beside the assertion, where review sees it.
- * @param node any part of the baseline
+ * @param node Any part of the baseline.
  */
 const stripNotes = (node: unknown): void => {
     if (!isPlainObject(node)) {
@@ -84,9 +96,9 @@ const at = (values: Values, path: string): unknown =>
         .reduce<unknown>((node, key) => (isPlainObject(node) ? node[key] : undefined), values);
 
 /**
- * @param values the baseline being assembled
- * @param path a dotted path into it
- * @param value what to store there
+ * @param values The baseline being assembled.
+ * @param path A dotted path into it.
+ * @param value What to store there.
  */
 const put = (values: Values, path: string, value: unknown): void => {
     const keys = path.split(".");
@@ -95,12 +107,48 @@ const put = (values: Values, path: string, value: unknown): void => {
     parent[last] = value;
 };
 
+/** Written by this script rather than by any axis, so never reported dead. */
+const ASSEMBLER_KEYS = ["recorded"];
+
+/**
+ * Finds baseline entries no benchmark mentions.
+ *
+ * A key that nothing records and nothing asserts is dead weight that reads as
+ * a measurement. They arrive when an axis is renamed and the old name is
+ * carried forward, which this script does by design for everything it was not
+ * given.
+ * @param values The assembled baseline.
+ * @param benchmarkSource Every benchmark and helper, concatenated.
+ * @returns The dotted paths that appear nowhere in the benchmarks.
+ */
+const deadKeys = (values: Values, benchmarkSource: string): string[] =>
+    [...leaves(values).keys()].filter((path) => {
+        const leaf = path.split(".").pop() ?? path;
+        return !ASSEMBLER_KEYS.includes(leaf) && !benchmarkSource.includes(leaf);
+    });
+
+const benchmarkSourceText = (): string =>
+    fs
+        .readdirSync(BENCHMARK_DIR)
+        .filter((name) => name.endsWith(".ts"))
+        .map((name) => fs.readFileSync(path.join(BENCHMARK_DIR, name), "utf8"))
+        .join("\n");
+
 const read = (file: string): Values => JSON.parse(fs.readFileSync(file, "utf8")) as Values;
 
 const main = (): void => {
     if (!fs.existsSync(RECORDED_DIR)) {
         console.error(
             "nothing recorded. run the benchmark suite first, or use `make record-baseline`.",
+        );
+        process.exit(1);
+    }
+
+    const age = Date.now() - fs.statSync(RECORDED_DIR).mtimeMs;
+    if (age > STALE_AFTER_MS) {
+        console.error(
+            `.recorded is ${Math.round(age / 60000)} minutes old. Run \`make record-baseline\`, ` +
+                "which clears it and runs the suite, rather than this script on its own.",
         );
         process.exit(1);
     }
@@ -162,10 +210,16 @@ const main = (): void => {
         }
     }
 
+    const dead = deadKeys(next, benchmarkSourceText());
+
     fs.writeFileSync(BASELINE, `${JSON.stringify(next, null, 4)}\n`);
 
     console.log(`wrote ${path.relative(process.cwd(), BASELINE)}`);
     console.log(changes.length === 0 ? "  no change" : changes.join("\n"));
+    if (dead.length > 0) {
+        console.log("\nno benchmark mentions these, so nothing keeps them true:");
+        dead.forEach((path) => console.log(`  ${path}`));
+    }
     if (held.length > 0) {
         console.log("\nceilings held rather than tightened:");
         console.log(held.join("\n"));

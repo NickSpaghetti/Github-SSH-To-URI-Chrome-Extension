@@ -6,7 +6,13 @@ import { MODULE_SOURCE_CORPUS } from "../../fixtures/module-sources";
 describe("Given a prefix", () => {
     describe("When the source is git::https://github.com/a/b.git", () => {
         test("Then I expect the type to be git and the locator to be the url", () => {
-            const source = split("git::https://github.com/a/b.git");
+            // Arrange
+            const raw = "git::https://github.com/a/b.git";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.prefix).toBe("git");
             expect<string>(source.locator).toBe("https://github.com/a/b.git");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.HasPrefix)).toBe(true);
@@ -15,27 +21,52 @@ describe("Given a prefix", () => {
 
     describe("When the source is hg::http://example.com/vpc.hg", () => {
         test("Then I expect the type to be hg", () => {
-            expect<string>(split("hg::http://example.com/vpc.hg").prefix).toBe("hg");
+            // Arrange
+            const raw = "hg::http://example.com/vpc.hg";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
+            expect<string>(source.prefix).toBe("hg");
         });
     });
 
     describe("When the source is s3::https://s3.amazonaws.com/bucket/vpc.zip", () => {
         test("Then I expect the type to be s3", () => {
-            expect<string>(split("s3::https://s3.amazonaws.com/bucket/vpc.zip").prefix).toBe("s3");
+            // Arrange
+            const raw = "s3::https://s3.amazonaws.com/bucket/vpc.zip";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
+            expect<string>(source.prefix).toBe("s3");
         });
     });
 
     describe("When the source is gcs::https://www.googleapis.com/storage/v1/x.zip", () => {
         test("Then I expect the type to be gcs", () => {
-            expect<string>(split("gcs::https://www.googleapis.com/storage/v1/x.zip").prefix).toBe(
-                "gcs",
-            );
+            // Arrange
+            const raw = "gcs::https://www.googleapis.com/storage/v1/x.zip";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
+            expect<string>(source.prefix).toBe("gcs");
         });
     });
 
     describe("When the source is git::git@github.com:a/b.git", () => {
         test("Then I expect the type to be git and the locator to keep the scp form", () => {
-            const source = split("git::git@github.com:a/b.git");
+            // Arrange
+            const raw = "git::git@github.com:a/b.git";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.prefix).toBe("git");
             expect<string>(source.locator).toBe("git@github.com:a/b.git");
         });
@@ -45,7 +76,13 @@ describe("Given a prefix", () => {
 describe("Given a source with no prefix", () => {
     describe("When the source is oci://example.com/repo", () => {
         test("Then I expect no prefix, because :// is a scheme", () => {
-            const source = split("oci://example.com/repo");
+            // Arrange
+            const raw = "oci://example.com/repo";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.prefix).toBe("");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.HasPrefix)).toBe(false);
         });
@@ -53,7 +90,13 @@ describe("Given a source with no prefix", () => {
 
     describe("When the source is a bare registry address", () => {
         test("Then I expect the locator to be unchanged", () => {
-            const source = split("terraform-aws-modules/vpc/aws");
+            // Arrange
+            const raw = "terraform-aws-modules/vpc/aws";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("terraform-aws-modules/vpc/aws");
             expect<string>(describeFlags(source)).toBe("None");
         });
@@ -61,8 +104,14 @@ describe("Given a source with no prefix", () => {
 
     describe("When the source is a local path", () => {
         test("Then I expect the locator to be unchanged", () => {
-            expect<string>(split("./modules/vpc").locator).toBe("./modules/vpc");
-            expect<string>(split("../../modules/vpc").locator).toBe("../../modules/vpc");
+            // Arrange
+            const raws = ["./modules/vpc", "../../modules/vpc"];
+
+            // Act
+            const locators = raws.map((raw) => split(raw).locator);
+
+            // Assert
+            expect<string[]>(locators).toEqual(raws);
         });
     });
 });
@@ -70,7 +119,13 @@ describe("Given a source with no prefix", () => {
 describe("Given a subdirectory", () => {
     describe("When the source is a registry address with a subdir", () => {
         test("Then I expect the subdir to be split from the locator", () => {
-            const source = split("terraform-aws-modules/vpc/aws//modules/vpc-endpoints");
+            // Arrange
+            const raw = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("terraform-aws-modules/vpc/aws");
             expect<string>(source.subDirectory).toBe("modules/vpc-endpoints");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.HasSubDirectory)).toBe(true);
@@ -79,7 +134,13 @@ describe("Given a subdirectory", () => {
 
     describe("When the source has a scheme and a subdir", () => {
         test("Then I expect the scheme's own slashes to be left alone", () => {
-            const source = split("git::https://github.com/a/b.git//modules/vpc");
+            // Arrange
+            const raw = "git::https://github.com/a/b.git//modules/vpc";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("https://github.com/a/b.git");
             expect<string>(source.subDirectory).toBe("modules/vpc");
         });
@@ -87,7 +148,13 @@ describe("Given a subdirectory", () => {
 
     describe("When the source is scp style with a subdir", () => {
         test("Then I expect the subdir to be split", () => {
-            const source = split("git@github.com:a/b.git//modules/vpc");
+            // Arrange
+            const raw = "git@github.com:a/b.git//modules/vpc";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("git@github.com:a/b.git");
             expect<string>(source.subDirectory).toBe("modules/vpc");
         });
@@ -95,7 +162,13 @@ describe("Given a subdirectory", () => {
 
     describe("When the source has no subdir", () => {
         test("Then I expect an empty subdir and no flag", () => {
-            const source = split("https://example.com/vpc.zip");
+            // Arrange
+            const raw = "https://example.com/vpc.zip";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.subDirectory).toBe("");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.HasSubDirectory)).toBe(false);
         });
@@ -105,7 +178,13 @@ describe("Given a subdirectory", () => {
 describe("Given a revision selector", () => {
     describe("When the query is ?ref=v1.0.0", () => {
         test("Then I expect the ref to be v1.0.0", () => {
-            const source = split("git::https://github.com/a/b.git?ref=v1.0.0");
+            // Arrange
+            const raw = "git::https://github.com/a/b.git?ref=v1.0.0";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.ref).toBe("v1.0.0");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.HasRef)).toBe(true);
         });
@@ -113,21 +192,39 @@ describe("Given a revision selector", () => {
 
     describe("When the query is ?tag=v1.0.0", () => {
         test("Then I expect tag to be read as the ref", () => {
-            expect<string>(split("oci://example.com/repo?tag=v1.0.0").ref).toBe("v1.0.0");
+            // Arrange
+            const raw = "oci://example.com/repo?tag=v1.0.0";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
+            expect<string>(source.ref).toBe("v1.0.0");
         });
     });
 
     describe("When the query is ?ref=v1.0.0&depth=1", () => {
         test("Then I expect depth not to be mistaken for the ref", () => {
-            expect<string>(split("git::https://github.com/a/b.git?ref=v1.0.0&depth=1").ref).toBe(
-                "v1.0.0",
-            );
+            // Arrange
+            const raw = "git::https://github.com/a/b.git?ref=v1.0.0&depth=1";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
+            expect<string>(source.ref).toBe("v1.0.0");
         });
     });
 
     describe("When the query is ?digest=sha256:abc123", () => {
         test("Then I expect no ref, and the colon not to break the split", () => {
-            const source = split("oci://example.com/repo?digest=sha256:abc123");
+            // Arrange
+            const raw = "oci://example.com/repo?digest=sha256:abc123";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.ref).toBe("");
             expect<string>(source.locator).toBe("oci://example.com/repo");
         });
@@ -135,7 +232,13 @@ describe("Given a revision selector", () => {
 
     describe("When the query comes after a subdir", () => {
         test("Then I expect both to be split correctly", () => {
-            const source = split("git::https://github.com/a/b.git//modules/vpc?ref=v1.0.0");
+            // Arrange
+            const raw = "git::https://github.com/a/b.git//modules/vpc?ref=v1.0.0";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("https://github.com/a/b.git");
             expect<string>(source.subDirectory).toBe("modules/vpc");
             expect<string>(source.ref).toBe("v1.0.0");
@@ -146,7 +249,13 @@ describe("Given a revision selector", () => {
 describe("Given an empty source", () => {
     describe("When the source is an empty string", () => {
         test("Then I expect the inert zero value", () => {
-            const source = split("");
+            // Arrange
+            const raw = "";
+
+            // Act
+            const source = split(raw);
+
+            // Assert
             expect<string>(source.locator).toBe("");
             expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.Unsupported)).toBe(true);
         });
@@ -156,20 +265,27 @@ describe("Given an empty source", () => {
 describe("Given every source in the corpus", () => {
     describe("When each one is split", () => {
         test("Then I expect no throw and the raw value to be preserved", () => {
-            for (const row of MODULE_SOURCE_CORPUS) {
-                const source = split(row.source);
-                expect<string>(source.raw).toBe(row.source);
-            }
+            // Act
+            const raws = MODULE_SOURCE_CORPUS.map((row) => split(row.source).raw);
+
+            // Assert
+            expect<string[]>(raws).toEqual(MODULE_SOURCE_CORPUS.map((row) => row.source));
         });
 
         test("Then I expect the parts to reassemble into the original", () => {
-            for (const row of MODULE_SOURCE_CORPUS) {
+            // Act
+            const rebuilt = MODULE_SOURCE_CORPUS.map((row) => {
                 const source = split(row.source);
-                let rebuilt = source.prefix === "" ? "" : `${source.prefix}::`;
-                rebuilt += source.locator;
-                rebuilt += source.subDirectory === "" ? "" : `//${source.subDirectory}`;
-                expect<boolean>(row.source.startsWith(rebuilt)).toBe(true);
-            }
+                const prefix = source.prefix === "" ? "" : `${source.prefix}::`;
+                const subDirectory = source.subDirectory === "" ? "" : `//${source.subDirectory}`;
+                const parts = `${prefix}${source.locator}${subDirectory}`;
+                return { source: row.source, leads: row.source.startsWith(parts) };
+            });
+
+            // Assert
+            expect(rebuilt).toEqual(
+                MODULE_SOURCE_CORPUS.map((row) => ({ source: row.source, leads: true })),
+            );
         });
     });
 });

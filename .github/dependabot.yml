@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # The Go toolchain that builds the parser.
+  - package-ecosystem: docker
+    directory: /wasm
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "bumped"
+
+  # Own lockfile.
+  - package-ecosystem: npm
+    directory: /tests/e2e
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "bumped"
+
+  - package-ecosystem: gomod
+    directory: /wasm
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"

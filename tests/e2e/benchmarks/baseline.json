@@ -1,5 +1,5 @@
 {
-    "recorded": "2026-09-26",
+    "recorded": "2026-09-30",
     "ceiling": 10,
     "scrolling": {
         "fingerprint": {
@@ -8,52 +8,85 @@
             "bytes": 15424
         },
         "counts": {
-            "injections": 6,
-            "resolutions": 16
+            "injections": 5,
+            "resolutions": 0
         },
-        "lostCacheResolutions": 16
+        "cachedOnRender": 16,
+        "lostCacheRebuiltModules": 16
     },
     "worker": {
-        "residentMb": 57,
-        "jsHeapKb": 1598
+        "residentMb": 63,
+        "jsHeapKb": 2180
     },
     "resolution": {
         "small": {
             "modules": 10,
-            "spanMs": 939
+            "spanMs": 246,
+            "fingerprint": {
+                "lines": 55,
+                "bytes": 974
+            }
         },
         "large": {
             "modules": 40,
-            "spanMs": 2731
+            "spanMs": 477,
+            "fingerprint": {
+                "lines": 205,
+                "bytes": 4029
+            }
         },
-        "concurrency": 1
+        "concurrency": 10
     },
     "popup": {
-        "rowsPerPage": 5,
-        "warmToTableMs": 284,
-        "bundleLoadMs": 254,
-        "bundleKb": 2,
-        "coldMs": 9254,
-        "coldResolutions": 40,
-        "pagedRows": 5,
-        "allRows": 40
+        "warmToTableMs": 109,
+        "bundleLoadMs": 39,
+        "shippedBundleBytes": 70004,
+        "coldRequests": 10,
+        "renderedRows": 40,
+        "bodyWidth": 380
     },
     "parse": {
         "smallLines": 504,
         "largeLines": 1992,
         "sizeRatio": 4.04,
-        "smallToFirstLinkMs": 7886,
-        "largeToFirstLinkMs": 2991,
-        "latencyRatio": 0.38,
+        "smallToFirstLinkMs": 2780,
+        "largeToFirstLinkMs": 2959,
+        "latencyRatio": 1.06,
         "smallBytes": 11963,
         "largeBytes": 48277
     },
     "userExperience": {
-        "cpuSharePercent": 0.12,
-        "allocSharePercent": 0.41,
-        "cpuMs": 3.6,
-        "longTasks": 7,
+        "cpuSharePercent": 0.31,
+        "allocSharePercent": 1.94,
+        "cpuMs": 7.1,
+        "longTasks": 6,
         "cycles": 3,
-        "allocKb": 4.2
+        "allocKb": 14
+    },
+    "softNavigation": {
+        "navigations": 3,
+        "injectionsPerPauseOnLoad": 1,
+        "injectionsPerPauseAfterBrowsing": 1
+    },
+    "browsing": {
+        "files": 16,
+        "cachedFiles": 16,
+        "residentBeforeMb": 99,
+        "residentLowMb": 145,
+        "residentHighMb": 174,
+        "residentAfterMb": 149,
+        "storedBytes": 16293,
+        "storedBytesPerEntry": 1018,
+        "cpuMs": 1.5,
+        "cpuSharePercent": 0.26
+    },
+    "tabs": {
+        "open": 21,
+        "workerBeforeMb": 100,
+        "workerAfterMb": 208,
+        "anchorsLive": 100,
+        "storedKeys": 21,
+        "storedBytes": 35323,
+        "cachedFiles": 21
     }
 }

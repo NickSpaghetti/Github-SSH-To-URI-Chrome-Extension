@@ -1,32 +1,42 @@
-// Module source corpus.
-//
-// Every module source in the iac-module-linker-fixtures repo, with the
-// classification and link it should produce. Authored from OpenTofu's module
-// sources doc, not generated from current behavior. Generating it would
-// enshrine the current bugs as correct.
-//
-// expectedResolvedUrl of null means the source is classified but deliberately
-// not linked. A pending phase means that phase defines the url, so only
-// expectedSourceType is asserted until then.
-//
-// Regenerate the skeleton from the fixture repo, never by hand.
+/**
+ * Every module source in the iac-module-linker-fixtures repo, with the
+ * classification and link it should produce.
+ *
+ * Authored from OpenTofu's module sources doc, not generated from current
+ * behavior. Generating it would enshrine the current bugs as correct.
+ * Regenerate the skeleton from the fixture repo, never by hand.
+ */
 
+/** How closely a built link has to match what the row expects. */
 export type CorpusMatch = "exact" | "prefix";
 
+/** One module source and everything this suite asserts about it. */
 export type CorpusRow = {
+    /** Identifies the row in a failure message. */
     id: string;
+    /** The fixture file the source was declared in. */
     file: string;
+    /** The GitHub page that file is served on. */
     pageUrl: string;
+    /** The name the block was given. */
     moduleName: string;
+    /** The source exactly as the fixture wrote it. */
     source: string;
+    /** The constraint the block declared. */
     version: string;
+    /** The label the source should carry. */
     expectedSourceType: string;
+    /** The link it should resolve to, or null where it is deliberately not linked. */
     expectedResolvedUrl: string | null;
+    /** Whether the link must match exactly or need only lead with the expected value. */
     match: CorpusMatch;
+    /** The phase that will define the url, or null where this row is settled. */
     pending: string | null;
+    /** Why the row is here, where that is not obvious from the source. */
     note: string | null;
 };
 
+/** The corpus itself, one row per source. */
 export const MODULE_SOURCE_CORPUS: CorpusRow[] = [
     {
         id: "01-local-paths:local_dir",

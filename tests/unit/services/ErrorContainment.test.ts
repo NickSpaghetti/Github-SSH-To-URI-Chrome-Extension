@@ -26,20 +26,30 @@ afterEach(() => {
 describe("Given a registry lookup that fails", () => {
     describe("When the linker builds the url", () => {
         test("Then I expect null rather than a throw", async () => {
+            // Arrange
             const source = classify(detect(split(UNKNOWN_MODULE)));
+
+            // Act
             const link = await linker.linkAsync(source, "m", "", PAGE);
+
+            // Assert
             expect<Nullable<string>>(link.url).toBeNull();
         });
     });
 
     describe("When a display module is built", () => {
         test("Then I expect the row to survive with its label and no link", async () => {
+            // Arrange
             const module: TerraformModule = {
                 moduleName: "broken",
                 terraformProperty: "module",
                 provider: { source: UNKNOWN_MODULE, version: "" },
             };
+
+            // Act
             const display = await buildDisplayModuleAsync(PAGE.href, module, linker);
+
+            // Assert
             expect<string>(display.moduleName).toBe("broken");
             expect<string>(display.source).toBe(UNKNOWN_MODULE);
             expect<Nullable<SourceTypes>>(display.sourceType).not.toBeNull();
@@ -51,6 +61,7 @@ describe("Given a registry lookup that fails", () => {
 describe("Given a page with one broken module among good ones", () => {
     describe("When each module is built in turn", () => {
         test("Then I expect the good ones to keep their links", async () => {
+            // Arrange
             const modules: TerraformModule[] = [
                 {
                     moduleName: "good_git",
@@ -69,11 +80,13 @@ describe("Given a page with one broken module among good ones", () => {
                 },
             ];
 
+            // Act
             const built = [];
             for (const module of modules) {
                 built.push(await buildDisplayModuleAsync(PAGE.href, module, linker));
             }
 
+            // Assert
             expect<number>(built.length).toBe(3);
             expect<Nullable<string>>(built[0].resolvedUrl).not.toBeNull();
             expect<Nullable<string>>(built[1].resolvedUrl).toBeNull();

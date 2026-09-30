@@ -16,8 +16,8 @@ const CACHE_MODES: RequestCache[] = [
 ];
 
 /**
- * @param message a runtime message, of any shape
- * @returns whether it is a well formed request to parse a file
+ * @param message A runtime message, of any shape.
+ * @returns true if it is a well formed request to parse a file; otherwise, false.
  */
 export const isParseRequest = (message: unknown): message is ParseRequest =>
     readQuery(message) === WORKER_QUERIES.PARSE &&
@@ -25,8 +25,8 @@ export const isParseRequest = (message: unknown): message is ParseRequest =>
     isString(readField(message, "fileName"));
 
 /**
- * @param message a runtime message, of any shape
- * @returns whether it is a well formed request to fetch a url
+ * @param message A runtime message, of any shape.
+ * @returns true if it is a well formed request to fetch a url; otherwise, false.
  */
 export const isFetchRequest = (message: unknown): message is FetchRequest =>
     readQuery(message) === WORKER_QUERIES.FETCH &&
@@ -43,8 +43,8 @@ const readField = (message: unknown, field: string): unknown =>
         : undefined;
 
 /**
- * @param url the address the service worker was asked to fetch
- * @returns whether its host is one this extension is permitted to reach
+ * @param url The address the service worker was asked to fetch.
+ * @returns true if its host is one this extension is permitted to reach; otherwise, false.
  */
 export const isAllowedFetchHost = (url: string): boolean => {
     try {

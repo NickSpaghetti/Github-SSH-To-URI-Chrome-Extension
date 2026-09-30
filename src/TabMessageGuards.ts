@@ -7,8 +7,7 @@ type Sender = (typeof SENDERS)[keyof typeof SENDERS];
 /**
  * Decides whether the content script should act on a runtime message. Both
  * senders name themselves, so nothing is inferred from the shape.
- * @param message the runtime message
- * @returns true for a refresh, or for a popup request naming a github tab
+ * @returns true for a refresh, or for a popup request naming a github tab.
  */
 export const shouldHandleMessage = (message: unknown): boolean => {
     const sender = readSender(message);
@@ -23,15 +22,15 @@ export const shouldHandleMessage = (message: unknown): boolean => {
 };
 
 /**
- * @param message a runtime message
- * @returns whether the background script sent it, which means refresh
+ * Determines whether the background script sent a message.
+ * @returns true if it did, which means refresh; otherwise, false.
  */
 export const isBackgroundRefresh = (message: unknown): boolean =>
     readSender(message) === SENDERS.BACKGROUND;
 
 /**
- * @param message a runtime message, of any shape
- * @returns the tab url it names, or null when it names none
+ * Reads the tab url a message names.
+ * @returns The tab url, or null when the message names none.
  */
 export const readTabUrl = (message: unknown): Nullable<string> => {
     const tabUrl = readField(message, "tabUrl");
@@ -39,8 +38,8 @@ export const readTabUrl = (message: unknown): Nullable<string> => {
 };
 
 /**
- * @param tabUrl the url the popup says it is asking about
- * @returns whether its host is github.com exactly, not a lookalike
+ * @param tabUrl The url the popup says it is asking about.
+ * @returns true if its host is github.com exactly and not a lookalike; otherwise, false.
  */
 export const isGithubTabUrl = (tabUrl: string): boolean => {
     try {

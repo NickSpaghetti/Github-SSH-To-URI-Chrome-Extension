@@ -3,9 +3,9 @@ import { GITHUB_HOST } from "../../util/Constants";
 import { isFilePath } from "../../util/PathHelpers";
 
 /**
- * The route a host puts between the repository and the ref.
- * @param subdir the path being linked to, which GitHub needs in order to tell
- * a file from a directory
+ * Returns the route a host puts between the repository and the ref.
+ * @param subdir The path being linked to, which GitHub needs in order to tell
+ * a file from a directory.
  */
 type BrowseRoute = (subdir: string) => string;
 

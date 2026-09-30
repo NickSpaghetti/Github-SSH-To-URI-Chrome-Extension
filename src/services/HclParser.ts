@@ -6,8 +6,6 @@ import { parseJsonConfig } from "../domain/TerraformJsonParser";
 const WASM_FILE = "main.wasm.gz";
 const JSON_SUFFIX = ".json";
 const COMPRESSION_FORMAT = "gzip";
-const READY_POLL_MS = 10;
-const READY_ATTEMPTS = 200;
 
 type ParseResult = { json?: string; error?: string };
 type GoRuntime = { importObject: WebAssembly.Imports; run: (i: WebAssembly.Instance) => void };
@@ -24,12 +22,12 @@ export class HclParser {
     private static starting: Nullable<Promise<void>> = null;
 
     /**
-     * @param contents the raw text of the file being viewed
-     * @param fileName used to pick the JSON reader, and for parse error positions
-     * @returns the parsed config
-     * @throws when the wasm binary cannot be read, or never registers itself
-     * @throws when the parser reports an error or returns nothing
-     * @throws when the parser's output, or a `.json` file, is not valid JSON
+     * @param contents The raw text of the file being viewed.
+     * @param fileName Used to pick the JSON reader, and for parse error positions.
+     * @returns The parsed config.
+     * @throws When the wasm binary cannot be read, or never registers itself.
+     * @throws When the parser reports an error or returns nothing.
+     * @throws When the parser's output, or a `.json` file, is not valid JSON.
      */
     public static async parseAsync(contents: string, fileName: string): Promise<IHclFile> {
         if (fileName.toLowerCase().endsWith(JSON_SUFFIX)) {
@@ -82,15 +80,14 @@ export class HclParser {
         // The Go program blocks forever so its exports stay callable. Awaiting it would hang.
         runtime.run(wasm.instance);
 
-        for (let attempt = 0; attempt < READY_ATTEMPTS; attempt += 1) {
-            if (
-                typeof (globalThis as unknown as Record<string, unknown>).tofuParseToString ===
-                "function"
-            ) {
-                return;
-            }
-            await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
+        // One check is enough. `run` executes Go's main synchronously until it
+        // parks on `select {}`, and main registers the parser before that, so
+        // it is either there now or it never will be.
+        if (
+            typeof (globalThis as unknown as Record<string, unknown>).tofuParseToString !==
+            "function"
+        ) {
+            throw new Error("the parser did not register itself");
         }
-        throw new Error("the parser did not register itself");
     }
 }

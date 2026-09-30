@@ -18,10 +18,3 @@ export const HCL_FILE_SUFFIXES: ReadonlyArray<readonly [string, HclFileTypes]> =
     [".hcl", HclFileTypes.hcl],
     [".tf", HclFileTypes.tf],
 ];
-
-/**
- * @param fileType a recognised file type
- * @returns whether it is a JSON variant, which the wasm parser cannot read
- */
-export const isJsonFileType = (fileType: HclFileTypes): boolean =>
-    fileType === HclFileTypes.tfJson || fileType === HclFileTypes.tofuJson;

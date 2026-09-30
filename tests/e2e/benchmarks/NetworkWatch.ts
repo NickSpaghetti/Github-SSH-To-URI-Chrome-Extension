@@ -1,6 +1,6 @@
 import { BrowserCdp } from "./BrowserCdp";
 
-export type Request = { url: string; start: number; end: number };
+export type Request = { url: string; start: number; end: number; status: number };
 
 /**
  * Registry lookups are http requests, so the harness counts them at the
@@ -9,14 +9,15 @@ export type Request = { url: string; start: number; end: number };
  */
 export class NetworkWatch {
     private readonly started = new Map<string, { url: string; start: number }>();
+    private readonly statuses = new Map<string, number>();
     private readonly finished: Request[] = [];
 
     private constructor(private readonly cdp: BrowserCdp) {}
 
     /**
-     * @param cdp a browser level client
-     * @param session a session attached to the target making the requests
-     * @returns a watch that is already recording
+     * @param cdp A browser level client.
+     * @param session A session attached to the target making the requests.
+     * @returns A watch that is already recording.
      */
     public static async openAsync(cdp: BrowserCdp, session: string): Promise<NetworkWatch> {
         const watch = new NetworkWatch(cdp);
@@ -26,14 +27,27 @@ export class NetworkWatch {
     }
 
     /**
-     * @param host only requests to this host
-     * @returns each request, with when it started and finished
+     * @param host The host to count requests to.
+     * @returns Each request, with when it started and finished.
      */
     public requestsTo(host: string): Request[] {
         return this.finished.filter((request) => request.url.includes(host));
     }
 
+    /**
+     * @param host The host to count requests to.
+     * @returns Each request the server did not answer with 200.
+     */
+    public rejectedBy(host: string): Request[] {
+        return this.requestsTo(host).filter((request) => request.status !== 200);
+    }
+
     private receive(method: string, params: Record<string, unknown>): void {
+        if (method === "Network.responseReceived") {
+            const response = params.response as { status?: number } | undefined;
+            this.statuses.set(String(params.requestId), Number(response?.status ?? 0));
+            return;
+        }
         if (method === "Network.requestWillBeSent") {
             const request = params.request as { url: string } | undefined;
             if (request !== undefined) {
@@ -57,6 +71,8 @@ export class NetworkWatch {
             url: began.url,
             start: began.start,
             end: Number(params.timestamp) * 1000,
+            status: this.statuses.get(id) ?? 0,
         });
+        this.statuses.delete(id);
     }
 }

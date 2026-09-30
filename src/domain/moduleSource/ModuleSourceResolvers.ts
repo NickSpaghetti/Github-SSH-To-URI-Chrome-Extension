@@ -1,34 +1,25 @@
 import { MODULE_SOURCE_FLAGS, ModuleSource, hasFlag } from "../../types/ModuleSource";
 import { SourceTypes } from "../../types/SourceTypes";
 import { Nullable } from "../../types/Nullable";
-import { RegistryTarget } from "../../types/RegistryTarget";
 import { LinkContext } from "../../types/LinkContext";
 import { ModuleLink } from "../../types/ModuleLink";
 import { BROWSE_LAYOUTS, GITHUB_BLOB_ROUTE, GITHUB_TREE_ROUTE } from "./RepositoryHosts";
-import { PATH_SEPARATOR, isFilePath, lastSegment } from "../../util/PathHelpers";
+import {
+    DEFAULT_REGISTRY_HOST,
+    LATEST_VERSION,
+    OPENTOFU_LAYOUT,
+    OPENTOFU_REGISTRY_HOST,
+    TERRAFORM_LAYOUT,
+    isPrivateRegistryHost,
+    normalizeRegistryAddress,
+    registryAddress,
+    registryPageUrl,
+    registryTargetFor,
+} from "./RegistryHosts";
+import { PATH_SEPARATOR, isFilePath } from "../../util/PathHelpers";
 import { isSafeHttpUrl } from "../../util/UrlSafety";
-import { TERRAFORM_SYNTAX } from "../ModuleDeclarationReader";
 
 const GIT_SUFFIX = ".git";
-const HASHICORP_NAMESPACE = "hashicorp";
-
-export const DEFAULT_REGISTRY_HOST = "registry.terraform.io";
-export const OPENTOFU_REGISTRY_HOST = "registry.opentofu.org";
-const OPENTOFU_BROWSE_HOST = "search.opentofu.org";
-/** The browse routes, which are this popup's concern and no registry api's. */
-const TERRAFORM_BROWSE_ROUTES: Record<RegistryTarget, string> = {
-    module: "modules",
-    provider: "providers",
-};
-const OPENTOFU_BROWSE_ROUTES: Record<RegistryTarget, string> = {
-    module: "module",
-    provider: "provider",
-};
-const OPENTOFU_SUBMODULE_ROUTE = "submodule";
-const LATEST_VERSION = "latest";
-const SUBMODULES_ROUTE = "submodules";
-const HASHICORP_REGISTRY_SUFFIX = ".terraform.io";
-const HASHICORP_REGISTRY_HOST = "terraform.io";
 
 type LinkBuilder = (source: ModuleSource, context: LinkContext) => Promise<ModuleLink>;
 
@@ -38,6 +29,8 @@ const linkOnly = (url: Nullable<string>): ModuleLink => ({ url: url, resolvedVer
 export const NO_LINK: ModuleLink = { url: null, resolvedVersion: "" };
 
 /**
+ * Builds a browse link from a source that carries its own address.
+ *
  * `hg::`, `s3::` and `gcs::` name something for a client to fetch, not
  * something a browser can open, and only the ones that arrived over http are
  * both. A schemeless locator is not a url even then, so it is rebuilt from
@@ -112,21 +105,11 @@ const anyFlag =
     (source: ModuleSource): boolean =>
         (source.flags & flags) !== 0;
 
-/** `registry.terraform.io` is public and must not be caught by the suffix. */
-const isPrivateRegistryHost = (registryHost: string): boolean => {
-    if (registryHost === DEFAULT_REGISTRY_HOST) {
-        return false;
-    }
-    return (
-        registryHost === HASHICORP_REGISTRY_HOST || registryHost.endsWith(HASHICORP_REGISTRY_SUFFIX)
-    );
-};
-
 /**
  * Ordered. The first row whose `matches` holds decides both the label and the
  * link, so the two can never disagree about what a source is.
  */
-export const MODULE_SOURCE_RESOLVERS: readonly ModuleSourceResolver[] = [
+const MODULE_SOURCE_RESOLVERS: readonly ModuleSourceResolver[] = [
     {
         // Must stay first: `detect` can set capability flags before it rejects,
         // so a row above this one would match `git::javascript:alert(1)`.
@@ -197,10 +180,12 @@ const FALLBACK_RESOLVER: ModuleSourceResolver = {
 };
 
 /**
+ * Returns the resolver that decides a source's label and link.
+ *
  * The first resolver whose `matches` holds, or a fallback that labels the
  * source unknown and offers no link.
- * @param source a module source that has been through detect
- * @returns the resolver deciding this source's label and link
+ * @param source A module source that has been through detect.
+ * @returns The resolver deciding this source's label and link.
  */
 export const resolverFor = (source: ModuleSource): ModuleSourceResolver =>
     MODULE_SOURCE_RESOLVERS.find((resolver) => resolver.matches(source)) ?? FALLBACK_RESOLVER;
@@ -272,11 +257,10 @@ async function linkRegistryAsync(source: ModuleSource, context: LinkContext): Pr
         return NO_LINK;
     }
 
-    const base = `https://${DEFAULT_REGISTRY_HOST}/${TERRAFORM_BROWSE_ROUTES[target]}/${address}/${version}`;
-    const url = hasFlag(source, MODULE_SOURCE_FLAGS.HasSubDirectory)
-        ? `${base}/${SUBMODULES_ROUTE}/${lastSegment(source.subDirectory)}`
-        : base;
-    return { url: url, resolvedVersion: version };
+    return {
+        url: registryPageUrl(TERRAFORM_LAYOUT, source, target, address, version),
+        resolvedVersion: version,
+    };
 }
 
 /**
@@ -298,25 +282,8 @@ async function linkOpenTofuRegistryAsync(
     );
     const version = published ?? LATEST_VERSION;
 
-    const base = `https://${OPENTOFU_BROWSE_HOST}/${OPENTOFU_BROWSE_ROUTES[target]}/${address}/${version}`;
-    const url = hasFlag(source, MODULE_SOURCE_FLAGS.HasSubDirectory)
-        ? `${base}/${OPENTOFU_SUBMODULE_ROUTE}/${lastSegment(source.subDirectory)}`
-        : base;
-    return { url: url, resolvedVersion: published ?? "" };
+    return {
+        url: registryPageUrl(OPENTOFU_LAYOUT, source, target, address, version),
+        resolvedVersion: published ?? "",
+    };
 }
-
-/** A `required_providers` entry names a provider; anything else is a module. */
-const registryTargetFor = (moduleName: string): RegistryTarget =>
-    moduleName.includes(TERRAFORM_SYNTAX.REQUIRED_PROVIDERS) ? "provider" : "module";
-
-/** `path` always carries a leading separator. A registry address never does. */
-const registryAddress = (path: string): string =>
-    path.split(PATH_SEPARATOR).filter(Boolean).join(PATH_SEPARATOR);
-
-const normalizeRegistryAddress = (path: string, target: RegistryTarget): string => {
-    const address = registryAddress(path);
-    const isBareName = !address.includes(PATH_SEPARATOR);
-    return isBareName && target === "provider"
-        ? `${HASHICORP_NAMESPACE}${PATH_SEPARATOR}${address}`
-        : address;
-};

@@ -20,6 +20,11 @@ type ChromeLike = {
 
 const globals = globalThis as unknown as { chrome?: ChromeLike };
 
+/**
+ * Installs the stand in on the global, replacing whatever is there.
+ * @param respond Decides what the callback receives for each message sent.
+ * @returns A record of every message the code under test sent.
+ */
 export const stubChromeRuntime = (respond: RuntimeResponder): RuntimeStub => {
     const sent: unknown[] = [];
     globals.chrome = {
@@ -35,6 +40,7 @@ export const stubChromeRuntime = (respond: RuntimeResponder): RuntimeStub => {
     return { sent: sent };
 };
 
+/** Removes the stand in, so the next suite does not inherit this one's. */
 export const clearChromeRuntime = (): void => {
     delete globals.chrome;
 };

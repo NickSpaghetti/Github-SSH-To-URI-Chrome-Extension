@@ -10,10 +10,10 @@ export type ParseHclResponse = { ok: boolean; hclFile?: IHclFile; error?: string
  */
 export class ChromeRuntimeParserService {
     /**
-     * @param contents the raw text of the file being viewed
-     * @param fileName used to pick the JSON reader, and for parse error positions
-     * @returns the parsed config
-     * @throws when the service worker reports a parse error, or does not respond
+     * @param contents The raw text of the file being viewed.
+     * @param fileName Used to pick the JSON reader, and for parse error positions.
+     * @returns The parsed config.
+     * @throws When the service worker reports a parse error, or does not respond.
      */
     public async parseAsync(contents: string, fileName: string): Promise<IHclFile> {
         const request: ParseRequest = {

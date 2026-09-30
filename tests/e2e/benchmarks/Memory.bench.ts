@@ -13,12 +13,14 @@ const FIXTURE =
 const STARTUP_MS = 4_000;
 const WORK_MS = 12_000;
 
+/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),
     );
 
 test("parsing costs the worker tens of megabytes, which its heap does not show", async () => {
+    // Arrange
     const context = await chromium.launchPersistentContext("", {
         executablePath: findBrowser(),
         headless: false,
@@ -29,11 +31,13 @@ test("parsing costs the worker tens of megabytes, which its heap does not show",
         await new Promise((resolve) => setTimeout(resolve, STARTUP_MS));
         const before = residentByExtensionPid();
 
+        // Act
         const page = await context.newPage();
         await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
         await page.waitForTimeout(WORK_MS);
-
         const grown = grewMost(before, residentByExtensionPid());
+
+        // Assert
         expect(grown, "an extension renderer must have grown").not.toBeNull();
 
         const residentMb = Math.round(grown!.deltaKb / 1024);
@@ -52,6 +56,7 @@ test("parsing costs the worker tens of megabytes, which its heap does not show",
 });
 
 test("the js heap reports almost none of what the parser costs", async () => {
+    // Arrange
     const context = await chromium.launchPersistentContext("", {
         executablePath: findBrowser(),
         headless: false,
@@ -70,10 +75,10 @@ test("the js heap reports almost none of what the parser costs", async () => {
         expect(worker, "the extension's service worker must be running").toBeDefined();
         const session = await cdp.attachAsync(worker!.targetId);
 
+        // Act
         const page = await context.newPage();
         await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
         await page.waitForTimeout(WORK_MS);
-
         const { usedSize } = await cdp.sendAsync<{ usedSize: number }>(
             "Runtime.getHeapUsage",
             {},
@@ -83,6 +88,7 @@ test("the js heap reports almost none of what the parser costs", async () => {
         console.log(`BENCH worker js heap after a parse: ${Math.round(usedSize / 1024)}KB`);
         record("worker", { jsHeapKb: Math.round(usedSize / 1024) });
 
+        // Assert
         expect(heapMb).toBeLessThan(baseline.worker.residentMb / 4);
         cdp.close();
         await context.close();

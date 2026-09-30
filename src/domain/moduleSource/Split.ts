@@ -15,8 +15,8 @@ const REF_PARAMS = ["ref", "tag"];
 
 /**
  * Decomposes a module source into the parts of `[TYPE::]LOCATOR[//SUBDIR][?QUERY]`.
- * @param raw the source exactly as written in the file
- * @returns a module source with the delimited parts split out and nothing interpreted
+ * @param raw The source exactly as written in the file.
+ * @returns A module source with the delimited parts split out and nothing interpreted.
  */
 export const split = (raw: string): ModuleSource => {
     const source = emptyModuleSource();

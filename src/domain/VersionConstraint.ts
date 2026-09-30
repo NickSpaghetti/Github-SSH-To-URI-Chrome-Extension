@@ -1,21 +1,13 @@
-import * as semver from "semver";
-/** Terraform's constraint operators. The only place they are declared. */
-export const TERRAFORM_VERSION_CONSTRAINTS = {
-    EQUAL: "=",
-    LESS_THAN: "<",
-    LESS_THAN_OR_EQUAL: "<=",
-    GREATER_THAN: ">",
-    GREATER_THAN_OR_EQUAL: ">=",
-    EXACT: "~>",
-    EXCLUDES: "!=",
-} as const;
+import cmp from "semver/functions/cmp";
+import diff from "semver/functions/diff";
+import gt from "semver/functions/gt";
+import parse from "semver/functions/parse";
+import prerelease from "semver/functions/prerelease";
+import { CLAUSE_SEPARATOR, readClause, TERRAFORM_VERSION_CONSTRAINTS } from "./ConstraintClauses";
 
-const CLAUSE_SEPARATOR = ",";
+export { TERRAFORM_VERSION_CONSTRAINTS };
+
 const VERSION_SEPARATOR = ".";
-/** Derived so the constant stays the only place operators are declared. */
-const OPERATOR_CHARACTERS = [
-    ...new Set(Object.values(TERRAFORM_VERSION_CONSTRAINTS).join("")),
-].join("");
 const VERSION_PART_COUNT = 3;
 
 const PESSIMISTIC_OPERATOR = TERRAFORM_VERSION_CONSTRAINTS.EXACT;
@@ -52,8 +44,8 @@ const UNRECOGNIZED: VersionConstraint = { comparators: [], recognized: false };
  * `~>` is not npm's: `~> 1.2.3` is `>=1.2.3 <1.3.0`, `~> 1.2` is `>=1.2.0 <2.0.0`.
  * An npm range such as `^1.2.3` is not Terraform and comes back unrecognized
  * rather than being resolved under npm's rules.
- * @param constraint a comma separated conjunction, for example `>= 5.0, < 6.0`
- * @returns the comparisons every satisfying version must meet
+ * @param constraint A comma separated conjunction, for example `>= 5.0, < 6.0`.
+ * @returns The comparisons every satisfying version must meet.
  */
 export const toVersionConstraint = (constraint: string): VersionConstraint => {
     const comparators: Comparator[] = [];
@@ -74,23 +66,25 @@ export const toVersionConstraint = (constraint: string): VersionConstraint => {
 };
 
 /**
- * @param version a published version, which must be valid semver
- * @param constraint the constraint to test against
- * @returns whether the version meets every comparison the constraint holds
+ * @param version A published version, which must be valid semver.
+ * @param constraint The constraint to test against.
+ * @returns true if the version meets every comparison the constraint holds; otherwise, false.
  */
 export const satisfies = (version: string, constraint: VersionConstraint): boolean => {
     if (!constraint.recognized) {
         return false;
     }
-    if (semver.prerelease(version) !== null && !namesPrerelease(version, constraint)) {
+    if (prerelease(version) !== null && !namesPrerelease(version, constraint)) {
         return false;
     }
     return constraint.comparators.every((comparator) =>
-        semver.cmp(version, comparator.operator, comparator.version),
+        cmp(version, comparator.operator, comparator.version),
     );
 };
 
 /**
+ * Determines whether a constraint asks for a prerelease of the same release.
+ *
  * `< 6.0.0` must not select `6.0.0-beta3`. Terraform installs a prerelease
  * only when the constraint asks for one of that same release, which is the
  * rule semver ranges apply and comparing on its own does not.
@@ -98,14 +92,14 @@ export const satisfies = (version: string, constraint: VersionConstraint): boole
 const namesPrerelease = (version: string, constraint: VersionConstraint): boolean =>
     constraint.comparators.some(
         (comparator) =>
-            semver.prerelease(comparator.version) !== null &&
-            semver.diff(comparator.version, version) === "prerelease",
+            prerelease(comparator.version) !== null &&
+            diff(comparator.version, version) === "prerelease",
     );
 
 /**
- * @param versions published versions, which must all be valid semver
- * @param constraint the constraint to resolve
- * @returns the highest version satisfying the constraint, or "" when none does
+ * @param versions Published versions, which must all be valid semver.
+ * @param constraint The constraint to resolve.
+ * @returns The highest version satisfying the constraint, or "" when none does.
  */
 export const selectVersion = (
     versions: readonly string[],
@@ -113,7 +107,7 @@ export const selectVersion = (
 ): string => {
     let selected = "";
     for (const version of versions) {
-        if (satisfies(version, constraint) && (selected === "" || semver.gt(version, selected))) {
+        if (satisfies(version, constraint) && (selected === "" || gt(version, selected))) {
             selected = version;
         }
     }
@@ -121,8 +115,8 @@ export const selectVersion = (
 };
 
 /**
- * @param constraint the constraint to inspect
- * @returns the one version an exact constraint names, or "" when it names a range
+ * @param constraint The constraint to inspect.
+ * @returns The one version an exact constraint names, or "" when it names a range.
  */
 export const pinnedVersion = (constraint: VersionConstraint): string => {
     if (!constraint.recognized || constraint.comparators.length !== 1) {
@@ -130,35 +124,6 @@ export const pinnedVersion = (constraint: VersionConstraint): string => {
     }
     const [only] = constraint.comparators;
     return only.operator === TERRAFORM_VERSION_CONSTRAINTS.EQUAL ? only.version : "";
-};
-
-/**
- * Spaces a constraint out for display without changing what it says, so
- * `>=3.5.0,<4.0.0` and `>= 3.5.0, < 4.0.0` read alike in a list. The operator
- * the author chose is kept: `~> 1.2` stays itself rather than becoming the
- * pair of bounds it stands for.
- * @param constraint a constraint as the author wrote it
- * @returns the same constraint, one space after each operator and comma
- */
-export const normalizeConstraint = (constraint: string): string =>
-    constraint
-        .split(CLAUSE_SEPARATOR)
-        .map((clause) => spaceClause(clause.trim()))
-        .filter((clause) => clause !== "")
-        .join(`${CLAUSE_SEPARATOR} `);
-
-const spaceClause = (clause: string): string => {
-    const { operator, version } = readClause(clause);
-    return operator === "" ? version : `${operator} ${version}`;
-};
-
-/** Splits a clause into its leading operator and the version that follows. */
-const readClause = (clause: string): { operator: string; version: string } => {
-    let index = 0;
-    while (index < clause.length && OPERATOR_CHARACTERS.includes(clause[index])) {
-        index += 1;
-    }
-    return { operator: clause.slice(0, index), version: clause.slice(index).trim() };
 };
 
 /** The whitelist. `~` alone reaches here because it is the first half of `~>`. */
@@ -173,7 +138,7 @@ const toComparators = (clause: string): readonly Comparator[] => {
         return toPessimisticBounds(version);
     }
     const normalized = operator === "" ? TERRAFORM_VERSION_CONSTRAINTS.EQUAL : operator;
-    const parsed = semver.parse(padVersion(version));
+    const parsed = parse(padVersion(version));
     if (!isComparisonOperator(normalized) || parsed === null) {
         return [];
     }
@@ -182,7 +147,7 @@ const toComparators = (clause: string): readonly Comparator[] => {
 
 /** `~>` pins the last part the author wrote, so the count of parts decides. */
 const toPessimisticBounds = (version: string): readonly Comparator[] => {
-    const parsed = semver.parse(padVersion(version));
+    const parsed = parse(padVersion(version));
     if (parsed === null) {
         return [];
     }

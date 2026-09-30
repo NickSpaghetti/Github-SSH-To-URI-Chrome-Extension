@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { BrowserCdp } from "./BrowserCdp";
 import { NetworkWatch, Request } from "./NetworkWatch";
-import { maxConcurrent } from "./Harness";
+import { maxConcurrent, readFingerprint, untilQuietAsync } from "./Harness";
 import { record } from "./Recorder";
 import baseline from "./baseline.json";
 
@@ -12,20 +12,34 @@ const DEBUG_PORT = 9338;
 const REGISTRY = "registry.terraform.io";
 const FIXTURES = "https://github.com/NickSpaghetti/iac-module-linker-fixtures";
 const fixture = (name: string) => `${FIXTURES}/blob/main/benchmarks/resolution/${name}`;
+/** The longest resolution is given, whether or not it has gone quiet. */
 const SETTLE_MS = 15_000;
 
+/** No further request in this long means the last one has been seen. */
+const QUIET_MS = 1_500;
+
+/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),
     );
 
 /**
+ * Opens a fixture and records every registry request it caused.
+ *
  * Nothing in the extension is instrumented for this. Registry lookups are
  * requests, so they are counted where they happen.
+ * @param name The fixture file to open.
+ * @returns The requests, the ones refused, the file's shape, and a close.
  */
 const watchAsync = async (
     name: string,
-): Promise<{ requests: Request[]; closeAsync: () => Promise<void> }> => {
+): Promise<{
+    requests: Request[];
+    rejected: Request[];
+    fingerprint: { lines: number; bytes: number };
+    closeAsync: () => Promise<void>;
+}> => {
     const context = await chromium.launchPersistentContext("", {
         executablePath: findBrowser(),
         headless: false,
@@ -45,10 +59,12 @@ const watchAsync = async (
 
     const page = await context.newPage();
     await page.goto(fixture(name), { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(SETTLE_MS);
+    await untilQuietAsync(() => watch.requestsTo(REGISTRY).length, QUIET_MS, SETTLE_MS);
 
     return {
         requests: watch.requestsTo(REGISTRY),
+        rejected: watch.rejectedBy(REGISTRY),
+        fingerprint: await readFingerprint(page),
         // Awaited, or the next launch races the debugging port this one
         // still holds.
         closeAsync: async () => {
@@ -58,36 +74,53 @@ const watchAsync = async (
     };
 };
 
-test("registry lookups go out one at a time", async () => {
-    const { requests, closeAsync } = await watchAsync("large.tf");
+test("registry lookups go out several at a time, bounded", async () => {
+    // Act
+    const { requests, rejected, fingerprint, closeAsync } = await watchAsync("large.tf");
     try {
         const concurrency = maxConcurrent(requests);
         const span = Math.round(
             Math.max(...requests.map((r) => r.end)) - Math.min(...requests.map((r) => r.start)),
         );
         console.log(
-            `BENCH resolution large: ${requests.length} requests, concurrency ${concurrency}, span ${span}ms`,
+            `BENCH resolution large: ${requests.length} requests, concurrency ${concurrency}, span ${span}ms, non-200 ${rejected.length} ${JSON.stringify(rejected.map((r) => r.status))}`,
         );
+
+        // Assert
+        // The bound exists to stay under the registry's rate limit, so a
+        // throttled response has to fail here rather than read as a fast run.
+        expect(rejected).toHaveLength(0);
         record("resolution", { large: { modules: requests.length, spanMs: span }, concurrency });
 
         expect(requests.length).toBe(baseline.resolution.large.modules);
 
+        // These fixtures live in another repository and `Popup.bench.ts` reads
+        // them too. A change there would move every figure on both axes.
+        expect(fingerprint).toEqual(baseline.resolution.large.fingerprint);
+
         // A count taken at the network, so neither CI hardware nor the
-        // extension's own accounting enters into it. One means serial, and
-        // this is the assertion a concurrent resolver has to change.
-        expect(concurrency).toBe(1);
+        // extension's own accounting enters into it.
+        expect(concurrency).toBeGreaterThan(1);
+        expect(concurrency).toBeLessThanOrEqual(baseline.resolution.concurrency);
     } finally {
         await closeAsync();
     }
 });
 
 test("resolution cost tracks module count", async () => {
-    // One browser at a time: two cannot bind the same debugging port.
+    // Arrange
+    /**
+     * Measures one fixture. One browser at a time: two cannot bind the same
+     * debugging port.
+     * @param name The fixture file to open.
+     * @returns Its request count, its shape, and how long the requests spanned.
+     */
     const measure = async (name: string) => {
-        const { requests, closeAsync } = await watchAsync(name);
+        const { requests, fingerprint, closeAsync } = await watchAsync(name);
         try {
             return {
                 count: requests.length,
+                fingerprint,
                 span: Math.round(
                     Math.max(...requests.map((r) => r.end)) -
                         Math.min(...requests.map((r) => r.start)),
@@ -98,6 +131,7 @@ test("resolution cost tracks module count", async () => {
         }
     };
 
+    // Act
     const small = await measure("small.tf");
     const large = await measure("large.tf");
     const ratio = Math.round((large.span / Math.max(small.span, 1)) * 100) / 100;
@@ -106,10 +140,13 @@ test("resolution cost tracks module count", async () => {
         `BENCH resolution small ${small.count} requests ${small.span}ms, large ${large.count} requests ${large.span}ms, ratio ${ratio}`,
     );
     record("resolution", {
-        small: { modules: small.count, spanMs: small.span },
-        large: { modules: large.count, spanMs: large.span },
+        small: { modules: small.count, spanMs: small.span, fingerprint: small.fingerprint },
+        large: { modules: large.count, spanMs: large.span, fingerprint: large.fingerprint },
     });
 
+    // Assert
     expect(small.count).toBe(baseline.resolution.small.modules);
     expect(large.count).toBe(baseline.resolution.large.modules);
+    expect(small.fingerprint).toEqual(baseline.resolution.small.fingerprint);
+    expect(large.fingerprint).toEqual(baseline.resolution.large.fingerprint);
 });

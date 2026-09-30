@@ -18,8 +18,8 @@ export enum SourceTypes {
 }
 
 /**
- * @param value a source type read back from storage, written by any build
- * @returns the value when it is a member of this enum, otherwise unknown
+ * @param value A source type read back from storage, written by any build.
+ * @returns The value when it is a member of this enum, otherwise unknown.
  */
 export const toSourceTypeLabel = (value: unknown): SourceTypes => {
     const members = Object.values(SourceTypes) as string[];

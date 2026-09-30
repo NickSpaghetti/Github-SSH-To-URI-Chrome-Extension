@@ -3,6 +3,8 @@ import { RunTimeFetchResponse } from "../types/RunTimeFetchResponse";
 import { FetchRequest, WORKER_QUERIES } from "../types/WorkerRequest";
 
 /**
+ * Returns the response a caller gets when the background script never answers.
+ *
  * The background script can go away mid request, and `sendMessage` then fires
  * its callback with nothing. A missing answer is a failed one: every caller
  * reads `ok` first, so this keeps them from reading it off undefined. `data`
@@ -19,9 +21,9 @@ const noResponse = <T>(): RunTimeFetchResponse<T> => ({
 /** Fetches through the background script, the only context allowed to. */
 export class ChromeRuntimeFetchService implements IFetchService {
     /**
-     * @param url the address to fetch, checked against the manifest's hosts
-     * @param cacheMethod how the browser cache should be used
-     * @returns the response, or a failed one when the background script is gone
+     * @param url The address to fetch, checked against the manifest's hosts.
+     * @param cacheMethod How the browser cache should be used.
+     * @returns The response, or a failed one when the background script is gone.
      */
     async fetchDataAsync<T>(
         url: string,

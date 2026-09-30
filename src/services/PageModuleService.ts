@@ -1,10 +1,12 @@
 import { DisplayModule } from "../types/DisplayModule";
 import { buildDisplayModuleAsync } from "./DisplayModuleBuilder";
 import { Nullable } from "../types/Nullable";
-import { IGitHubPageDataAccess } from "../data-access/GitHubPageDataAccess";
 import { readModuleDeclarations } from "../domain/ModuleDeclarationReader";
 import { ChromeRuntimeParserService } from "./ChromeRuntimeParserService";
 import { ModuleSourceLinker } from "./ModuleSourceLinker";
+import { IGitHubPageDataAccess } from "../data-access/IGitHubPageDataAccess";
+
+const REGISTRY_REQUESTS_AT_ONCE = 10;
 
 /** The Terraform modules declared on the page being viewed, each with its link. */
 export class PageModuleService {
@@ -20,10 +22,10 @@ export class PageModuleService {
      * array, which means the file was read and holds no module sources. The
      * caller must not cache the first case, or a page visited before it
      * rendered stays empty for as long as the cache lives.
-     * @param pageUrl the page the file is being viewed on
-     * @returns a row per declaration, or null when the file has not rendered
-     * @throws when `pageUrl` is not an http address, which would make every
-     * row on the page wrong rather than just one
+     * @param pageUrl The page the file is being viewed on.
+     * @returns A row per declaration, or null when the file has not rendered.
+     * @throws When `pageUrl` is not an http address, which would make every
+     * row on the page wrong rather than just one.
      */
     public async findSourcesAsync(pageUrl: string): Promise<Nullable<DisplayModule[]>> {
         const contents = this.page.readSourceText();
@@ -40,12 +42,18 @@ export class PageModuleService {
             return [];
         }
 
-        const modules: DisplayModule[] = [];
-        for (const [, declaration] of declarations) {
-            modules.push(
-                await buildDisplayModuleAsync(pageUrl, declaration, this.moduleSourceLinker),
+        const declared = Array.from(declarations.values());
+        const resolved: DisplayModule[][] = [];
+        for (let start = 0; start < declared.length; start += REGISTRY_REQUESTS_AT_ONCE) {
+            const batch = declared.slice(start, start + REGISTRY_REQUESTS_AT_ONCE);
+            resolved.push(
+                await Promise.all(
+                    batch.map((declaration) =>
+                        buildDisplayModuleAsync(pageUrl, declaration, this.moduleSourceLinker),
+                    ),
+                ),
             );
         }
-        return modules;
+        return resolved.flat();
     }
 }

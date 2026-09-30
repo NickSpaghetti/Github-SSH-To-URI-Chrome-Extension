@@ -28,6 +28,12 @@ const recorded = JSON.parse(fs.readFileSync(FIXTURE_FILE, "utf8")) as Record<
  * Refresh the fixtures with `make record-fixtures`.
  */
 export class MockFetchService implements IFetchService {
+    /**
+     * Serves the response recorded for a URL.
+     * @param url The URL the code under test asked for.
+     * @returns The recorded response, shaped the way the real service shapes one.
+     * @throws When nothing was recorded for that URL.
+     */
     fetchDataAsync<T>(url: string): Promise<RunTimeFetchResponse<T>> {
         const response = recorded[url];
         if (response === undefined) {

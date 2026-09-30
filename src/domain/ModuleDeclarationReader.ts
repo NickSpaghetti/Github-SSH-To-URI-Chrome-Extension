@@ -13,8 +13,8 @@ export const TERRAFORM_SYNTAX = {
  *
  * Pure, and it never throws: a block it does not recognise is one it leaves
  * out, so a half understood file still yields the rest of its modules.
- * @param hclFile a config as the HCL parser emits it
- * @returns every declaration found, keyed by the name shown in the popup
+ * @param hclFile A config as the HCL parser emits it.
+ * @returns Every declaration found, keyed by the name shown in the popup.
  */
 export const readModuleDeclarations = (hclFile: IHclFile): Map<string, TerraformModule> => {
     const declarations = new Map<string, TerraformModule>();

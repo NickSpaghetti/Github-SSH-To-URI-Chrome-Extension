@@ -15,11 +15,10 @@ export class TerraformRegistryDataAccess {
     constructor(private readonly fetchService: IFetchService) {}
 
     /**
-     * @param address module or provider address ex: hashicorp/aws
-     * @param target whether the address names a module or a provider
-     * @returns every version the registry publishes for the address
-     * @throws when the registry answers with a non ok status
-     * @throws when the registry publishes no versions for the address
+     * @param address Module or provider address ex: hashicorp/aws.
+     * @param target Whether the address names a module or a provider.
+     * @returns Every version the registry publishes for the address, which may be none.
+     * @throws When the registry answers with a non ok status.
      */
     public async getVersionsAsync(address: string, target: RegistryTarget): Promise<string[]> {
         const response = await this.fetchService.fetchDataAsync<TerraformVersionsResponse>(
@@ -30,10 +29,6 @@ export class TerraformRegistryDataAccess {
             throw new Error(`could not reach the terraform registry for ${address}`);
         }
 
-        const versions = response.data?.versions ?? [];
-        if (versions.length === 0) {
-            throw new Error(`the terraform registry publishes no versions for ${address}`);
-        }
-        return versions;
+        return response.data?.versions ?? [];
     }
 }

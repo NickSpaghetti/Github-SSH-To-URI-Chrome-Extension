@@ -39,8 +39,20 @@ jobs:
         run: yarn audit:dev
         continue-on-error: true
 
+      # The wasm build runs in a container, so Go's caches are bind mounted out
+      # of it. Without this every run re-downloads the module graph.
+      - name: Cache the Go module and build cache
+        uses: actions/cache@v6
+        with:
+          path: .gocache
+          key: gocache-${{ runner.os }}-${{ hashFiles('wasm/go.sum', 'Makefile') }}
+          restore-keys: gocache-${{ runner.os }}-
+
       - name: Run build
-        run: yarn build
+        run: make build
+
+      - name: Typecheck
+        run: make typecheck
 
       - name: Test the app
-        run: yarn test
+        run: make test

@@ -7,14 +7,14 @@ import { classify } from "../domain/moduleSource/Classify";
 import { isSafeHttpUrl } from "../util/UrlSafety";
 
 /**
- * @param uri the page the module was read from. Relative sources resolve
+ * @param uri The page the module was read from. Relative sources resolve
  * against it, so it has to be a real http address. A bad one is a programming
  * error rather than bad input, and every module on the page would be wrong,
  * so it throws.
- * @param terraformModule one declaration read out of the file
- * @param moduleSourceLinker shared by every module on the page
- * @returns the row the popup and the content script render
- * @throws when `uri` is not an http or https address
+ * @param terraformModule One declaration read out of the file.
+ * @param moduleSourceLinker Shared by every module on the page.
+ * @returns The row the popup and the content script render.
+ * @throws When `uri` is not an http or https address.
  */
 export const buildDisplayModuleAsync = async (
     uri: string,

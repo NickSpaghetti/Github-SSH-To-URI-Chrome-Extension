@@ -7,10 +7,10 @@ import { IHclFile } from "../types/IHclFile";
  * The twin of `HclParser`, which delegates here for `.json`. They are in
  * different layers because that one fetches wasm through chrome and this one
  * is pure, which is the only reason they are not one file.
- * @param contents the raw text of a `.tf.json` or `.tofu.json` file
- * @returns the config with every block normalized to an array, as the HCL parser emits
- * @throws when the text is not valid JSON
- * @throws when the text parses to something other than an object
+ * @param contents The raw text of a `.tf.json` or `.tofu.json` file.
+ * @returns The config with every block normalized to an array, as the HCL parser emits.
+ * @throws When the text is not valid JSON.
+ * @throws When the text parses to something other than an object.
  */
 export const parseJsonConfig = (contents: string): IHclFile => {
     const parsed: unknown = JSON.parse(contents);

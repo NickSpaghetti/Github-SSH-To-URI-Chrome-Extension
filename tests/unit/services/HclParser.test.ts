@@ -30,6 +30,7 @@ const parserAnswers = (result: ParseResult): void => {
     globals.tofuParseToString = () => result;
 };
 
+/** @returns A stream carrying a gzipped wasm header, as the fetch would. */
 const gzippedStream = (): ReadableStream<Uint8Array> => {
     const compressed = new Uint8Array(gzipSync(Uint8Array.from([0, 97, 115, 109])));
     return new ReadableStream({
@@ -40,6 +41,10 @@ const gzippedStream = (): ReadableStream<Uint8Array> => {
     });
 };
 
+/**
+ * Replaces `fetch` with one that answers with a fixed body.
+ * @param body The body to answer with, or null for a response carrying none.
+ */
 const stubFetch = (body: ReadableStream<Uint8Array> | null): void => {
     globals.fetch = () => Promise.resolve({ body: body });
 };
@@ -60,17 +65,20 @@ afterEach(() => {
 describe("Given a Terraform JSON file", () => {
     describe("When it is parsed", () => {
         test("Then I expect the JSON reader used, without loading the wasm", async () => {
+            // Arrange
             let fetched = false;
             globals.fetch = () => {
                 fetched = true;
                 return Promise.reject(new Error("the wasm must not be loaded for JSON"));
             };
 
+            // Act
             const parsed = await HclParser.parseAsync(
                 '{"module":{"vpc":{"source":"./modules/vpc"}}}',
                 "main.tf.json",
             );
 
+            // Assert
             expect<boolean>(fetched).toBe(false);
             expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
         });
@@ -80,39 +88,53 @@ describe("Given a Terraform JSON file", () => {
 describe("Given the wasm parser is loaded", () => {
     describe("When it parses the file", () => {
         test("Then I expect the config it emitted", async () => {
+            // Arrange
             parserAnswers({ json: '{"module":{"vpc":[{"source":"./modules/vpc"}]}}' });
 
-            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
-                module: { vpc: [{ source: "./modules/vpc" }] },
-            });
+            // Act
+            const parsed = await HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
         });
     });
 
     describe("When it reports a parse error", () => {
         test("Then I expect that error surfaced", async () => {
+            // Arrange
             parserAnswers({ error: "main.tf:3,1-2: Argument or block definition required" });
 
-            await expect(HclParser.parseAsync("module {", "main.tf")).rejects.toThrow(
-                "Argument or block definition required",
-            );
+            // Act
+            const parsing = HclParser.parseAsync("module {", "main.tf");
+
+            // Assert
+            await expect(parsing).rejects.toThrow("Argument or block definition required");
         });
     });
 
     describe("When it answers with neither json nor an error", () => {
         test("Then I expect a throw rather than an undefined config", async () => {
+            // Arrange
             parserAnswers({});
 
-            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
-                "the parser returned nothing",
-            );
+            // Act
+            const parsing = HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            await expect(parsing).rejects.toThrow("the parser returned nothing");
         });
     });
 
     describe("When its output is not valid JSON", () => {
         test("Then I expect a throw", async () => {
+            // Arrange
             parserAnswers({ json: "{not json" });
 
-            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow();
+            // Act
+            const parsing = HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            await expect(parsing).rejects.toThrow();
         });
     });
 });
@@ -120,35 +142,39 @@ describe("Given the wasm parser is loaded", () => {
 describe("Given the wasm binary cannot be read", () => {
     describe("When a file is parsed", () => {
         test("Then I expect a throw naming the file", async () => {
+            // Arrange
             stubFetch(null);
 
-            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
-                "could not read main.wasm.gz",
-            );
+            // Act
+            const parsing = HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            await expect(parsing).rejects.toThrow("could not read main.wasm.gz");
         });
     });
 });
 
-describe("Given the Go runtime registers the parser after a few polls", () => {
+describe("Given the Go runtime registers the parser", () => {
     describe("When a file is parsed", () => {
         test("Then I expect the whole load to run and the config to come back", async () => {
+            // Arrange
             stubFetch(gzippedStream());
             (WebAssembly as unknown as Mutable).instantiate = () =>
                 Promise.resolve({ instance: {}, module: {} });
             globals.Go = class {
                 importObject = {};
                 run() {
-                    // The real runtime registers on its own schedule, so the
-                    // parser is not callable the instant `run` returns.
-                    setTimeout(() => {
-                        globals.tofuParseToString = () => ({ json: '{"module":{}}' });
-                    }, 25);
+                    // Before returning, as the real runtime does: Go's main
+                    // registers the parser and then parks on `select {}`.
+                    globals.tofuParseToString = () => ({ json: '{"module":{}}' });
                 }
             };
 
-            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
-                module: {},
-            });
+            // Act
+            const parsed = await HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            expect<IHclFile>(parsed).toEqual({ module: {} });
         });
     });
 });
@@ -156,11 +182,11 @@ describe("Given the Go runtime registers the parser after a few polls", () => {
 describe("Given a load that already failed once", () => {
     describe("When a file is parsed again", () => {
         test("Then I expect the load retried, not the failure cached", async () => {
+            // Arrange
             stubFetch(null);
             await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
                 "could not read main.wasm.gz",
             );
-
             stubFetch(gzippedStream());
             (WebAssembly as unknown as Mutable).instantiate = () =>
                 Promise.resolve({ instance: {}, module: {} });
@@ -171,18 +197,19 @@ describe("Given a load that already failed once", () => {
                 }
             };
 
-            expect<IHclFile>(await HclParser.parseAsync("module {}", "main.tf")).toEqual({
-                module: {},
-            });
+            // Act
+            const parsed = await HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            expect<IHclFile>(parsed).toEqual({ module: {} });
         });
     });
 });
 
 describe("Given the Go runtime never registers the parser", () => {
     describe("When a file is parsed", () => {
-        // The only slow test here: it has to sit out the whole poll window,
-        // READY_ATTEMPTS * READY_POLL_MS, because that is the thing under test.
-        test("Then I expect a throw once the wait is over", async () => {
+        test("Then I expect a throw", async () => {
+            // Arrange
             stubFetch(gzippedStream());
             (WebAssembly as unknown as Mutable).instantiate = () =>
                 Promise.resolve({ instance: {}, module: {} });
@@ -193,9 +220,11 @@ describe("Given the Go runtime never registers the parser", () => {
                 }
             };
 
-            await expect(HclParser.parseAsync("module {}", "main.tf")).rejects.toThrow(
-                "the parser did not register itself",
-            );
+            // Act
+            const parsing = HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            await expect(parsing).rejects.toThrow("the parser did not register itself");
         });
     });
 });

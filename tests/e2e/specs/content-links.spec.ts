@@ -3,7 +3,15 @@ import { test, expect, FIXTURES } from "../extension";
 const RATE_LIMITED = 429;
 const REQUEST_SPACING_MS = 500;
 
-/** Spaced out and retried once, because GitHub rate limits an unauthenticated burst. */
+/**
+ * Fetches a link and reports what it answered with.
+ *
+ * Spaced out and retried once, because GitHub rate limits an unauthenticated
+ * burst.
+ * @param page The page whose request context to fetch through.
+ * @param href The link to fetch.
+ * @returns The status code, which may still be 429 after the retry.
+ */
 const statusOfAsync = async (page: import("@playwright/test").Page, href: string) => {
     await page.waitForTimeout(REQUEST_SPACING_MS);
     let status = (await page.request.get(href)).status();
@@ -14,6 +22,11 @@ const statusOfAsync = async (page: import("@playwright/test").Page, href: string
     return status;
 };
 
+/**
+ * Reads every anchor this extension injected into the rendered file.
+ * @param page The page to read from.
+ * @returns The source text and the link built for it, one entry per anchor.
+ */
 const readAnchors = async (page: import("@playwright/test").Page) =>
     await page.evaluate(() =>
         Array.from(document.querySelectorAll('div[id^="LC"] a'))
@@ -22,24 +35,31 @@ const readAnchors = async (page: import("@playwright/test").Page) =>
     );
 
 test("links are injected on the first visit to a page", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
 
+    // Act
     await page.goto(`${FIXTURES}/blob/main/04-git-forced.tf`, { waitUntil: "domcontentloaded" });
     await expect
         .poll(async () => (await readAnchors(page)).length, { timeout: 20_000 })
         .toBeGreaterThan(0);
 
+    // Assert
     const anchors = await readAnchors(page);
     expect(anchors).toHaveLength(5);
 });
 
 test("a subdirectory target links to tree and a file target links to blob", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
     await page.goto(`${FIXTURES}/blob/main/04-git-forced.tf`, { waitUntil: "domcontentloaded" });
     await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(5);
 
+    // Assert
     const byText = Object.fromEntries((await readAnchors(page)).map((a) => [a.text, a.href]));
     expect(
         byText[
@@ -54,11 +74,17 @@ test("a subdirectory target links to tree and a file target links to blob", asyn
 });
 
 test("every generated link actually resolves", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
     const checked: string[] = [];
 
+    // Act and Assert, once per link: each is fetched and checked in turn,
+    // because collecting them all first would burn the rate limit before the
+    // first assertion ran.
     for (const file of ["04-git-forced.tf", "01-local-paths.tf", "12-refs.tf"]) {
-        await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+        await context
+            .serviceWorkers()[0]
+            .evaluate(async () => await chrome.storage.session.clear());
         await page.goto(`${FIXTURES}/blob/main/${file}`, { waitUntil: "domcontentloaded" });
         await expect
             .poll(async () => (await readAnchors(page)).length, { timeout: 20_000 })
@@ -83,34 +109,48 @@ test("every generated link actually resolves", async ({ context }) => {
 });
 
 test("a source with no browsable target is left unlinked", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
     await page.goto(`${FIXTURES}/blob/main/10-oci.tf`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(6000);
+
+    // Assert
     expect(await readAnchors(page)).toHaveLength(0);
 });
 
 test("host spoofing sources are never linked", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
     await page.goto(`${FIXTURES}/blob/main/14-security-cases.tf`, {
         waitUntil: "domcontentloaded",
     });
     await page.waitForTimeout(6000);
+    const spoofed = (await readAnchors(page))
+        .filter((anchor) => new URL(anchor.href).hostname === "evil.com")
+        .map((anchor) => anchor.text);
 
-    for (const anchor of await readAnchors(page)) {
-        expect(new URL(anchor.href).hostname, anchor.text).not.toBe("evil.com");
-    }
+    // Assert
+    expect(spoofed).toEqual([]);
 });
 
 test("a .tofu file is treated as HCL", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
     await page.goto(`${FIXTURES}/blob/main/15-everything.tofu`, { waitUntil: "domcontentloaded" });
     await expect
         .poll(async () => (await readAnchors(page)).length, { timeout: 20_000 })
         .toBeGreaterThan(0);
 
+    // Assert
     const hrefs = (await readAnchors(page)).map((a) => a.href);
     // The registry module and the git source link. The oci source does not.
     expect(hrefs.some((h) => h.includes("registry.terraform.io"))).toBe(true);
@@ -119,32 +159,33 @@ test("a .tofu file is treated as HCL", async ({ context }) => {
 });
 
 test("a .tf.json file is parsed as JSON", async ({ context }) => {
+    // Arrange
     const page = await context.newPage();
-    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.local.clear());
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
     await page.goto(`${FIXTURES}/blob/main/16-everything.tf.json`, {
         waitUntil: "domcontentloaded",
     });
-
     await expect
         .poll(
             async () =>
-                (
-                    (await context
-                        .serviceWorkers()[0]
-                        .evaluate(async () => await chrome.storage.local.get("MODULES"))) as {
-                        MODULES?: unknown[];
-                    }
-                ).MODULES?.length ?? 0,
+                ((await context
+                    .serviceWorkers()[0]
+                    .evaluate(
+                        async () => Object.keys(await chrome.storage.session.get(null)).length,
+                    )) as number) ?? 0,
             { timeout: 20_000 },
         )
         .toBeGreaterThan(0);
 
-    const stored = (await context
-        .serviceWorkers()[0]
-        .evaluate(async () => await chrome.storage.local.get("MODULES"))) as {
-        MODULES: { moduleName: string; resolvedUrl: string | null }[];
-    };
-    const names = stored.MODULES.map((m) => m.moduleName).sort();
+    // Assert
+    const stored = (await context.serviceWorkers()[0].evaluate(async () => {
+        const all = await chrome.storage.session.get(null);
+        const entry = Object.values(all)[0] as { modules: { moduleName: string }[] } | undefined;
+        return entry?.modules ?? [];
+    })) as { moduleName: string }[];
+    const names = stored.map((m) => m.moduleName).sort();
     expect(names).toContain("json_registry");
     expect(names).toContain("json_git");
 });

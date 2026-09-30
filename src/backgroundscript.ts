@@ -5,6 +5,11 @@ import { SENDERS } from "./types/TabMessage";
 import { HclParser } from "./services/HclParser";
 import { RunTimeFetchResponse } from "./types/RunTimeFetchResponse";
 
+// Session storage is closed to content scripts until the worker opens it.
+chrome.storage.session
+    .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
+    .catch((error) => console.log(`could not open session storage: ${String(error)}`));
+
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (tab.url === undefined) {
         return;

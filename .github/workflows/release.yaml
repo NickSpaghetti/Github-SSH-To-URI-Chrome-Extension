@@ -3,8 +3,6 @@ name: Publish To Chrome Store
 on:
   release:
     types: [published]
-    tags:
-      - v.*.*.*
   workflow_dispatch:
     inputs:
       skip_e2e:
@@ -15,6 +13,11 @@ on:
 jobs:
   build:
     name: Build and Release to Chrome Extension Store
+    # The release event takes no tag filter, so the tag is checked here.
+    # Prereleases stay off the store, because the upload auto-publishes.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.event.release.tag_name, 'v') && !github.event.release.prerelease)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -30,11 +33,23 @@ jobs:
       - name: Run install
         run: yarn install
 
+      # The wasm build runs in a container, so Go's caches are bind mounted out
+      # of it. Without this every run re-downloads the module graph.
+      - name: Cache the Go module and build cache
+        uses: actions/cache@v6
+        with:
+          path: .gocache
+          key: gocache-${{ runner.os }}-${{ hashFiles('wasm/go.sum', 'Makefile') }}
+          restore-keys: gocache-${{ runner.os }}-
+
+      # `make build` builds the wasm parser first: it is generated from wasm/
+      # and not committed, so a fresh checkout has to produce it. Needs Docker,
+      # which the runner provides.
       - name: Run build
-        run: yarn build
+        run: make build
 
       - name: Test the app
-        run: yarn test
+        run: make test
 
       - name: Install end to end dependencies
         if: ${{ inputs.skip_e2e != true }}

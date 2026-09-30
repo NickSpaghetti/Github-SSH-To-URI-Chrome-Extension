@@ -12,8 +12,8 @@ export type DisplayModule = {
 };
 
 /**
- * @param moduleName the block name, the one field always known
- * @returns a row with nothing resolved yet
+ * @param moduleName The block name, the one field always known.
+ * @returns A row with nothing resolved yet.
  */
 export const emptyDisplayModule = (moduleName: string): DisplayModule => ({
     source: "",

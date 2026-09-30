@@ -16,12 +16,14 @@ export class ModuleSourceLinker {
     ) {}
 
     /**
+     * Builds the browse link for a classified module source.
+     *
      * A defect in a pure link builder is not caught here. It should surface.
-     * @param source a classified module source
-     * @param moduleName the block name, which decides the provider or module route
-     * @param versionConstraint the block's version constraint, or ""
-     * @param pageUrl the page the source was read from, for relative paths
-     * @returns the browse url and the version a registry resolved, if any
+     * @param source A classified module source.
+     * @param moduleName The block name, which decides the provider or module route.
+     * @param versionConstraint The block's version constraint, or "".
+     * @param pageUrl The page the source was read from, for relative paths.
+     * @returns The browse url and the version a registry resolved, if any.
      */
     public async linkAsync(
         source: ModuleSource,

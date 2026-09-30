@@ -1,4 +1,4 @@
-import * as semver from "semver";
+import valid from "semver/functions/valid";
 import { TerraformRegistryDataAccess } from "../data-access/TerraformRegistryDataAccess";
 import { Nullable } from "../types/Nullable";
 import { RegistryTarget } from "../types/RegistryTarget";
@@ -15,12 +15,13 @@ export class TerraformVersionService {
     constructor(private readonly registry: TerraformRegistryDataAccess) {}
 
     /**
-     * @param address module or provider address ex: hashicorp/aws
-     * @param target whether the address names a module or a provider
-     * @param versionConstraint the block's version constraint, or ""
-     * @returns the version the constraint selects, the newest published when
-     * nothing satisfies it, or null when the registry published nothing usable
-     * @throws when the registry is unreachable or returns no version list
+     * Returns the version a constraint selects from the Terraform registry.
+     * @param address Module or provider address ex: hashicorp/aws.
+     * @param target Whether the address names a module or a provider.
+     * @param versionConstraint The block's version constraint, or "".
+     * @returns The version the constraint selects, the newest published when
+     * nothing satisfies it, or null when the registry published nothing usable.
+     * @throws When the registry is unreachable.
      */
     public async selectVersionAsync(
         address: string,
@@ -28,12 +29,13 @@ export class TerraformVersionService {
         versionConstraint: string,
     ): Promise<Nullable<string>> {
         const allVersions = await this.registry.getVersionsAsync(address, target);
-        const published = allVersions.filter((version) => semver.valid(version) !== null);
+        const published = allVersions.filter((version) => valid(version) !== null);
         const selected = selectVersion(published, toVersionConstraint(versionConstraint));
         if (selected !== "") {
             return selected;
         }
 
-        return semver.maxSatisfying(published, "*");
+        const newest = selectVersion(published, toVersionConstraint(""));
+        return newest === "" ? null : newest;
     }
 }
