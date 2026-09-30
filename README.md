@@ -39,12 +39,14 @@ Before you submit your pull request consider the following guidelines:
 
 ## Developing Locally
 
+Needs Node and Docker. The HCL parser is a Go wasm module built from `wasm/`.
+It is not committed. `make` produces it. See [wasm/README.md](wasm/README.md).
+
 Clone this repository and run.
 
 ```
 cd iac-module-linker
-yarn install
-yarn build
+make build
 ```
 
 This will generate a dist folder where the javascript is exported to.
@@ -52,7 +54,7 @@ Then open up chrome and paste `chrome://extensions/` in the search bar. Once the
 Navigate to the `dist` folder and click okay. To see the extension you must also enable dev mode.
 You must also allow the Extension to have access to [github](https://github.com) found in the Site access setting on the `chrome://extensions` page.
 Alternatively the extension will flash white in the corner when you navigate to [github](https://github.com) click the Icon to allow the extension to have access to your page.
-Note you must do this each time you run `yarn build` and update the extension.
+Note you must do this each time you run `make build` and update the extension.
 
 # Testing
 
@@ -63,7 +65,7 @@ tests load the built extension into Chromium with
 ### Unit tests
 
 ```
-yarn test
+make test
 ```
 
 They run offline. Registry responses are recorded in
@@ -90,4 +92,3 @@ machine with no display, put `xvfb-run -a` in front of it.
 # Credit
 
 1. This icon was created with the assistance of DALL·E 2.
-1. Thanks to [bec-uk](https://github.com/benc-uk) for his work on [hcl2-parser](https://github.com/benc-uk/hcl2-parser).

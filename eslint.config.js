@@ -8,7 +8,11 @@ module.exports = tseslint.config(
         ignores: [
             "dist/**",
             "dist-bench/**",
+            "dist-vite/**",
+            "dist-vite-bench/**",
             "node_modules/**",
+            // Go's module and build cache for the wasm container, not ours.
+            ".gocache/**",
             "tests/cypress/**",
             "tests/e2e/**",
             "src/vendor/**",
