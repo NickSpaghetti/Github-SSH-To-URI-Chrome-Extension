@@ -17,24 +17,27 @@ jobs:
         with:
           node-version: 26.x
 
-      - name: Enable corepack
-        run: corepack enable
+      # Reads the version from `packageManager` in package.json.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
+      # One install covers the root and the tests/e2e workspace.
       - name: Run install
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        run: yarn lint
+        run: pnpm lint
 
       - name: Run format check
-        run: yarn format:check
+        run: pnpm format:check
 
       - name: Audit production dependencies
-        run: yarn audit:prod
+        run: pnpm audit:prod
 
       - name: Audit dev dependencies
-        run: yarn audit:dev
-        continue-on-error: true
+        run: pnpm audit:dev
 
       # The wasm build runs in a container, so Go's caches are bind mounted out
       # of it. Without this every run re-downloads the module graph.
@@ -61,16 +64,12 @@ jobs:
       - name: Check the corpus still matches the fixture repository
         run: make check-corpus-sync
 
-      - name: Install end to end dependencies
-        working-directory: tests/e2e
-        run: yarn install
-
       - name: Install Chromium for Playwright
         working-directory: tests/e2e
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run end to end tests
         working-directory: tests/e2e
         # Extensions need a full browser, so the run is headed under a
         # virtual display rather than headless.
-        run: xvfb-run -a yarn e2e
+        run: xvfb-run -a pnpm e2e

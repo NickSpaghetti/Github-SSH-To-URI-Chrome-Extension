@@ -10,6 +10,5 @@
     },
     "devDependencies": {
         "@playwright/test": "^1.63.0"
-    },
-    "packageManager": "yarn@4.17.1"
+    }
 }

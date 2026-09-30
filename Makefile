@@ -6,68 +6,69 @@
 WASM_SOURCES = wasm/main.go wasm/go.mod wasm/go.sum
 WASM = public/main.wasm.gz src/vendor/wasm_exec.js
 
-# Installed when the manifest or the lockfile moves, the same way the parser is
-# built. A no-op `yarn install` still costs a second, so the targets below name
-# this instead of running it every time. The touch is because yarn does not
-# always change the directory's own timestamp.
-node_modules: package.json yarn.lock
-	yarn install
+# Installed when a manifest or the lockfile moves, the same way the parser is
+# built. One install covers the root and the tests/e2e workspace. A no-op
+# `pnpm install` still costs a moment, so the targets below name this instead
+# of running it every time. The touch is because pnpm does not always change
+# the directory's own timestamp.
+node_modules: package.json tests/e2e/package.json pnpm-lock.yaml pnpm-workspace.yaml
+	pnpm install
 	@touch node_modules
 
 # Forces it, for a tree that install state has got out of step with.
 install:
-	yarn install
+	pnpm install
 	@touch node_modules
 
 build: node_modules $(WASM)
-	yarn build
+	pnpm build
 
 test: node_modules $(WASM)
-	yarn test
+	pnpm test
 
 e2e: node_modules $(WASM)
-	yarn build
-	cd tests/e2e && yarn install && yarn e2e
+	pnpm build
+	cd tests/e2e && pnpm e2e
 
 
 # Both builds: the browser runs the readable one, and the popup benchmark
 # weighs the shipping one to gate what a user downloads.
 benchmark: node_modules $(WASM)
-	yarn build
-	yarn build:bench
-	cd tests/e2e && yarn install && yarn benchmark
+	pnpm build
+	pnpm build:bench
+	cd tests/e2e && pnpm benchmark
 
 record-baseline: node_modules $(WASM)
-	yarn build
-	yarn build:bench
+	pnpm build
+	pnpm build:bench
 	rm -rf tests/e2e/benchmarks/.recorded
-	cd tests/e2e && yarn install && yarn benchmark || true
+	cd tests/e2e && pnpm benchmark || true
 	node -r ts-node/register ./scripts/RecordBaseline.ts
 
 lint: node_modules
-	yarn lint
+	pnpm lint
 
 # Checks the .svelte files and the props crossing into them, which `tsc`
 # resolves but does not typecheck.
 typecheck: node_modules $(WASM)
-	yarn typecheck
+	pnpm typecheck
 
 lint-fix: node_modules
-	yarn lint:fix
+	pnpm lint:fix
 
 format: node_modules
-	yarn format
+	pnpm format
 
 format-check: node_modules
-	yarn format:check
+	pnpm format:check
 
 audit: node_modules
-	yarn audit:prod
+	pnpm audit:prod
 
 audit-dev: node_modules
-	-yarn audit:dev
+	pnpm audit:dev
 
-check: lint typecheck format-check audit test
+check: lint typecheck format-check audit audit-dev test
 
 clean:
 	rm -rf dist

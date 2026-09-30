@@ -27,11 +27,15 @@ jobs:
         with:
           node-version: 26.x
 
-      - name: Enable corepack
-        run: corepack enable
+      # Reads the version from `packageManager` in package.json.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
+      # One install covers the root and the tests/e2e workspace.
       - name: Run install
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
       # The wasm build runs in a container, so Go's caches are bind mounted out
       # of it. Without this every run re-downloads the module graph.
@@ -51,30 +55,21 @@ jobs:
       - name: Test the app
         run: make test
 
-      - name: Install end to end dependencies
-        if: ${{ inputs.skip_e2e != true }}
-        working-directory: tests/e2e
-        run: yarn install
-
       - name: Install Chromium for Playwright
         if: ${{ inputs.skip_e2e != true }}
         working-directory: tests/e2e
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run end to end tests
         if: ${{ inputs.skip_e2e != true }}
         working-directory: tests/e2e
         # Extensions need a full browser, so the run is headed under a
         # virtual display rather than headless.
-        run: xvfb-run -a yarn e2e
-
-      - name: add chrome-webstore-cli
-        working-directory: src/
-        run: yarn add chrome-webstore-upload-cli@3
+        run: xvfb-run -a pnpm e2e
 
       - name: Submit to Chrome Extension Store
         working-directory: dist
-        run: npx chrome-webstore-upload-cli@3 upload --auto-publish
+        run: pnpm dlx chrome-webstore-upload-cli@3 upload --auto-publish
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}

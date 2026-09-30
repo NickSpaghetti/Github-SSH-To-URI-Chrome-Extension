@@ -16,13 +16,10 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "audit:prod": "yarn npm audit --environment production --no-deprecations",
-        "audit:dev": "yarn npm audit --environment development --no-deprecations",
+        "audit:prod": "pnpm audit --prod",
+        "audit:dev": "pnpm audit --dev",
         "prepare": "husky",
-        "e2e": "yarn --cwd tests/e2e e2e"
-    },
-    "resolutions": {
-        "@babel/runtime": "^7.26.10"
+        "e2e": "pnpm --dir tests/e2e e2e"
     },
     "lint-staged": {
         "*.ts": [
@@ -54,9 +51,11 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@jest/globals": "^29.4.3",
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@types/chrome": "^0.3.0",
         "@types/jest": "^29.4.0",
+        "@types/node": "^24.19.0",
         "eslint": "^10.7.0",
         "eslint-config-prettier": "^10.1.8",
         "husky": "^9.1.7",
@@ -72,5 +71,5 @@
         "typescript-eslint": "^8.70.1",
         "vite": "^8.3.1"
     },
-    "packageManager": "yarn@4.17.1+sha512.ccbfabf7d7b6b32075088be9386fb9a2e00bb6887ef07fa56effabc890a56d53da1ccc4128d62db245fcbd3961b236d75335bdf7d5320ed6eafb7588b7ad4697"
+    "packageManager": "pnpm@12.8.1"
 }

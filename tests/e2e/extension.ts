@@ -4,7 +4,7 @@ import * as path from "path";
 
 /**
  * Benchmarks need the instrumented build, everything else the shipped one.
- * `yarn benchmark` sets this; without it the tests load what users get.
+ * `pnpm benchmark` sets this; without it the tests load what users get.
  */
 const DIST = path.resolve(__dirname, "../..", process.env.IAC_BUILD ?? "dist");
 
@@ -25,7 +25,7 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
     context: async ({}, use) => {
         if (!fs.existsSync(path.join(DIST, "manifest.json"))) {
             throw new Error(
-                `no build found at ${DIST}. Run 'yarn build' or 'yarn build:bench' in the project root.`,
+                `no build found at ${DIST}. Run 'pnpm build' or 'pnpm build:bench' in the project root.`,
             );
         }
         const context = await chromium.launchPersistentContext("", {

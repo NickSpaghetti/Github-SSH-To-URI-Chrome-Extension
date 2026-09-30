@@ -15,17 +15,9 @@ updates:
     commit-message:
       prefix: "bumped"
 
+  # pnpm, and the tests/e2e workspace with it.
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "bumped"
-
-  # Own lockfile.
-  - package-ecosystem: npm
-    directory: /tests/e2e
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
