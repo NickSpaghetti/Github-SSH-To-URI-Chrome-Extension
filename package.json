@@ -7,8 +7,8 @@
         "node": ">=24"
     },
     "scripts": {
-        "build": "node scripts/build.mts",
-        "build:bench": "IAC_READABLE=1 node scripts/build.mts",
+        "build": "vite build",
+        "build:bench": "IAC_READABLE=1 vite build",
         "test": "jest",
         "lint": "eslint .",
         "typecheck": "svelte-check --tsconfig ./tsconfig.json --output human",
