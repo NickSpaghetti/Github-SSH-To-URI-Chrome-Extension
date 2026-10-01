@@ -9,7 +9,6 @@ import { SourceTypes } from "../../../src/types/SourceTypes";
  */
 const entry = (modules: unknown[]) => ({
     sha: "49e180c0",
-    lastCommitDateTimeISO: "2026-01-01T00:00:00.000Z",
     modules,
 });
 
@@ -22,6 +21,7 @@ const row = {
     versionConstraint: "~> 6.0",
     resolvedVersion: "6.7.3",
     sourceLine: 12,
+    sourceColumn: 14,
     writtenSource: "terraform-aws-modules/vpc/aws",
 };
 
@@ -85,6 +85,7 @@ describe("Given a cache entry read back from storage", () => {
                 versionConstraint: "",
                 resolvedVersion: "",
                 sourceLine: null,
+                sourceColumn: null,
                 writtenSource: "",
             });
         });

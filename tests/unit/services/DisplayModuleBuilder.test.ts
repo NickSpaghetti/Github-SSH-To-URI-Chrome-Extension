@@ -22,6 +22,7 @@ describe("Given a module whose source the file cannot evaluate", () => {
                 terraformProperty: "module",
                 provider: { source: "${var.repo}//modules/vpc", version: "" },
                 sourceLine: 9,
+                sourceColumn: null,
                 writtenSource: "${var.repo}//modules/vpc",
                 sourceResolved: false,
             };
@@ -47,6 +48,7 @@ describe("Given a module whose source is a template the file evaluates", () => {
                 terraformProperty: "module",
                 provider: { source: "./modules/vpc", version: "" },
                 sourceLine: 7,
+                sourceColumn: null,
                 writtenSource: "${local.modules}/vpc",
                 sourceResolved: true,
             };

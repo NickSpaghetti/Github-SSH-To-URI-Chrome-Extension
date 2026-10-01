@@ -11,7 +11,7 @@ const START = `${FIXTURES}/blob/main/benchmarks/parse/small.tf`;
  * it and awaits, and v8 counts a resumption as another entry, so counting the
  * wrapper would not give a number of injections.
  */
-const INJECTOR = "addHyperLinksToModuleSource";
+const INJECTOR = "linkSources";
 
 /** Breadcrumb, directory, then a file. Each is a `tabs.onUpdated` completion. */
 const SOFT_NAVIGATIONS = 3;

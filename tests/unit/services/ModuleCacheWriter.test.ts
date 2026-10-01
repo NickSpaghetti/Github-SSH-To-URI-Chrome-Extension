@@ -9,7 +9,6 @@ const KEY = `${MODULE_CACHE_PREFIX}github.com:/owner/repo/blob/main/main.tf`;
 /** An entry shaped the way the content script writes one. */
 const ENTRY: CachedModules = {
     sha: "49e180c0",
-    lastCommitDateTimeISO: "2026-01-01T00:00:00.000Z",
     modules: [
         {
             source: "terraform-aws-modules/vpc/aws",
@@ -19,6 +18,7 @@ const ENTRY: CachedModules = {
             versionConstraint: "~> 6.0",
             resolvedVersion: "6.7.3",
             sourceLine: 12,
+            sourceColumn: null,
             writtenSource: "terraform-aws-modules/vpc/aws",
         },
     ],

@@ -14,6 +14,7 @@ const parsed = [
         resolved: true,
         version: "",
         line: 1,
+        column: 13,
     },
 ];
 
@@ -39,6 +40,7 @@ describe("Given the service worker parses the file", () => {
                     terraformProperty: "module",
                     provider: { source: "./modules/vpc", version: "" },
                     sourceLine: 1,
+                    sourceColumn: 13,
                     writtenSource: "./modules/vpc",
                     sourceResolved: true,
                 },

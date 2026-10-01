@@ -17,6 +17,7 @@ const writer = new GitHubPageWriter();
  * @returns The links.
  */
 const bySource = (entries: [string, string][]): SourceLinks => ({
+    placed: new Map(),
     atLine: new Map(),
     bySource: new Map(entries),
 });
@@ -182,6 +183,7 @@ describe("Given two lines with the same source", () => {
             // Arrange
             render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
             const links: SourceLinks = {
+                placed: new Map(),
                 atLine: new Map([
                     [12, new Map([[SOURCE, `${URL}/0.1.0`]])],
                     [19, new Map([[SOURCE, `${URL}/0.12.0`]])],
@@ -205,6 +207,7 @@ describe("Given two lines with the same source", () => {
             // Arrange
             render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
             const links: SourceLinks = {
+                placed: new Map(),
                 atLine: new Map([[19, new Map([[SOURCE, `${URL}/0.12.0`]])]]),
                 bySource: new Map([[SOURCE, `${URL}/0.1.0`]]),
             };
@@ -236,6 +239,7 @@ describe("Given a source written as a template", () => {
 
             // Act
             writer.linkSources({
+                placed: new Map(),
                 atLine: new Map([[7, new Map([[written, URL]])]]),
                 bySource: new Map(),
             });
@@ -272,6 +276,7 @@ describe("Given a template with a string inside its interpolation", () => {
 
             // Act
             writer.linkSources({
+                placed: new Map(),
                 atLine: new Map([[4, new Map([[written, URL]])]]),
                 bySource: new Map(),
             });
@@ -296,7 +301,11 @@ describe("Given a JSON source with an escaped quote", () => {
             const written = '${local.m[\\"vpc\\"]}';
 
             // Act
-            writer.linkSources({ atLine: new Map(), bySource: new Map([[written, URL]]) });
+            writer.linkSources({
+                placed: new Map(),
+                atLine: new Map(),
+                bySource: new Map([[written, URL]]),
+            });
 
             // Assert
             expect<number>(anchors().length).toBe(1);

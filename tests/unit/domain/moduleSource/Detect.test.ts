@@ -108,6 +108,35 @@ describe("Given GitHub shorthand", () => {
             expect<string>(source.host).toBe("bitbucket.org");
         });
     });
+
+    describe("When the source is gitlab.com/namespace/name/system", () => {
+        test("Then I expect a registry address, because go-getter has no gitlab.com shorthand", () => {
+            // Arrange
+            const raw = "gitlab.com/example-group/vpc/aws";
+
+            // Act
+            const source = read(raw);
+
+            // Assert
+            expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.RegistryAddress)).toBe(true);
+            expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.RepositoryAddress)).toBe(false);
+            expect<string>(source.registryHost).toBe("gitlab.com");
+        });
+    });
+
+    describe("When the source is git::gitlab.com/owner/repo", () => {
+        test("Then I expect a repository on gitlab.com", () => {
+            // Arrange
+            const raw = "git::gitlab.com/example-group/vpc";
+
+            // Act
+            const source = read(raw);
+
+            // Assert
+            expect<boolean>(hasFlag(source, MODULE_SOURCE_FLAGS.RepositoryAddress)).toBe(true);
+            expect<string>(source.host).toBe("gitlab.com");
+        });
+    });
 });
 
 describe("Given an scp style address", () => {

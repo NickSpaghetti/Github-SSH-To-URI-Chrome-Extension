@@ -1,7 +1,8 @@
 import { Nullable } from "../types/Nullable";
 import { isSafeHttpUrl } from "../util/UrlSafety";
-import { IGitHubPageWriter } from "./IGitHubPageWriter";
+import { IPageWriter } from "./IPageWriter";
 import { SourceLinks } from "../types/SourceLinks";
+import { createSourceAnchor } from "./SourceAnchor";
 
 // GitHub ids each rendered line `LC` and its 1-based line number.
 const LINE_ID_PREFIX = "LC";
@@ -22,19 +23,8 @@ const ANCHOR_ID_PREFIX = "GithubTerraformSourceUrl";
 const SOURCE_KEY = "source";
 const NAME_PUNCTUATION = ['"', "=", ":"];
 
-const ANCHOR_STYLE = `
-    pointer-events: all !important;
-    text-decoration: underline !important;
-    cursor: pointer !important;
-    display: inline !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    position: relative !important;
-    z-index: 9999 !important;
-`;
-
 /** Writes to the DOM GitHub rendered. */
-export class GitHubPageWriter implements IGitHubPageWriter {
+export class GitHubPageWriter implements IPageWriter {
     /**
      * Replaces each module source on the page that has a link with an anchor to it.
      *
@@ -69,7 +59,7 @@ export class GitHubPageWriter implements IGitHubPageWriter {
             // GitHub marks the rendered line inert so its own overlay takes
             // the click. The anchor is unreachable until that is lifted.
             literal.closest(`[${INERT}]`)?.removeAttribute(INERT);
-            const anchor = createAnchor(url, anchorId(line, literal));
+            const anchor = createSourceAnchor(url, anchorId(line, literal));
             inside[inside.length - 1].after(anchor);
             anchor.append(...inside);
         }
@@ -126,16 +116,6 @@ const anchorId = (line: Element, literal: Element): string => {
     const position = Array.from(line.querySelectorAll(STRING_LITERAL)).indexOf(literal);
     const within = position === -1 ? crypto.randomUUID() : String(position);
     return `${ANCHOR_ID_PREFIX}-${line.id === "" ? crypto.randomUUID() : line.id}-${within}`;
-};
-
-const createAnchor = (url: string, id: string): HTMLAnchorElement => {
-    const anchor = document.createElement("a");
-    anchor.id = id;
-    anchor.href = url;
-    anchor.rel = "noreferrer";
-    anchor.target = "_blank";
-    anchor.style.cssText = ANCHOR_STYLE;
-    return anchor;
 };
 
 // GitHub renders the code lines under the line numbers, which covers the

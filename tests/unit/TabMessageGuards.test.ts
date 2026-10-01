@@ -3,7 +3,7 @@ import {
     shouldHandleMessage,
     isBackgroundRefresh,
     readTabUrl,
-    isGithubTabUrl,
+    isSupportedTabUrl,
 } from "../../src/TabMessageGuards";
 import { SENDERS } from "../../src/types/TabMessage";
 import { Nullable } from "../../src/types/Nullable";
@@ -42,10 +42,23 @@ describe("Given a runtime message", () => {
         });
     });
 
+    describe("When the popup names a GitLab tab", () => {
+        test("Then I expect it handled", () => {
+            // Arrange
+            const message = fromPopup("https://gitlab.com/group/repo/-/blob/main/main.tf");
+
+            // Act
+            const handled = shouldHandleMessage(message);
+
+            // Assert
+            expect<boolean>(handled).toBe(true);
+        });
+    });
+
     describe("When the popup names a tab on another host", () => {
         test("Then I expect it rejected", () => {
             // Arrange
-            const tabUrls = ["https://evil.com/owner/repo", "https://gitlab.com/owner/repo"];
+            const tabUrls = ["https://evil.com/owner/repo", "https://bitbucket.org/owner/repo"];
 
             // Act
             const handled = tabUrls.map((tabUrl) => shouldHandleMessage(fromPopup(tabUrl)));
@@ -207,10 +220,10 @@ describe("Given a tab url to check the host of", () => {
             const tabUrls = ["", "javascript:alert(1)"];
 
             // Act
-            const github = tabUrls.map(isGithubTabUrl);
+            const supported = tabUrls.map(isSupportedTabUrl);
 
             // Assert
-            expect<boolean[]>(github).toEqual(tabUrls.map(() => false));
+            expect<boolean[]>(supported).toEqual(tabUrls.map(() => false));
         });
     });
 });

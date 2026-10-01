@@ -32,6 +32,7 @@ const readDeclaration = (value: unknown): Nullable<TerraformModule> => {
             version: typeof value.version === "string" ? value.version : "",
         },
         sourceLine: typeof value.line === "number" ? value.line : null,
+        sourceColumn: typeof value.column === "number" ? value.column : null,
         writtenSource: typeof value.written === "string" ? value.written : value.source,
         sourceResolved: value.resolved === true,
     };

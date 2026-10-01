@@ -289,3 +289,71 @@ test("OpenTofu sources and versions in a .tf file are linked too", async ({ cont
     expect(anchor.text).toBe("${local.registry}/vpc/aws");
     expect(anchor.href.split("/").pop()).toBe("6.7.3");
 });
+
+/**
+ * Takes the extension's anchors off the page, leaving their text where it was.
+ * @param page The page to unlink.
+ */
+const unlinkAsync = async (page: import("@playwright/test").Page) =>
+    await page.evaluate(() => {
+        for (const anchor of Array.from(
+            document.querySelectorAll('a[id^="GithubTerraformSourceUrl"]'),
+        )) {
+            anchor.replaceWith(...Array.from(anchor.childNodes));
+        }
+    });
+
+/**
+ * Fires the scroll the content script relinks on.
+ * @param page The page to scroll.
+ */
+const scrollEventAsync = async (page: import("@playwright/test").Page) =>
+    await page.evaluate(() => document.dispatchEvent(new Event("scroll")));
+
+test("a page is still linked when the cache cannot be read", async ({ context }) => {
+    // Arrange
+    const page = await context.newPage();
+    const worker = context.serviceWorkers()[0];
+    await worker.evaluate(async () => await chrome.storage.session.clear());
+    await page.goto(`${FIXTURES}/blob/main/04-git-forced.tf`, { waitUntil: "domcontentloaded" });
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(5);
+    // Closes session storage to content scripts, as it is on a cold start
+    // before the worker opens it. The commit sha is on the page by now, so
+    // the next run reads the cache first.
+    await worker.evaluate(
+        async () =>
+            await chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }),
+    );
+    await unlinkAsync(page);
+
+    // Act
+    await scrollEventAsync(page);
+
+    // Assert
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 10_000 }).toBe(5);
+});
+
+test("a scroll while the cache waits for the commit header still links", async ({ context }) => {
+    // Arrange
+    const page = await context.newPage();
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+    await page.goto(`${FIXTURES}/blob/main/04-git-forced.tf`, { waitUntil: "domcontentloaded" });
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(5);
+    // With no commit link the cache write waits its whole deadline, which is
+    // the window a scroll has to land in.
+    await page.evaluate(() => {
+        for (const link of Array.from(document.querySelectorAll("a[href*='/commit/']"))) {
+            link.remove();
+        }
+    });
+    await unlinkAsync(page);
+    await scrollEventAsync(page);
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 10_000 }).toBe(5);
+    await unlinkAsync(page);
+
+    // Act
+    await scrollEventAsync(page);
+
+    // Assert
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 10_000 }).toBe(5);
+});

@@ -1,5 +1,5 @@
 import { BackgroundRefresh } from "./types/TabMessage";
-import { GITHUB_HOST } from "./util/Constants";
+import { hasPageAccessAsync, syncOptInContentScriptsAsync } from "./services/PageAccess";
 import { isAllowedFetchHost, isFetchRequest, isParseRequest } from "./WorkerRequestGuards";
 import { SENDERS } from "./types/TabMessage";
 import { HclParser } from "./services/HclParser";
@@ -11,20 +11,54 @@ chrome.storage.session
     .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
     .catch((error) => logRecovered("could not open session storage", error));
 
+/**
+ * Injects the content script into a tab and asks it to link the page.
+ * @param tabId The tab to inject into.
+ */
+const injectAndRefreshAsync = async (tabId: number): Promise<void> => {
+    try {
+        await chrome.scripting.executeScript({
+            target: { tabId: tabId, allFrames: true },
+            files: ["contentscript.js"],
+        });
+        const refresh: BackgroundRefresh = { sender: SENDERS.BACKGROUND };
+        await chrome.tabs.sendMessage(tabId, refresh);
+    } catch (error) {
+        logRecovered("could not link the page in a tab", error);
+    }
+};
+
+syncOptInContentScriptsAsync().catch((error) =>
+    logRecovered("could not register the content script on granted hosts", error),
+);
+
+chrome.permissions.onAdded.addListener(async (permissions) => {
+    try {
+        await syncOptInContentScriptsAsync();
+        const origins = permissions.origins ?? [];
+        const tabs = origins.length === 0 ? [] : await chrome.tabs.query({ url: origins });
+        for (const tab of tabs) {
+            if (tab.id !== undefined) {
+                await injectAndRefreshAsync(tab.id);
+            }
+        }
+    } catch (error) {
+        logRecovered("could not link pages on a newly granted host", error);
+    }
+});
+
+chrome.permissions.onRemoved.addListener(() => {
+    syncOptInContentScriptsAsync().catch((error) =>
+        logRecovered("could not unregister the content script from a revoked host", error),
+    );
+});
+
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (tab.url === undefined) {
+    if (changeInfo.status !== "complete" || tab.url === undefined) {
         return;
     }
-    const currentUrl = new URL(tab.url);
-    if (currentUrl.hostname === GITHUB_HOST) {
-        if (changeInfo.status === "complete") {
-            await chrome.scripting.executeScript({
-                target: { tabId: tabId, allFrames: true },
-                files: ["contentscript.js"],
-            });
-            const refresh: BackgroundRefresh = { sender: SENDERS.BACKGROUND };
-            await chrome.tabs.sendMessage(tabId, refresh);
-        }
+    if (await hasPageAccessAsync(new URL(tab.url).hostname)) {
+        await injectAndRefreshAsync(tabId);
     }
 });
 

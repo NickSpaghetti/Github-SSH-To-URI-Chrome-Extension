@@ -5,30 +5,31 @@ import (
 	"testing"
 )
 
-func TestRead(t *testing.T) {
-	tests := []struct {
-		name     string
-		fileName string
-		contents string
-		want     []Declaration
-	}{
-		{
-			name:     "module with a source and version",
-			fileName: "main.tf",
-			contents: `module "vpc" {
+type readTest struct {
+	name     string
+	fileName string
+	contents string
+	want     []Declaration
+}
+
+var readTests = []readTest{
+	{
+		name:     "module with a source and version",
+		fileName: "main.tf",
+		contents: `module "vpc" {
   source  = "a/b/c"
   version = "~> 6.0"
   cidr    = "x"
 }
 `,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Version: "~> 6.0", Line: 2},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Version: "~> 6.0", Line: 2, Column: 13},
 		},
-		{
-			name:     "module version that is not a literal string",
-			fileName: "main.tf",
-			contents: `module "a" {
+	},
+	{
+		name:     "module version that is not a literal string",
+		fileName: "main.tf",
+		contents: `module "a" {
   source  = "a/b/c"
   version = 5
 }
@@ -38,15 +39,15 @@ module "b" {
   version = var.v
 }
 `,
-			want: []Declaration{
-				{Name: "a", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 2},
-				{Name: "b", Block: BlockModule, Source: "d/e/f", Written: "d/e/f", Resolved: true, Line: 7},
-			},
+		want: []Declaration{
+			{Name: "a", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 2, Column: 13},
+			{Name: "b", Block: BlockModule, Source: "d/e/f", Written: "d/e/f", Resolved: true, Line: 7, Column: 13},
 		},
-		{
-			name:     "module whose source is not a string or names nothing in the file",
-			fileName: "main.tf",
-			contents: `module "a" {
+	},
+	{
+		name:     "module whose source is not a string or names nothing in the file",
+		fileName: "main.tf",
+		contents: `module "a" {
   source = { ref = "x" }
 }
 
@@ -62,15 +63,15 @@ module "d" {
   cidr = "x"
 }
 `,
-			want: []Declaration{
-				{Name: "a", Block: BlockModule, Source: `{ ref = "x" }`, Written: `{ ref = "x" }`, Line: 2},
-				{Name: "c", Block: BlockModule, Source: "var.s", Written: "var.s", Line: 10},
-			},
+		want: []Declaration{
+			{Name: "a", Block: BlockModule, Source: `{ ref = "x" }`, Written: `{ ref = "x" }`, Line: 2, Column: 11},
+			{Name: "c", Block: BlockModule, Source: "var.s", Written: "var.s", Line: 10, Column: 11},
 		},
-		{
-			name:     "blocks in the order the file writes them",
-			fileName: "main.tf",
-			contents: `module "zebra" {
+	},
+	{
+		name:     "blocks in the order the file writes them",
+		fileName: "main.tf",
+		contents: `module "zebra" {
   source = "z/z/z"
 }
 
@@ -82,16 +83,16 @@ module "apple" {
   source = "a/a/a"
 }
 `,
-			want: []Declaration{
-				{Name: "zebra", Block: BlockModule, Source: "z/z/z", Written: "z/z/z", Resolved: true, Line: 2},
-				{Name: "terraform", Block: BlockTerraform, Source: "t/t/t", Written: "t/t/t", Resolved: true, Line: 6},
-				{Name: "apple", Block: BlockModule, Source: "a/a/a", Written: "a/a/a", Resolved: true, Line: 10},
-			},
+		want: []Declaration{
+			{Name: "zebra", Block: BlockModule, Source: "z/z/z", Written: "z/z/z", Resolved: true, Line: 2, Column: 12},
+			{Name: "terraform", Block: BlockTerraform, Source: "t/t/t", Written: "t/t/t", Resolved: true, Line: 6, Column: 12},
+			{Name: "apple", Block: BlockModule, Source: "a/a/a", Written: "a/a/a", Resolved: true, Line: 10, Column: 12},
 		},
-		{
-			name:     "two modules with one name",
-			fileName: "main.tf",
-			contents: `module "vpc" {
+	},
+	{
+		name:     "two modules with one name",
+		fileName: "main.tf",
+		contents: `module "vpc" {
   source = "a/b/c"
 }
 
@@ -99,14 +100,14 @@ module "vpc" {
   source = "d/e/f"
 }
 `,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 2},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 2, Column: 12},
 		},
-		{
-			name:     "two modules with one source",
-			fileName: "main.tf",
-			contents: `module "consul_old" {
+	},
+	{
+		name:     "two modules with one source",
+		fileName: "main.tf",
+		contents: `module "consul_old" {
   source  = "hashicorp/consul/aws"
   version = "0.1.0"
 }
@@ -117,15 +118,15 @@ module "consul_new" {
   source = "hashicorp/consul/aws"
 }
 `,
-			want: []Declaration{
-				{Name: "consul_old", Block: BlockModule, Source: "hashicorp/consul/aws", Written: "hashicorp/consul/aws", Resolved: true, Version: "0.1.0", Line: 2},
-				{Name: "consul_new", Block: BlockModule, Source: "hashicorp/consul/aws", Written: "hashicorp/consul/aws", Resolved: true, Version: "0.11.0", Line: 9},
-			},
+		want: []Declaration{
+			{Name: "consul_old", Block: BlockModule, Source: "hashicorp/consul/aws", Written: "hashicorp/consul/aws", Resolved: true, Version: "0.1.0", Line: 2, Column: 13},
+			{Name: "consul_new", Block: BlockModule, Source: "hashicorp/consul/aws", Written: "hashicorp/consul/aws", Resolved: true, Version: "0.11.0", Line: 9, Column: 12},
 		},
-		{
-			name:     "required providers",
-			fileName: "main.tf",
-			contents: `terraform {
+	},
+	{
+		name:     "required providers",
+		fileName: "main.tf",
+		contents: `terraform {
   required_providers {
     google = { source = "hashicorp/google" }
     aws = {
@@ -135,15 +136,15 @@ module "consul_new" {
   }
 }
 `,
-			want: []Declaration{
-				{Name: "required_providers.google", Block: BlockRequiredProviders, Source: "hashicorp/google", Written: "hashicorp/google", Resolved: true, Line: 3},
-				{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Version: ">= 5.0", Line: 5},
-			},
+		want: []Declaration{
+			{Name: "required_providers.google", Block: BlockRequiredProviders, Source: "hashicorp/google", Written: "hashicorp/google", Resolved: true, Line: 3, Column: 25},
+			{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Version: ">= 5.0", Line: 5, Column: 17},
 		},
-		{
-			name:     "required providers that are not the right shape",
-			fileName: "main.tf",
-			contents: `terraform {
+	},
+	{
+		name:     "required providers that are not the right shape",
+		fileName: "main.tf",
+		contents: `terraform {
   source = 42
 
   required_providers {
@@ -153,14 +154,14 @@ module "consul_new" {
   }
 }
 `,
-			want: []Declaration{
-				{Name: "required_providers.azurerm", Block: BlockRequiredProviders, Source: "hashicorp/azurerm", Written: "hashicorp/azurerm", Resolved: true, Line: 7},
-			},
+		want: []Declaration{
+			{Name: "required_providers.azurerm", Block: BlockRequiredProviders, Source: "hashicorp/azurerm", Written: "hashicorp/azurerm", Resolved: true, Line: 7, Column: 26},
 		},
-		{
-			name:     "only the first required_providers block of a terraform block",
-			fileName: "main.tf",
-			contents: `terraform {
+	},
+	{
+		name:     "only the first required_providers block of a terraform block",
+		fileName: "main.tf",
+		contents: `terraform {
   required_providers {
     aws = { source = "hashicorp/aws" }
   }
@@ -169,14 +170,14 @@ module "consul_new" {
   }
 }
 `,
-			want: []Declaration{
-				{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Line: 3},
-			},
+		want: []Declaration{
+			{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Line: 3, Column: 22},
 		},
-		{
-			name:     "a provider in two terraform blocks",
-			fileName: "main.tf",
-			contents: `terraform {
+	},
+	{
+		name:     "a provider in two terraform blocks",
+		fileName: "main.tf",
+		contents: `terraform {
   required_providers {
     aws = { source = "hashicorp/aws", version = "~> 5.0" }
   }
@@ -192,41 +193,41 @@ terraform {
   }
 }
 `,
-			want: []Declaration{
-				{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Version: "~> 6.0", Line: 13},
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 8},
-			},
+		want: []Declaration{
+			{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Version: "~> 6.0", Line: 13, Column: 22},
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 8, Column: 12},
 		},
-		{
-			name:     "json module written as an object",
-			fileName: "main.tf.json",
-			contents: `{
+	},
+	{
+		name:     "json module written as an object",
+		fileName: "main.tf.json",
+		contents: `{
   "module": {
     "vpc": { "source": "a/b/c", "version": "1.0.0" }
   }
 }`,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Version: "1.0.0", Line: 3},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Version: "1.0.0", Line: 3, Column: 24},
 		},
-		{
-			name:     "json module written as an array",
-			fileName: "main.tf.json",
-			contents: `{
+	},
+	{
+		name:     "json module written as an array",
+		fileName: "main.tf.json",
+		contents: `{
   "module": {
     "vpc": [
       { "source": "a/b/c" }
     ]
   }
 }`,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 4},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 4, Column: 19},
 		},
-		{
-			name:     "json required providers written as an object",
-			fileName: "main.tf.json",
-			contents: `{
+	},
+	{
+		name:     "json required providers written as an object",
+		fileName: "main.tf.json",
+		contents: `{
   "terraform": {
     "required_providers": {
       "aws": {
@@ -235,28 +236,28 @@ terraform {
     }
   }
 }`,
-			want: []Declaration{
-				{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Line: 5},
-			},
+		want: []Declaration{
+			{Name: "required_providers.aws", Block: BlockRequiredProviders, Source: "hashicorp/aws", Written: "hashicorp/aws", Resolved: true, Line: 5, Column: 19},
 		},
-		{
-			name:     "json with neither block",
-			fileName: "main.tf.json",
-			contents: `{ "variable": { "x": {} } }`,
-			want:     nil,
+	},
+	{
+		name:     "json with neither block",
+		fileName: "main.tf.json",
+		contents: `{ "variable": { "x": {} } }`,
+		want:     nil,
+	},
+	{
+		name:     "json interpolated version",
+		fileName: "main.tf.json",
+		contents: `{ "module": { "vpc": { "source": "a/b/c", "version": "${var.v}" } } }`,
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 1, Column: 34},
 		},
-		{
-			name:     "json interpolated version",
-			fileName: "main.tf.json",
-			contents: `{ "module": { "vpc": { "source": "a/b/c", "version": "${var.v}" } } }`,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "a/b/c", Written: "a/b/c", Resolved: true, Line: 1},
-			},
-		},
-		{
-			name:     "opentofu source built from locals",
-			fileName: "main.tofu",
-			contents: `locals {
+	},
+	{
+		name:     "opentofu source built from locals",
+		fileName: "main.tofu",
+		contents: `locals {
   repo = "github.com/org/modules"
   ref  = "?ref=v1.2.0"
 }
@@ -265,14 +266,14 @@ module "storage" {
   source = "${local.repo}//storage${local.ref}"
 }
 `,
-			want: []Declaration{
-				{Name: "storage", Block: BlockModule, Source: "github.com/org/modules//storage?ref=v1.2.0", Written: "${local.repo}//storage${local.ref}", Resolved: true, Line: 7},
-			},
+		want: []Declaration{
+			{Name: "storage", Block: BlockModule, Source: "github.com/org/modules//storage?ref=v1.2.0", Written: "${local.repo}//storage${local.ref}", Resolved: true, Line: 7, Column: 12},
 		},
-		{
-			name:     "opentofu version from a variable default",
-			fileName: "main.tf",
-			contents: `variable "vpc_version" {
+	},
+	{
+		name:     "opentofu version from a variable default",
+		fileName: "main.tf",
+		contents: `variable "vpc_version" {
   default = "6.7.3"
 }
 
@@ -281,14 +282,14 @@ module "vpc" {
   version = var.vpc_version
 }
 `,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "terraform-aws-modules/vpc/aws", Resolved: true, Version: "6.7.3", Line: 6},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "terraform-aws-modules/vpc/aws", Resolved: true, Version: "6.7.3", Line: 6, Column: 13},
 		},
-		{
-			name:     "opentofu locals that refer to locals written after them",
-			fileName: "main.tf",
-			contents: `locals {
+	},
+	{
+		name:     "opentofu locals that refer to locals written after them",
+		fileName: "main.tf",
+		contents: `locals {
   source = "${local.host}/${local.path}"
 }
 
@@ -305,14 +306,14 @@ module "m" {
   source = local.source
 }
 `,
-			want: []Declaration{
-				{Name: "m", Block: BlockModule, Source: "github.com/acme/modules", Written: "local.source", Resolved: true, Line: 15},
-			},
+		want: []Declaration{
+			{Name: "m", Block: BlockModule, Source: "github.com/acme/modules", Written: "local.source", Resolved: true, Line: 15, Column: 11},
 		},
-		{
-			name:     "opentofu sources the file cannot evaluate",
-			fileName: "main.tf",
-			contents: `variable "no_default" {}
+	},
+	{
+		name:     "opentofu sources the file cannot evaluate",
+		fileName: "main.tf",
+		contents: `variable "no_default" {}
 
 locals {
   repo = "github.com/org/modules"
@@ -332,30 +333,30 @@ module "resource" {
   version = var.no_default
 }
 `,
-			want: []Declaration{
-				{Name: "no_default", Block: BlockModule, Source: "${var.no_default}//vpc", Written: "${var.no_default}//vpc", Line: 9},
-				{Name: "function_call", Block: BlockModule, Source: `format("%s//vpc", local.repo)`, Written: `format("%s//vpc", local.repo)`, Line: 13},
-				{Name: "resource", Block: BlockModule, Source: "github.com/org/${local.id}", Written: "github.com/org/${local.id}", Line: 17},
-			},
+		want: []Declaration{
+			{Name: "no_default", Block: BlockModule, Source: "${var.no_default}//vpc", Written: "${var.no_default}//vpc", Line: 9, Column: 12},
+			{Name: "function_call", Block: BlockModule, Source: `format("%s//vpc", local.repo)`, Written: `format("%s//vpc", local.repo)`, Line: 13, Column: 11},
+			{Name: "resource", Block: BlockModule, Source: "github.com/org/${local.id}", Written: "github.com/org/${local.id}", Line: 17, Column: 13},
 		},
-		{
-			name:     "opentofu json source and version from locals and variables",
-			fileName: "main.tf.json",
-			contents: `{
+	},
+	{
+		name:     "opentofu json source and version from locals and variables",
+		fileName: "main.tf.json",
+		contents: `{
   "variable": { "vpc_version": { "default": "6.7.3" } },
   "locals": { "registry": "terraform-aws-modules" },
   "module": {
     "vpc": { "source": "${local.registry}/vpc/aws", "version": "${var.vpc_version}" }
   }
 }`,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "${local.registry}/vpc/aws", Resolved: true, Version: "6.7.3", Line: 5},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "${local.registry}/vpc/aws", Resolved: true, Version: "6.7.3", Line: 5, Column: 24},
 		},
-		{
-			name:     "provider source from a variable, which neither language allows",
-			fileName: "main.tf",
-			contents: `variable "ns" {
+	},
+	{
+		name:     "provider source from a variable, which neither language allows",
+		fileName: "main.tf",
+		contents: `variable "ns" {
   default = "hashicorp"
 }
 
@@ -365,12 +366,12 @@ terraform {
   }
 }
 `,
-			want: nil,
-		},
-		{
-			name:     "opentofu locals that refer to each other in a cycle",
-			fileName: "main.tf",
-			contents: `locals {
+		want: nil,
+	},
+	{
+		name:     "opentofu locals that refer to each other in a cycle",
+		fileName: "main.tf",
+		contents: `locals {
   a = local.b
   b = "${local.a}/x"
 }
@@ -379,14 +380,14 @@ module "m" {
   source = local.a
 }
 `,
-			want: []Declaration{
-				{Name: "m", Block: BlockModule, Source: "local.a", Written: "local.a", Line: 7},
-			},
+		want: []Declaration{
+			{Name: "m", Block: BlockModule, Source: "local.a", Written: "local.a", Line: 7, Column: 11},
 		},
-		{
-			name:     "opentofu template with a string inside its interpolation",
-			fileName: "main.tf",
-			contents: `variable "env" {
+	},
+	{
+		name:     "opentofu template with a string inside its interpolation",
+		fileName: "main.tf",
+		contents: `variable "env" {
   default = "prod"
 }
 
@@ -394,25 +395,25 @@ module "m" {
   source = "${var.env == "prod" ? "a/b" : "c/d"}/aws"
 }
 `,
-			want: []Declaration{
-				{Name: "m", Block: BlockModule, Source: "a/b/aws", Written: `${var.env == "prod" ? "a/b" : "c/d"}/aws`, Resolved: true, Line: 6},
-			},
+		want: []Declaration{
+			{Name: "m", Block: BlockModule, Source: "a/b/aws", Written: `${var.env == "prod" ? "a/b" : "c/d"}/aws`, Resolved: true, Line: 6, Column: 12},
 		},
-		{
-			name:     "opentofu json template with an escaped quote",
-			fileName: "main.tf.json",
-			contents: `{
+	},
+	{
+		name:     "opentofu json template with an escaped quote",
+		fileName: "main.tf.json",
+		contents: `{
   "locals": { "m": { "vpc": "terraform-aws-modules" } },
   "module": { "vpc": { "source": "${local.m[\"vpc\"]}/vpc/aws" } }
 }`,
-			want: []Declaration{
-				{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: `${local.m[\"vpc\"]}/vpc/aws`, Resolved: true, Line: 3},
-			},
+		want: []Declaration{
+			{Name: "vpc", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: `${local.m[\"vpc\"]}/vpc/aws`, Resolved: true, Line: 3, Column: 34},
 		},
-		{
-			name:     "opentofu chain of locals written in reverse",
-			fileName: "main.tf",
-			contents: `locals {
+	},
+	{
+		name:     "opentofu chain of locals written in reverse",
+		fileName: "main.tf",
+		contents: `locals {
   c300 = local.c299
   c299 = local.c298
   c298 = local.c297
@@ -719,12 +720,14 @@ module "m" {
   source = "${local.c300}/vpc/aws"
 }
 `,
-			want: []Declaration{
-				{Name: "m", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "${local.c300}/vpc/aws", Resolved: true, Line: 305},
-			},
+		want: []Declaration{
+			{Name: "m", Block: BlockModule, Source: "terraform-aws-modules/vpc/aws", Written: "${local.c300}/vpc/aws", Resolved: true, Line: 305, Column: 12},
 		},
-	}
-	for _, tt := range tests {
+	},
+}
+
+func TestRead(t *testing.T) {
+	for _, tt := range readTests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Read([]byte(tt.contents), tt.fileName)
 			if err != nil {

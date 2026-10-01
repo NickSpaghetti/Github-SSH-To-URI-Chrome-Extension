@@ -6,7 +6,8 @@
     "written": "hashicorp/terraform",
     "resolved": true,
     "version": "",
-    "line": 2
+    "line": 2,
+    "column": 12
   },
   {
     "name": "required_providers.aws",
@@ -15,7 +16,8 @@
     "written": "hashicorp/aws",
     "resolved": true,
     "version": "~\u003e 6.0",
-    "line": 6
+    "line": 6,
+    "column": 17
   },
   {
     "name": "vpc",
@@ -24,7 +26,8 @@
     "written": "terraform-aws-modules/vpc/aws",
     "resolved": true,
     "version": "6.7.3",
-    "line": 13
+    "line": 13,
+    "column": 13
   },
   {
     "name": "templated",
@@ -33,7 +36,8 @@
     "written": "${local.modules}/security-group/aws",
     "resolved": true,
     "version": "",
-    "line": 22
+    "line": 22,
+    "column": 12
   },
   {
     "name": "unresolved",
@@ -42,6 +46,7 @@
     "written": "${var.not_in_this_file}//modules/vpc",
     "resolved": false,
     "version": "",
-    "line": 26
+    "line": 26,
+    "column": 12
   }
 ]

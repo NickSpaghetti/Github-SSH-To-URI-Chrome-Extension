@@ -1,4 +1,4 @@
-import { test, expect, FIXTURES } from "../extension";
+import { test, expect, FIXTURES, openPopupAsync } from "../extension";
 
 const LIST = "ul.ml-list";
 const ROW = "ul.ml-list > li";
@@ -32,29 +32,6 @@ const primeCacheAsync = async (
         )
         .toBeGreaterThan(0);
     return page;
-};
-
-/**
- * Opens the popup with the file still in front.
- *
- * A real popup is a panel and leaves the file in front, so the extension asks
- * the active tab which file to show. Opening the popup as a tab would make it
- * the active tab and it would ask about itself.
- * @param context The browser context the extension is loaded in.
- * @param extensionId The id chrome assigned the extension.
- * @param file The page to keep in front.
- * @returns The page the popup was opened on.
- */
-const openPopupAsync = async (
-    context: import("@playwright/test").BrowserContext,
-    extensionId: string,
-    file: import("@playwright/test").Page,
-) => {
-    const popup = await context.newPage();
-    await popup.goto("about:blank");
-    await file.bringToFront();
-    await popup.goto(`chrome-extension://${extensionId}/index.html`);
-    return popup;
 };
 
 test("the popup lists the modules found on the page", async ({ context, extensionId }) => {
@@ -212,7 +189,6 @@ test("a module behind the newest version is offered a bumped constraint", async 
             await chrome.storage.session.set({
                 [key]: {
                     sha: "seeded",
-                    lastCommitDateTimeISO: "2026-01-01T00:00:00.000Z",
                     modules: [
                         {
                             source: "terraform-aws-modules/vpc/aws",
@@ -280,6 +256,10 @@ test("the popup keeps OpenTofu modules it cannot resolve, unlinked", async ({
         await expect(popup.locator("span.ml-name", { hasText: name })).toBeVisible();
     }
     // A source that is a bare local has nothing to anchor on the page, but the
-    // popup still links it.
-    await expect(popup.locator("a.ml-name", { hasText: "source_is_a_local" })).toBeVisible();
+    // popup still links it. It holds a git source, so the link is built without
+    // a registry lookup that a rate limit could fail.
+    await expect(popup.locator("a.ml-name", { hasText: "source_is_a_local" })).toHaveAttribute(
+        "href",
+        `${FIXTURES}/tree/v1.0.0/modules/vpc`,
+    );
 });

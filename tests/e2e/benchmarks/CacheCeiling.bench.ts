@@ -13,7 +13,6 @@ const FIXTURE = `${FIXTURES}/blob/main/benchmarks/scrolling/large.tf`;
  */
 const FILLER: CachedModules = {
     sha: "49e180c0aa11bb22cc33dd44ee55ff6677889900",
-    lastCommitDateTimeISO: "2026-01-01T00:00:00.000Z",
     modules: Array.from({ length: 16 }, () => ({
         source: "terraform-aws-modules/vpc/aws",
         moduleName: "some_module_name",
@@ -22,6 +21,7 @@ const FILLER: CachedModules = {
         versionConstraint: ">= 6.0, < 7.0",
         resolvedVersion: "6.7.3",
         sourceLine: 120,
+        sourceColumn: null,
         writtenSource: "terraform-aws-modules/vpc/aws",
     })),
 };

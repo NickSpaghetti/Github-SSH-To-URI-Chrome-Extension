@@ -3,10 +3,12 @@
 package declarations
 
 import (
+	"bytes"
 	"cmp"
 	"maps"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -45,6 +47,9 @@ type Declaration struct {
 	Version string `json:"version"`
 	// Line is the 1-based line of the source.
 	Line int `json:"line"`
+	// Column is the 0-based offset of Written's first character within its
+	// line, counted in UTF-16 code units.
+	Column int `json:"column"`
 }
 
 var fileSchema = &hcl.BodySchema{
@@ -149,16 +154,46 @@ func (r *reader) module(block *hcl.Block) {
 		Resolved: resolved,
 		Version:  version,
 		Line:     source.Expr.Range().Start.Line,
+		Column:   r.column(source.Expr),
 	})
 }
 
 // written returns expr as written, without enclosing quotes.
 func (r *reader) written(expr hcl.Expression) string {
 	text := string(expr.Range().SliceBytes(r.contents))
-	if len(text) >= 2 && strings.HasPrefix(text, `"`) && strings.HasSuffix(text, `"`) {
+	if isQuoted(text) {
 		return text[1 : len(text)-1]
 	}
 	return text
+}
+
+// column returns the UTF-16 offset of the first character of expr as written,
+// without enclosing quotes, within its line.
+func (r *reader) column(expr hcl.Expression) int {
+	start := expr.Range().Start.Byte
+	if isQuoted(string(expr.Range().SliceBytes(r.contents))) {
+		start++
+	}
+	lineStart := bytes.LastIndexByte(r.contents[:start], '\n') + 1
+	units := 0
+	for prefix := r.contents[lineStart:start]; len(prefix) > 0; {
+		character, size := utf8.DecodeRune(prefix)
+		units += utf16Length(character)
+		prefix = prefix[size:]
+	}
+	return units
+}
+
+func isQuoted(text string) bool {
+	return len(text) >= 2 && strings.HasPrefix(text, `"`) && strings.HasSuffix(text, `"`)
+}
+
+// utf16Length returns how many UTF-16 code units encode character.
+func utf16Length(character rune) int {
+	if character > 0xFFFF {
+		return 2
+	}
+	return 1
 }
 
 func (r *reader) terraform(block *hcl.Block) {
@@ -172,6 +207,7 @@ func (r *reader) terraform(block *hcl.Block) {
 				Written:  text,
 				Resolved: true,
 				Line:     source.Expr.Range().Start.Line,
+				Column:   r.column(source.Expr),
 			})
 		}
 	}
@@ -218,6 +254,7 @@ func (r *reader) requiredProvider(provider *hcl.Attribute) {
 		Resolved: true,
 		Version:  versionText,
 		Line:     source.Range().Start.Line,
+		Column:   r.column(source),
 	})
 }
 

@@ -5,7 +5,6 @@ import { toSourceTypeLabel } from "./SourceTypes";
 /** A file's modules, with the commit they were read from. */
 export type CachedModules = {
     readonly sha: string;
-    readonly lastCommitDateTimeISO: string;
     readonly modules: DisplayModule[];
 };
 
@@ -26,6 +25,7 @@ const readModule = (value: unknown): Nullable<DisplayModule> => {
         versionConstraint: readText(value.versionConstraint),
         resolvedVersion: readText(value.resolvedVersion),
         sourceLine: typeof value.sourceLine === "number" ? value.sourceLine : null,
+        sourceColumn: typeof value.sourceColumn === "number" ? value.sourceColumn : null,
         writtenSource:
             typeof value.writtenSource === "string" ? value.writtenSource : readText(value.source),
     };
@@ -50,7 +50,6 @@ export const readCachedModules = (value: unknown): Nullable<CachedModules> => {
     }
     return {
         sha: value.sha,
-        lastCommitDateTimeISO: readText(value.lastCommitDateTimeISO),
         modules: value.modules
             .map(readModule)
             .filter((module): module is DisplayModule => module !== null),

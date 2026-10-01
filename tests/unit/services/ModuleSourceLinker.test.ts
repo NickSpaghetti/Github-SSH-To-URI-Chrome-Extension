@@ -77,6 +77,33 @@ describe("Given a local path", () => {
             expect<Nullable<string>>(url).toBe(`${FIXTURES}/tree/main/modules/vpc`);
         });
     });
+
+    describe("When the page is on GitLab", () => {
+        const gitlabFixtures = "https://gitlab.com/NickSpaghetti/iac-module-linker-fixtures";
+        const page = new URL(`${gitlabFixtures}/-/blob/main/nested/deep/consumer.tf`);
+
+        test("Then I expect GitLab's tree route for a directory", async () => {
+            // Arrange
+            const raw = "../../modules/vpc";
+
+            // Act
+            const url = await linkAsync(raw, "m", "", page);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe(`${gitlabFixtures}/-/tree/main/modules/vpc`);
+        });
+
+        test("Then I expect GitLab's blob route for a file", async () => {
+            // Arrange
+            const raw = "../../modules/vpc/main.tf";
+
+            // Act
+            const url = await linkAsync(raw, "m", "", page);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe(`${gitlabFixtures}/-/blob/main/modules/vpc/main.tf`);
+        });
+    });
 });
 
 describe("Given a repository source", () => {
@@ -188,6 +215,56 @@ describe("Given a repository source", () => {
 
             // Assert
             expect<Nullable<string>>(url).toBe("https://bitbucket.org/corp/mod");
+        });
+    });
+
+    describe("When the host is GitLab", () => {
+        test("Then I expect its tree route at the ref", async () => {
+            // Arrange
+            const raw = "git::https://gitlab.com/ns/repo.git//modules/vpc?ref=v2";
+
+            // Act
+            const url = await linkAsync(raw);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe("https://gitlab.com/ns/repo/-/tree/v2/modules/vpc");
+        });
+
+        test("Then I expect its blob route when the subdir points at a file", async () => {
+            // Arrange
+            const raw = "git::https://gitlab.com/ns/repo.git//modules/vpc/main.tf?ref=v2";
+
+            // Act
+            const url = await linkAsync(raw);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe(
+                "https://gitlab.com/ns/repo/-/blob/v2/modules/vpc/main.tf",
+            );
+        });
+
+        test("Then I expect HEAD when the source is scp style with no ref", async () => {
+            // Arrange
+            const raw = "git@gitlab.com:group/sub/repo.git//modules/vpc";
+
+            // Act
+            const url = await linkAsync(raw);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe(
+                "https://gitlab.com/group/sub/repo/-/tree/HEAD/modules/vpc",
+            );
+        });
+
+        test("Then I expect the repository root when there is nothing to deep link to", async () => {
+            // Arrange
+            const raw = "git::https://gitlab.com/ns/repo.git";
+
+            // Act
+            const url = await linkAsync(raw);
+
+            // Assert
+            expect<Nullable<string>>(url).toBe("https://gitlab.com/ns/repo");
         });
     });
 

@@ -187,7 +187,7 @@ const detectSchemeless = (source: ModuleSource, locator: string): ModuleSource =
     source.path = withLeadingSeparator(parsed.path);
 
     const knownHost = BROWSE_LAYOUTS[parsed.host];
-    if (knownHost !== undefined) {
+    if (knownHost !== undefined && knownHost.shorthand) {
         source.prefix = source.prefix === "" ? knownHost.vcs : source.prefix;
         return asRepository(source);
     }

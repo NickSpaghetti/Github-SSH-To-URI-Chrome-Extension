@@ -10,11 +10,13 @@ const SOURCE = "hashicorp/consul/aws";
  * Builds a display module.
  * @param resolvedUrl The url it resolved to, or null.
  * @param sourceLine The line its source is written on, or null.
+ * @param sourceColumn Where on that line its written source starts, or null.
  * @returns The module.
  */
 const displayModule = (
     resolvedUrl: Nullable<string>,
     sourceLine: Nullable<number> = null,
+    sourceColumn: Nullable<number> = null,
 ): DisplayModule => ({
     source: SOURCE,
     moduleName: "consul",
@@ -23,6 +25,7 @@ const displayModule = (
     versionConstraint: "",
     resolvedVersion: "",
     sourceLine: sourceLine,
+    sourceColumn: sourceColumn,
     writtenSource: SOURCE,
 });
 
@@ -121,6 +124,40 @@ describe("Given modules declared on a page", () => {
 
             // Assert
             expect(links.bySource.get(SOURCE)).toBe("https://example.com/0.1.0");
+        });
+    });
+});
+
+describe("Given modules the parser placed on a line and column", () => {
+    describe("When two modules on one line each have a url", () => {
+        test("Then I expect both placed on that line, in order", () => {
+            // Arrange
+            const modules = [
+                displayModule("https://example.com/a", 3, 23),
+                displayModule("https://example.com/b", 3, 55),
+            ];
+
+            // Act
+            const links = toSourceLinks(modules);
+
+            // Assert
+            expect(links.placed.get(3)).toEqual([
+                { column: 23, written: SOURCE, url: "https://example.com/a" },
+                { column: 55, written: SOURCE, url: "https://example.com/b" },
+            ]);
+        });
+    });
+
+    describe("When a module has no column or no url", () => {
+        test("Then I expect it left unplaced", () => {
+            // Arrange
+            const modules = [displayModule("https://example.com/a", 3), displayModule(null, 4, 12)];
+
+            // Act
+            const links = toSourceLinks(modules);
+
+            // Assert
+            expect(links.placed.size).toBe(0);
         });
     });
 });

@@ -1,4 +1,4 @@
-import { GITHUB_HOST } from "./util/Constants";
+import { isSupportedPageHost } from "./util/PageHosts";
 import { SENDERS } from "./types/TabMessage";
 import { Nullable } from "./types/Nullable";
 
@@ -7,7 +7,7 @@ type Sender = (typeof SENDERS)[keyof typeof SENDERS];
 /**
  * Decides whether the content script should act on a runtime message. Both
  * senders name themselves, so nothing is inferred from the shape.
- * @returns true for a refresh, or for a popup request naming a github tab.
+ * @returns true for a refresh, or for a popup request naming a tab on a supported host.
  */
 export const shouldHandleMessage = (message: unknown): boolean => {
     const sender = readSender(message);
@@ -18,7 +18,7 @@ export const shouldHandleMessage = (message: unknown): boolean => {
         return false;
     }
     const tabUrl = readTabUrl(message);
-    return tabUrl !== null && isGithubTabUrl(tabUrl);
+    return tabUrl !== null && isSupportedTabUrl(tabUrl);
 };
 
 /**
@@ -39,11 +39,11 @@ export const readTabUrl = (message: unknown): Nullable<string> => {
 
 /**
  * @param tabUrl The url the popup says it is asking about.
- * @returns true if its host is github.com exactly and not a lookalike; otherwise, false.
+ * @returns true if its host is a supported page host exactly and not a lookalike; otherwise, false.
  */
-export const isGithubTabUrl = (tabUrl: string): boolean => {
+export const isSupportedTabUrl = (tabUrl: string): boolean => {
     try {
-        return new URL(tabUrl).hostname === GITHUB_HOST;
+        return isSupportedPageHost(new URL(tabUrl).hostname);
     } catch {
         return false;
     }

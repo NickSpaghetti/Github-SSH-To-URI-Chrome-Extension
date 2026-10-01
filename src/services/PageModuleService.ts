@@ -3,7 +3,7 @@ import { buildDisplayModuleAsync } from "./DisplayModuleBuilder";
 import { Nullable } from "../types/Nullable";
 import { ChromeRuntimeParserService } from "./ChromeRuntimeParserService";
 import { ModuleSourceLinker } from "./ModuleSourceLinker";
-import { IGitHubPageDataAccess } from "../data-access/IGitHubPageDataAccess";
+import { IPageDataAccess } from "../data-access/IPageDataAccess";
 import { logRecovered } from "../util/Log";
 
 const REGISTRY_REQUESTS_AT_ONCE = 10;
@@ -11,14 +11,14 @@ const REGISTRY_REQUESTS_AT_ONCE = 10;
 /** The Terraform modules declared on the page being viewed, each with its link. */
 export class PageModuleService {
     constructor(
-        private readonly page: IGitHubPageDataAccess,
+        private readonly page: IPageDataAccess,
         private readonly parserService: ChromeRuntimeParserService,
         private readonly moduleSourceLinker: ModuleSourceLinker,
     ) {}
 
     /**
      * Returns null when there is no source text to read yet, which happens
-     * when GitHub has not rendered the file. That is different from an empty
+     * when the host has not rendered the file. That is different from an empty
      * array, which means the file was read and holds no module sources. The
      * caller must not cache the first case, or a page visited before it
      * rendered stays empty for as long as the cache lives.
@@ -28,7 +28,7 @@ export class PageModuleService {
      * row on the page wrong rather than just one.
      */
     public async findSourcesAsync(pageUrl: string): Promise<Nullable<DisplayModule[]>> {
-        const contents = this.page.readSourceText();
+        const contents = await this.page.readSourceTextAsync();
         if (contents === null) {
             return null;
         }
