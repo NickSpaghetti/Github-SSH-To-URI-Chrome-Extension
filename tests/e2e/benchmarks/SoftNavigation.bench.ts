@@ -1,8 +1,8 @@
 import { test, expect } from "../extension";
-import { GITHUB } from "./BenchHost";
+import { GITHUB, GITLAB } from "./BenchHost";
 import { CallCounts } from "./CallCounts";
 import { settle, scrollThrough } from "./Harness";
-import { record } from "./Recorder";
+import { record, recordFor } from "./Recorder";
 import baseline from "./baseline.json";
 
 const HOST = GITHUB;
@@ -88,4 +88,68 @@ test("browsing between files does not multiply what a scroll pause costs", async
     // The assertion the guard exists for. Unguarded this was one listener per
     // file visited, so this read 4 after three navigations.
     expect(afterBrowsing).toBe(baseline.softNavigation.injectionsPerPauseAfterBrowsing);
+});
+
+/**
+ * GitLab's scroll stays inside its code panel, so the content script's scroll
+ * listener never fires there and a scroll pause costs nothing to count. A
+ * second set of listeners shows instead on arrival: each would answer the
+ * background script's refresh, so a file reached after browsing would be
+ * linked once per set.
+ */
+test.describe(GITLAB.name, () => {
+    test.use({ grantOptionalHosts: GITLAB.grantOptionalHosts });
+
+    test("browsing between files links each file once on arrival", async ({ context }) => {
+        // Arrange
+        await context
+            .serviceWorkers()[0]
+            .evaluate(async () => await chrome.storage.session.clear());
+        const page = await context.newPage();
+        const cdp = await context.newCDPSession(page);
+        const send = (method: string, params?: Record<string, unknown>) =>
+            cdp.send(method as never, params as never);
+        await CallCounts.startAsync(send);
+        const [toLarge, ...before] = [...GITLAB.browseToLargeParse].reverse();
+
+        // Act
+        await page.goto(GITLAB.fileUrl("benchmarks/parse/small.tf"), {
+            waitUntil: "domcontentloaded",
+        });
+        await settle(page, GITLAB);
+        const onLoad = (await CallCounts.takeAsync(send)).callsTo(INJECTOR);
+        await page.evaluate(() => ((globalThis as unknown as { s: string }).s = "same document"));
+
+        for (const link of before.reverse()) {
+            await clickVisible(page, link);
+        }
+        await CallCounts.takeAsync(send);
+        await clickVisible(page, toLarge);
+        await settle(page, GITLAB);
+        const onArrival = (await CallCounts.takeAsync(send)).callsTo(INJECTOR);
+        const anchors = await page.locator(GITLAB.anchor).count();
+        const sameDocument = await page.evaluate(
+            () => (globalThis as unknown as { s?: string }).s ?? "reloaded",
+        );
+
+        console.log(
+            `BENCH gitlab soft nav: ${onLoad} link run on load, ${onArrival} on arriving after ${GITLAB.browseToLargeParse.length} navigations, ${anchors} anchors, document ${sameDocument}`,
+        );
+        recordFor(GITLAB, "softNavigation", {
+            navigations: GITLAB.browseToLargeParse.length,
+            linkRunsOnLoad: onLoad,
+            linkRunsOnArrival: onArrival,
+        });
+
+        // Assert
+        // Without this the test measures page loads rather than injections
+        // into one document, and would pass for the wrong reason.
+        expect(sameDocument).toBe("same document");
+        expect(anchors).toBeGreaterThan(0);
+
+        // One run per file. A second set of listeners would make the arrival
+        // count grow with every file browsed past.
+        expect(onLoad).toBe(1);
+        expect(onArrival).toBe(1);
+    });
 });

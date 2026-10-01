@@ -45,9 +45,11 @@ export class CallCounts {
     }
 
     /**
-     * Summed over every script declaring the function. A content script
-     * injected more than once into the same document is several scripts to
-     * v8, and reading only the first reports one copy's work as the total.
+     * Summed over every function of that name, in every script declaring one.
+     * A content script injected more than once into the same document is
+     * several scripts to v8, and one script can declare the name more than
+     * once: each page writer has a `linkSources`, and only one runs on a page.
+     * Reading only the first of either reports part of the work as the total.
      * @param functionName The function as it is named in a readable build.
      * @returns How many times it was entered, 0 when it never was.
      */
@@ -69,8 +71,8 @@ export class CallCounts {
     }
 
     private declaring(functionName: string): Fn[] {
-        return this.scripts
-            .map((script) => script.functions.find((entry) => entry.functionName === functionName))
-            .filter((fn): fn is Fn => fn !== undefined);
+        return this.scripts.flatMap((script) =>
+            script.functions.filter((entry) => entry.functionName === functionName),
+        );
     }
 }

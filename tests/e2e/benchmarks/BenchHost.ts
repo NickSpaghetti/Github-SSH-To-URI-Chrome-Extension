@@ -106,9 +106,10 @@ export const GITLAB: BenchHost = {
         const held = text.endsWith("\n") ? text.slice(0, -1) : text;
         return { lines: held.split("\n").length, bytes: Buffer.byteLength(held, "utf8") };
     },
+    // GitLab's file browser links end in `?ref_type=heads`, and its breadcrumb does not.
     browseToLargeParse: [
         'a[href$="/-/tree/main/benchmarks"]',
-        'a[href$="/-/tree/main/benchmarks/parse"]',
-        'a[href*="parse/large.tf"]',
+        'a[href*="/-/tree/main/benchmarks/parse?"]',
+        'a[href*="/-/blob/main/benchmarks/parse/large.tf?"]',
     ],
 };
