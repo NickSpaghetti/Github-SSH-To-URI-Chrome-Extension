@@ -8,11 +8,31 @@ const CACHE_MODE: RequestCache = "force-cache";
 /** This api's own spelling of a target. Its browse pages use the singular. */
 const API_ROUTES: Record<RegistryTarget, string> = { module: "modules", provider: "providers" };
 
-/** Modules nest the list under the matched module. Providers do not. */
-type OpenTofuVersionsResponse = {
-    versions?: Array<{ version: string }>;
-    modules?: Array<{ versions?: Array<{ version: string }> }>;
-};
+/** The version list for a provider. */
+type VersionList = { versions: Array<{ version: string }> };
+
+/** The version list for a module, nested under the matched module. */
+type ModuleVersions = { modules: [VersionList, ...unknown[]] };
+
+const isVersionList = (data: unknown): data is VersionList =>
+    typeof data === "object" &&
+    data !== null &&
+    "versions" in data &&
+    Array.isArray(data.versions) &&
+    data.versions.every(
+        (entry: unknown) =>
+            typeof entry === "object" &&
+            entry !== null &&
+            "version" in entry &&
+            typeof entry.version === "string",
+    );
+
+const isModuleVersions = (data: unknown): data is ModuleVersions =>
+    typeof data === "object" &&
+    data !== null &&
+    "modules" in data &&
+    Array.isArray(data.modules) &&
+    isVersionList(data.modules[0]);
 
 /** The version list endpoint of registry.opentofu.org. */
 export class OpenTofuRegistryDataAccess {
@@ -25,7 +45,7 @@ export class OpenTofuRegistryDataAccess {
      * @throws When the registry answers with a non ok status.
      */
     public async getVersionsAsync(address: string, target: RegistryTarget): Promise<string[]> {
-        const response = await this.fetchService.fetchDataAsync<OpenTofuVersionsResponse>(
+        const response = await this.fetchService.fetchDataAsync(
             `${API_ROOT}/${API_ROUTES[target]}/${address}/${VERSIONS_ROUTE}`,
             CACHE_MODE,
         );
@@ -33,7 +53,7 @@ export class OpenTofuRegistryDataAccess {
             throw new Error(`could not reach the opentofu registry for ${address}`);
         }
 
-        const entries = response.data?.modules?.[0]?.versions ?? response.data?.versions ?? [];
-        return entries.map((entry) => entry.version);
+        const list = isModuleVersions(response.data) ? response.data.modules[0] : response.data;
+        return isVersionList(list) ? list.versions.map((entry) => entry.version) : [];
     }
 }

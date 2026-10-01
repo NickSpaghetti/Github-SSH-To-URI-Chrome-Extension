@@ -4,10 +4,8 @@ import { ChromeRuntimeFetchService } from "../../../src/data-access/ChromeRuntim
 import { RunTimeFetchResponse } from "../../../src/types/RunTimeFetchResponse";
 import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
 
-type Versions = { versions: string[] };
-
 /** What a background script answers with when the fetch succeeded. */
-const answered: RunTimeFetchResponse<Versions> = {
+const answered: RunTimeFetchResponse<unknown> = {
     ok: true,
     status: 200,
     statusText: "OK",
@@ -27,11 +25,11 @@ describe("Given the background script answers", () => {
             stubChromeRuntime(() => answered);
 
             // Act
-            const response = await service.fetchDataAsync<Versions>(URL_UNDER_TEST);
+            const response = await service.fetchDataAsync(URL_UNDER_TEST);
 
             // Assert
             expect<boolean>(response.ok).toBe(true);
-            expect<string[]>(response.data.versions).toEqual(["1.0.0"]);
+            expect<unknown>(response.data).toEqual({ versions: ["1.0.0"] });
         });
     });
 
@@ -41,7 +39,7 @@ describe("Given the background script answers", () => {
             const stub = stubChromeRuntime(() => answered);
 
             // Act
-            await service.fetchDataAsync<Versions>(URL_UNDER_TEST, "force-cache");
+            await service.fetchDataAsync(URL_UNDER_TEST, "force-cache");
 
             // Assert
             expect<unknown>(stub.sent[0]).toEqual({
@@ -60,12 +58,12 @@ describe("Given the background script goes away before answering", () => {
             stubChromeRuntime(() => undefined);
 
             // Act
-            const response = await service.fetchDataAsync<Versions>(URL_UNDER_TEST);
+            const response = await service.fetchDataAsync(URL_UNDER_TEST);
 
             // Assert
             // The caller reads `ok` first. Before the guard this was undefined,
             // and reading `ok` off it threw a TypeError inside the service above.
-            expect<RunTimeFetchResponse<Versions> | undefined>(response).toBeDefined();
+            expect<RunTimeFetchResponse<unknown> | undefined>(response).toBeDefined();
             expect<boolean>(response.ok).toBe(false);
             expect<string>(response.statusText).toBe("the background script did not respond");
         });

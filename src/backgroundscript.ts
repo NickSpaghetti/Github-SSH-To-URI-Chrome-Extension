@@ -43,14 +43,14 @@ chrome.runtime.onMessage.addListener((request: unknown, sender, sendResponse) =>
             .then((response) => {
                 response
                     .json()
-                    .then((data) => {
+                    .then((data: unknown) => {
                         sendResponse({
                             ok: response.ok,
                             status: response.status,
                             statusText: response.statusText,
                             headers: response.headers,
                             data: data,
-                        } as RunTimeFetchResponse<any>);
+                        } satisfies RunTimeFetchResponse<unknown>);
                     })
                     .catch((err) => sendResponse({ ok: false, error: JSON.stringify(err) }));
             })

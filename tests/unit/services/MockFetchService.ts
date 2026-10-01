@@ -34,7 +34,7 @@ export class MockFetchService implements IFetchService {
      * @returns The recorded response, shaped the way the real service shapes one.
      * @throws When nothing was recorded for that URL.
      */
-    fetchDataAsync<T>(url: string): Promise<RunTimeFetchResponse<T>> {
+    fetchDataAsync(url: string): Promise<RunTimeFetchResponse<unknown>> {
         const response = recorded[url];
         if (response === undefined) {
             throw new Error(
@@ -48,7 +48,7 @@ export class MockFetchService implements IFetchService {
             status: response.status,
             statusText: response.statusText,
             headers: new Headers(),
-            data: response.data as T,
+            data: response.data,
         });
     }
 }

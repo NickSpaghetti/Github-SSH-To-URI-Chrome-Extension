@@ -8,7 +8,14 @@ const CACHE_MODE: RequestCache = "force-cache";
 const API_ROUTES: Record<RegistryTarget, string> = { module: "modules", provider: "providers" };
 
 /** What the registry answers with at `/v1/{route}/{address}`. */
-type TerraformVersionsResponse = { versions?: string[] };
+type VersionsResponse = { versions: string[] };
+
+const isVersionsResponse = (data: unknown): data is VersionsResponse =>
+    typeof data === "object" &&
+    data !== null &&
+    "versions" in data &&
+    Array.isArray(data.versions) &&
+    data.versions.every((version: unknown) => typeof version === "string");
 
 /** The version list endpoint of registry.terraform.io. */
 export class TerraformRegistryDataAccess {
@@ -21,7 +28,7 @@ export class TerraformRegistryDataAccess {
      * @throws When the registry answers with a non ok status.
      */
     public async getVersionsAsync(address: string, target: RegistryTarget): Promise<string[]> {
-        const response = await this.fetchService.fetchDataAsync<TerraformVersionsResponse>(
+        const response = await this.fetchService.fetchDataAsync(
             `${API_ROOT}/${API_ROUTES[target]}/${address}`,
             CACHE_MODE,
         );
@@ -29,6 +36,6 @@ export class TerraformRegistryDataAccess {
             throw new Error(`could not reach the terraform registry for ${address}`);
         }
 
-        return response.data?.versions ?? [];
+        return isVersionsResponse(response.data) ? response.data.versions : [];
     }
 }

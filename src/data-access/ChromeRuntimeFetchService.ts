@@ -10,12 +10,12 @@ import { FetchRequest, WORKER_QUERIES } from "../types/WorkerRequest";
  * reads `ok` first, so this keeps them from reading it off undefined. `data`
  * is never looked at on a failed response.
  */
-const noResponse = <T>(): RunTimeFetchResponse<T> => ({
+const noResponse = (): RunTimeFetchResponse<unknown> => ({
     ok: false,
     status: 0,
     statusText: "the background script did not respond",
     headers: new Headers(),
-    data: undefined as T,
+    data: undefined,
 });
 
 /** Fetches through the background script, the only context allowed to. */
@@ -25,19 +25,22 @@ export class ChromeRuntimeFetchService implements IFetchService {
      * @param cacheMethod How the browser cache should be used.
      * @returns The response, or a failed one when the background script is gone.
      */
-    async fetchDataAsync<T>(
+    async fetchDataAsync(
         url: string,
         cacheMethod: RequestCache = "default",
-    ): Promise<RunTimeFetchResponse<T>> {
+    ): Promise<RunTimeFetchResponse<unknown>> {
         const request: FetchRequest = {
             contentScriptQuery: WORKER_QUERIES.FETCH,
             url: url,
             cache: cacheMethod,
         };
         return await new Promise((resolve) => {
-            chrome.runtime.sendMessage(request, (rcb: RunTimeFetchResponse<T> | undefined) => {
-                resolve(rcb ?? noResponse<T>());
-            });
+            chrome.runtime.sendMessage(
+                request,
+                (rcb: RunTimeFetchResponse<unknown> | undefined) => {
+                    resolve(rcb ?? noResponse());
+                },
+            );
         });
     }
 }
