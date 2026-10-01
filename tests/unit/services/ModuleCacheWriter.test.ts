@@ -46,7 +46,7 @@ const storeRefusing = (refusals: Error[]) => {
 };
 
 beforeEach(() => {
-    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "debug").mockImplementation(() => undefined);
 });
 
 afterEach(() => {

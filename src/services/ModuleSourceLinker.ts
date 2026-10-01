@@ -4,6 +4,7 @@ import { TerraformVersionService } from "./TerraformVersionService";
 import { NO_LINK, resolverFor } from "../domain/moduleSource/ModuleSourceResolvers";
 import { LinkContext, VersionLookup } from "../types/LinkContext";
 import { ModuleLink } from "../types/ModuleLink";
+import { logRecovered } from "../util/Log";
 
 /**
  * Builds the browse url for a classified module source. Which builder runs is
@@ -64,7 +65,7 @@ const contained =
         try {
             return await lookup(address, target, versionConstraint);
         } catch (error) {
-            console.log(`could not resolve a version for ${address}: ${String(error)}`);
+            logRecovered(`could not resolve a version for ${address}`, error);
             return null;
         }
     };

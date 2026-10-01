@@ -5,6 +5,7 @@ import { Nullable } from "../types/Nullable";
 import { moduleCacheKey } from "../services/ModuleCacheKey";
 import { pollUntilAsync } from "../util/Poll";
 import { SENDERS } from "../types/TabMessage";
+import { logRecovered } from "../util/Log";
 
 const TAB_WAIT_MS = 3_000;
 const TAB_POLL_MS = 100;
@@ -49,7 +50,7 @@ const readyActiveTabAsync = async (): Promise<Nullable<ActiveTab>> =>
 export const readActiveTabModulesAsync = async (): Promise<DisplayModule[]> => {
     const tab = await readyActiveTabAsync();
     if (tab === null) {
-        console.log("the popup could not tell which tab it was opened over");
+        logRecovered("the popup could not tell which tab it was opened over");
         return [];
     }
 
@@ -70,7 +71,7 @@ export const readActiveTabModulesAsync = async (): Promise<DisplayModule[]> => {
         });
         return Array.isArray(answered) ? (answered as DisplayModule[]) : [];
     } catch (error) {
-        console.log(`could not read the modules on this tab: ${String(error)}`);
+        logRecovered("could not read the modules on this tab", error);
         return [];
     }
 };

@@ -1,6 +1,7 @@
 import { CachedModules } from "../types/CachedModules";
 import { MODULE_CACHE_PREFIX } from "./ModuleCacheKey";
 import { isQuotaRefusal } from "./StorageRefusal";
+import { logRecovered } from "../util/Log";
 
 /** The part of the cache this writer needs, so a test can stand in for it. */
 export type ModuleCacheStore = {
@@ -38,14 +39,14 @@ export const cacheModulesAsync = async (
         return;
     } catch (error) {
         const dropped = await store.clearPrefixAsync(MODULE_CACHE_PREFIX);
-        console.log(
-            isQuotaRefusal(error)
-                ? `session storage was full, dropped ${dropped} cached files`
-                : `caching was refused, dropped ${dropped} cached files: ${String(error)}`,
-        );
+        if (isQuotaRefusal(error)) {
+            logRecovered(`session storage was full, dropped ${dropped} cached files`);
+        } else {
+            logRecovered(`caching was refused, dropped ${dropped} cached files`, error);
+        }
     }
 
     await store
         .setAsync(key, entry)
-        .catch((error) => console.log(`could not cache modules after a reset: ${String(error)}`));
+        .catch((error) => logRecovered("could not cache modules after a reset", error));
 };

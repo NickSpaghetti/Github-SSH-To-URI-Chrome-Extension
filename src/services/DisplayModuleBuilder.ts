@@ -5,6 +5,7 @@ import { split } from "../domain/moduleSource/Split";
 import { detect } from "../domain/moduleSource/Detect";
 import { classify } from "../domain/moduleSource/Classify";
 import { isSafeHttpUrl } from "../util/UrlSafety";
+import { logRecovered } from "../util/Log";
 
 /**
  * @param uri The page the module was read from. Relative sources resolve
@@ -46,7 +47,7 @@ export const buildDisplayModuleAsync = async (
         module.resolvedUrl = link.url;
         module.resolvedVersion = link.resolvedVersion;
     } catch (error) {
-        console.log(`could not build a link for ${source}: ${String(error)}`);
+        logRecovered(`could not build a link for ${source}`, error);
     }
     return module;
 };
