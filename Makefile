@@ -113,7 +113,7 @@ WASM_BUILDER ?= iac-module-linker-wasm-build
 GO_CACHE ?= $(CURDIR)/.gocache
 
 $(WASM) &: $(WASM_SOURCES) wasm/Dockerfile
-	@mkdir -p "$(GO_CACHE)/build" "$(GO_CACHE)/mod"
+	@mkdir -p "$(GO_CACHE)/build" "$(GO_CACHE)/mod" $(dir $(WASM))
 	docker build -q -t $(WASM_BUILDER) wasm/
 	docker run --rm \
 		--user "$$(id -u):$$(id -g)" \
