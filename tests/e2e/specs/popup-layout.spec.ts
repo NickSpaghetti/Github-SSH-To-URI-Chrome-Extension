@@ -59,10 +59,7 @@ const seedAsync = async (context: import("@playwright/test").BrowserContext, nam
     // put the file's real modules back.
     await context.serviceWorkers()[0].evaluate(async (seeded) => {
         const all = await chrome.storage.session.get(null);
-        const [key, entry] = Object.entries(all)[0] as [
-            string,
-            { sha: string; lastCommitDateTimeISO: string },
-        ];
+        const [key, entry] = Object.entries(all)[0] as [string, { sha: string }];
         await chrome.storage.session.set({ [key]: { ...entry, modules: seeded } });
     }, modules);
 };

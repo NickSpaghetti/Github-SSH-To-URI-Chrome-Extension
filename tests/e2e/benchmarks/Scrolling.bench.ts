@@ -42,7 +42,7 @@ test("scrolling a long file resolves nothing it already resolved", async ({ cont
     await scrollThrough(page, SCROLL_STEPS);
 
     const counts = await CallCounts.takeAsync(send);
-    const injections = counts.callsTo("addHyperLinksToModuleSource");
+    const injections = counts.callsTo("linkSources");
     const resolutions = counts.callsTo("buildDisplayModuleAsync");
     const fingerprint = await readFingerprint(page);
     console.log(

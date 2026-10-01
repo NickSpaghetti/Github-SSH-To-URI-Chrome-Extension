@@ -117,3 +117,48 @@ describe("Given a GitHub file path", () => {
         });
     });
 });
+
+describe("Given a blob header", () => {
+    afterEach(() => {
+        document.body.innerHTML = "";
+    });
+
+    describe("When it links the file's last commit", () => {
+        test("Then I expect that commit's sha", () => {
+            // Arrange
+            document.body.innerHTML = `<a href="/owner/repo/commit/49e180c0">49e180c</a>`;
+
+            // Act
+            const sha = page.readCommitSha();
+
+            // Assert
+            expect<Nullable<string>>(sha).toBe("49e180c0");
+        });
+    });
+
+    describe("When it has not rendered yet", () => {
+        test("Then I expect null", () => {
+            // Arrange
+            document.body.innerHTML = `<div></div>`;
+
+            // Act
+            const sha = page.readCommitSha();
+
+            // Assert
+            expect<Nullable<string>>(sha).toBeNull();
+        });
+    });
+
+    describe("When the commit link names no sha", () => {
+        test("Then I expect null", () => {
+            // Arrange
+            document.body.innerHTML = `<a href="/owner/repo/commit/">history</a>`;
+
+            // Act
+            const sha = page.readCommitSha();
+
+            // Assert
+            expect<Nullable<string>>(sha).toBeNull();
+        });
+    });
+});

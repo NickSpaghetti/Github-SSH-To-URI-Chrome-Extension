@@ -16,6 +16,7 @@ const FIELD_TYPES: Record<keyof ParsedDeclaration, "string" | "number" | "boolea
     resolved: "boolean",
     version: "string",
     line: "number",
+    column: "number",
 };
 
 /** The compiler requires exactly the block types `ParsedDeclaration` allows. */

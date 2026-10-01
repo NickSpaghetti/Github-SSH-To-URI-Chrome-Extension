@@ -11,6 +11,8 @@ export type DisplayModule = {
     resolvedVersion: string;
     /** The 1-based line the source is written on, or null when the parser did not say. */
     sourceLine: Nullable<number>;
+    /** The 0-based UTF-16 offset of the written source within its line, or null when the parser did not say. */
+    sourceColumn: Nullable<number>;
     /** The source as the file writes it, which is what the page shows. */
     writtenSource: string;
 };
@@ -27,5 +29,6 @@ export const emptyDisplayModule = (moduleName: string): DisplayModule => ({
     versionConstraint: "",
     resolvedVersion: "",
     sourceLine: null,
+    sourceColumn: null,
     writtenSource: "",
 });

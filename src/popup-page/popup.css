@@ -170,6 +170,40 @@ body {
     }
 }
 
+.ml-access {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--line);
+}
+.ml-access p {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 12.5px;
+}
+.ml-access button {
+    flex: none;
+    font:
+        500 12px system-ui,
+        sans-serif;
+    color: var(--paper);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    padding: 5px 9px;
+    cursor: pointer;
+}
+.ml-access button:active {
+    transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .ml-access button:active {
+        transform: none;
+    }
+}
+
 .ml-empty {
     margin: 0;
     padding: 16px 13px;

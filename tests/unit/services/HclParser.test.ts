@@ -71,6 +71,7 @@ const VPC: ParsedDeclaration = {
     resolved: true,
     version: "",
     line: 2,
+    column: 12,
 };
 
 describe("Given the wasm parser is loaded", () => {

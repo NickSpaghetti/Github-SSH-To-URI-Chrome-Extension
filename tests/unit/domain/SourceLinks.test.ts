@@ -10,11 +10,13 @@ const SOURCE = "hashicorp/consul/aws";
  * Builds a display module.
  * @param resolvedUrl The url it resolved to, or null.
  * @param sourceLine The line its source is written on, or null.
+ * @param sourceColumn Where on that line its written source starts, or null.
  * @returns The module.
  */
 const displayModule = (
     resolvedUrl: Nullable<string>,
     sourceLine: Nullable<number> = null,
+    sourceColumn: Nullable<number> = null,
 ): DisplayModule => ({
     source: SOURCE,
     moduleName: "consul",
@@ -23,15 +25,16 @@ const displayModule = (
     versionConstraint: "",
     resolvedVersion: "",
     sourceLine: sourceLine,
+    sourceColumn: sourceColumn,
     writtenSource: SOURCE,
 });
 
 describe("Given a module whose source is a template", () => {
-    describe("When its links are mapped", () => {
-        test("Then I expect them keyed by the source as the page shows it", () => {
+    describe("When it is placed", () => {
+        test("Then I expect it placed with the source as the page shows it", () => {
             // Arrange
             const module: DisplayModule = {
-                ...displayModule("https://example.com/a", 7),
+                ...displayModule("https://example.com/a", 7, 12),
                 source: "terraform-aws-modules/vpc/aws",
                 writtenSource: "${local.registry}/vpc/aws",
             };
@@ -40,55 +43,30 @@ describe("Given a module whose source is a template", () => {
             const links = toSourceLinks([module]);
 
             // Assert
-            expect(links.atLine.get(7)?.get("${local.registry}/vpc/aws")).toBe(
-                "https://example.com/a",
-            );
-            expect(links.bySource.get("${local.registry}/vpc/aws")).toBe("https://example.com/a");
-            expect(links.bySource.has("terraform-aws-modules/vpc/aws")).toBe(false);
+            expect(links.get(7)).toEqual([
+                { column: 12, written: "${local.registry}/vpc/aws", url: "https://example.com/a" },
+            ]);
         });
     });
 });
 
-describe("Given modules declared on a page", () => {
-    describe("When a module has a url and a line", () => {
-        test("Then I expect its url by line and by source", () => {
+describe("Given modules the parser placed on a line and column", () => {
+    describe("When two modules on one line each have a url", () => {
+        test("Then I expect both placed on that line, in module order", () => {
             // Arrange
-            const modules = [displayModule("https://example.com/a", 12)];
+            const modules = [
+                displayModule("https://example.com/a", 3, 23),
+                displayModule("https://example.com/b", 3, 55),
+            ];
 
             // Act
             const links = toSourceLinks(modules);
 
             // Assert
-            expect(links.atLine.get(12)?.get(SOURCE)).toBe("https://example.com/a");
-            expect(links.bySource.get(SOURCE)).toBe("https://example.com/a");
-        });
-    });
-
-    describe("When a module has a url and no line", () => {
-        test("Then I expect its url by source only", () => {
-            // Arrange
-            const modules = [displayModule("https://example.com/a")];
-
-            // Act
-            const links = toSourceLinks(modules);
-
-            // Assert
-            expect(links.atLine.size).toBe(0);
-            expect(links.bySource.get(SOURCE)).toBe("https://example.com/a");
-        });
-    });
-
-    describe("When a module has no url", () => {
-        test("Then I expect it left out", () => {
-            // Arrange
-            const modules = [displayModule(null, 12)];
-
-            // Act
-            const links = toSourceLinks(modules);
-
-            // Assert
-            expect(links.atLine.size).toBe(0);
-            expect(links.bySource.size).toBe(0);
+            expect(links.get(3)?.map((placed) => [placed.column, placed.url])).toEqual([
+                [23, "https://example.com/a"],
+                [55, "https://example.com/b"],
+            ]);
         });
     });
 
@@ -96,31 +74,33 @@ describe("Given modules declared on a page", () => {
         test("Then I expect each line to keep its own url", () => {
             // Arrange
             const modules = [
-                displayModule("https://example.com/0.1.0", 12),
-                displayModule("https://example.com/0.12.0", 19),
+                displayModule("https://example.com/0.1.0", 12, 13),
+                displayModule("https://example.com/0.11.0", 19, 13),
             ];
 
             // Act
             const links = toSourceLinks(modules);
 
             // Assert
-            expect(links.atLine.get(12)?.get(SOURCE)).toBe("https://example.com/0.1.0");
-            expect(links.atLine.get(19)?.get(SOURCE)).toBe("https://example.com/0.12.0");
+            expect(links.get(12)?.[0].url).toBe("https://example.com/0.1.0");
+            expect(links.get(19)?.[0].url).toBe("https://example.com/0.11.0");
         });
+    });
 
-        test("Then I expect the first url by source", () => {
+    describe("When a module has no url, no line or no column", () => {
+        test("Then I expect it left out", () => {
             // Arrange
             const modules = [
-                displayModule(null, 5),
-                displayModule("https://example.com/0.1.0", 12),
-                displayModule("https://example.com/0.12.0", 19),
+                displayModule(null, 3, 12),
+                displayModule("https://example.com/a", null, 12),
+                displayModule("https://example.com/b", 3, null),
             ];
 
             // Act
             const links = toSourceLinks(modules);
 
             // Assert
-            expect(links.bySource.get(SOURCE)).toBe("https://example.com/0.1.0");
+            expect(links.size).toBe(0);
         });
     });
 });

@@ -14,4 +14,6 @@ export type ParsedDeclaration = {
     version: string;
     /** The 1-based line the source is written on. */
     line: number;
+    /** The 0-based offset of `written`'s first character within its line, in UTF-16 code units. */
+    column: number;
 };

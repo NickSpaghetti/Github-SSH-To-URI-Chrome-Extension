@@ -3,7 +3,7 @@ import { SourceTypes } from "../../types/SourceTypes";
 import { Nullable } from "../../types/Nullable";
 import { LinkContext } from "../../types/LinkContext";
 import { ModuleLink } from "../../types/ModuleLink";
-import { BROWSE_LAYOUTS, GITHUB_BLOB_ROUTE, GITHUB_TREE_ROUTE } from "./RepositoryHosts";
+import { BROWSE_LAYOUTS, browseRoute } from "./RepositoryHosts";
 import {
     DEFAULT_REGISTRY_HOST,
     LATEST_VERSION,
@@ -16,7 +16,7 @@ import {
     registryPageUrl,
     registryTargetFor,
 } from "./RegistryHosts";
-import { PATH_SEPARATOR, isFilePath } from "../../util/PathHelpers";
+import { PATH_SEPARATOR } from "../../util/PathHelpers";
 import { isSafeHttpUrl } from "../../util/UrlSafety";
 
 const GIT_SUFFIX = ".git";
@@ -192,25 +192,40 @@ export const resolverFor = (source: ModuleSource): ModuleSourceResolver =>
 
 const linkLocalPath = (source: ModuleSource, pageUrl: URL): Nullable<string> => {
     const resolved = new URL(source.path, pageUrl.href);
-    const wanted = isFilePath(resolved.pathname) ? GITHUB_BLOB_ROUTE : GITHUB_TREE_ROUTE;
-    const replacement = `${PATH_SEPARATOR}${wanted}${PATH_SEPARATOR}`;
-
-    for (const route of [GITHUB_BLOB_ROUTE, GITHUB_TREE_ROUTE]) {
-        const marker = `${PATH_SEPARATOR}${route}${PATH_SEPARATOR}`;
-        const markerAt = resolved.pathname.indexOf(marker);
-        if (markerAt !== -1) {
-            const pathname =
-                resolved.pathname.slice(0, markerAt) +
-                replacement +
-                resolved.pathname.slice(markerAt + marker.length);
-            return `${resolved.origin}${pathname}`;
-        }
+    const host = BROWSE_LAYOUTS[pageUrl.hostname];
+    if (host === undefined) {
+        return resolved.href;
     }
-    return resolved.href;
+    const replacement = routeMarker(browseRoute(host, resolved.pathname));
+
+    // The route follows the owner and the repository, either of which can be
+    // named like one, so the search starts after them.
+    const from = afterOwnerAndRepository(resolved.pathname);
+    const found = [host.fileRoute, host.directoryRoute]
+        .map(routeMarker)
+        .map((marker) => ({ marker, at: resolved.pathname.indexOf(marker, from) }))
+        .filter(({ at }) => at !== -1)
+        .sort((a, b) => a.at - b.at)[0];
+    if (found === undefined) {
+        return resolved.href;
+    }
+    const pathname =
+        resolved.pathname.slice(0, found.at) +
+        replacement +
+        resolved.pathname.slice(found.at + found.marker.length);
+    return `${resolved.origin}${pathname}`;
 };
 
+const afterOwnerAndRepository = (pathname: string): number => {
+    const ownerEnd = pathname.indexOf(PATH_SEPARATOR, 1);
+    const repositoryEnd = ownerEnd === -1 ? -1 : pathname.indexOf(PATH_SEPARATOR, ownerEnd + 1);
+    return repositoryEnd === -1 ? pathname.length : repositoryEnd;
+};
+
+const routeMarker = (route: string): string => `${PATH_SEPARATOR}${route}${PATH_SEPARATOR}`;
+
 /**
- * The ref that means "whatever the default branch is". Both hosts resolve it,
+ * The ref that means "whatever the default branch is". Every host resolves it,
  * and it is the only safe choice: guessing `main` 404s on a `master`
  * repository, which is most of the older ones.
  */
@@ -230,7 +245,7 @@ const linkRepository = (source: ModuleSource): Nullable<string> => {
     }
 
     const reference = source.ref === "" ? DEFAULT_REFERENCE : source.ref;
-    return joinPath(root, host.route(source.subDirectory), reference, source.subDirectory);
+    return joinPath(root, browseRoute(host, source.subDirectory), reference, source.subDirectory);
 };
 
 /** Drops empty segments, so a ref with no subdir does not trail a separator. */

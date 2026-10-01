@@ -1,14 +1,15 @@
 {
     "manifest_version": 3,
     "name": "IaC Module Linker",
-    "description": "Converts Terraform and OpenTofu module sources into clickable links that take you to the module definition. Works on GitHub.",
+    "description": "Converts Terraform and OpenTofu module sources into clickable links that take you to the module definition. Works on GitHub and GitLab.",
     "permissions": ["tabs", "scripting", "activeTab", "storage"],
     "host_permissions": [
         "https://github.com/*",
         "https://registry.terraform.io/*",
         "https://registry.opentofu.org/*"
     ],
-    "version": "0.0.0.19",
+    "optional_host_permissions": ["https://gitlab.com/*"],
+    "version": "0.0.0.20",
     "minimum_chrome_version": "112",
     "action": {
         "default_popup": "index.html"

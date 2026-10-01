@@ -6,8 +6,12 @@ The parser, built from [hashicorp/hcl](https://github.com/hashicorp/hcl) for
 `tofuParseToString(contents, fileName)` returns `{ declarations }` or
 `{ error }`. `declarations` is a JSON array of every module source the file
 declares, in the order the file writes them: `{ name, block, source, written,
-resolved, version, line }`. `name` is what the extension shows: the module name,
-`terraform`, or `required_providers.<name>`. `line` is 1-based. A file ending in
+resolved, version, line, column }`. `name` is what the extension shows: the module
+name, `terraform`, or `required_providers.<name>`. `line` is 1-based. `column` is
+where `written` starts on that line, 0-based and counted in UTF-16 code units.
+That is the unit a JavaScript string indexes in, so the GitLab writer can slice
+the rendered line at `column` and compare it to `written` with no conversion. A
+file ending in
 `.json` is read as JSON syntax and any other as native HCL. `declarations/` does
 the reading.
 

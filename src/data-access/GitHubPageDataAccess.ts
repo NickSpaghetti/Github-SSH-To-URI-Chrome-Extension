@@ -1,33 +1,24 @@
-import { HCL_FILE_SUFFIXES, HclFileTypes } from "../types/HclFileTypes";
-import { CommitIdentity } from "../types/CommitIdentity";
+import { HclFileTypes } from "../types/HclFileTypes";
 import { Nullable } from "../types/Nullable";
-import { lastSegment } from "../util/PathHelpers";
-import { IGitHubPageDataAccess } from "./IGitHubPageDataAccess";
+import { IPageDataAccess } from "./IPageDataAccess";
+import { fileNameOf, fileTypeOf } from "./PageFile";
 
-const DEFAULT_FILE_NAME = "main.tf";
 const SOURCE_TEXT_AREA_ID = "read-only-cursor-text-area";
 
-// GitHub puts the file's last commit in the blob header: the sha in the
-// history link, the timestamp on a `relative time`. Both track the file being
-// shown rather than the branch head, and both survive a soft navigation.
+// GitHub puts the file's last commit in the blob header's history link. It
+// tracks the file being shown rather than the branch head, and survives a
+// soft navigation.
 const COMMIT_LINK = "a[href*='/commit/']";
 const COMMIT_SEPARATOR = "/commit/";
-const COMMIT_TIME = "relative-time[datetime]";
 
 /** The live implementation, reading the DOM GitHub rendered. */
-export class GitHubPageDataAccess implements IGitHubPageDataAccess {
+export class GitHubPageDataAccess implements IPageDataAccess {
     /**
      * Returns the kind of HCL file being viewed.
      * @returns The file type, or null when the page is not one.
      */
     public getFileType(): Nullable<HclFileTypes> {
-        const pathname = new URL(document.URL).pathname.toLowerCase();
-        for (const [suffix, fileType] of HCL_FILE_SUFFIXES) {
-            if (pathname.endsWith(suffix)) {
-                return fileType;
-            }
-        }
-        return null;
+        return fileTypeOf(document.URL);
     }
 
     /**
@@ -35,29 +26,19 @@ export class GitHubPageDataAccess implements IGitHubPageDataAccess {
      * @returns The file name.
      */
     public getFileName(): string {
-        const segment = lastSegment(new URL(document.URL).pathname);
-        return segment === "" ? DEFAULT_FILE_NAME : segment;
+        return fileNameOf(document.URL);
     }
 
     /**
-     * Reads the commit the file being viewed was last changed by.
-     * @returns The commit, or null when the page does not say. Null means the
+     * Reads the sha of the commit the file being viewed was last changed by.
+     * @returns The sha, or null when the page does not say. Null means the
      * caller must not cache: an entry written without it could not be told
      * apart from a stale one.
      */
-    public readCommitIdentity(): Nullable<CommitIdentity> {
+    public readCommitSha(): Nullable<string> {
         const link = document.querySelector(COMMIT_LINK) as Nullable<HTMLAnchorElement>;
         const sha = link?.getAttribute("href")?.split(COMMIT_SEPARATOR)[1];
-        const lastCommitDateTime = document.querySelector(COMMIT_TIME)?.getAttribute("datetime");
-        if (
-            sha === undefined ||
-            sha === "" ||
-            lastCommitDateTime === undefined ||
-            lastCommitDateTime === null
-        ) {
-            return null;
-        }
-        return { sha: sha, lastCommitDateTime: lastCommitDateTime };
+        return sha === undefined || sha === "" ? null : sha;
     }
 
     /**
@@ -65,11 +46,11 @@ export class GitHubPageDataAccess implements IGitHubPageDataAccess {
      * Null is not the same as "": the caller must not cache a page read before
      * it rendered, or it stays empty for as long as the cache lives.
      */
-    public readSourceText(): Nullable<string> {
+    public readSourceTextAsync(): Promise<Nullable<string>> {
         const element = document.getElementById(
             SOURCE_TEXT_AREA_ID,
         ) as Nullable<HTMLTextAreaElement>;
         const text = element?.value;
-        return text === undefined || text === "" ? null : text;
+        return Promise.resolve(text === undefined || text === "" ? null : text);
     }
 }

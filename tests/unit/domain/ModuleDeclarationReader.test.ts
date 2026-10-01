@@ -15,6 +15,7 @@ describe("Given declarations from the parser", () => {
                     resolved: true,
                     version: "~> 6.0",
                     line: 2,
+                    column: 12,
                 },
                 {
                     name: "required_providers.aws",
@@ -24,6 +25,7 @@ describe("Given declarations from the parser", () => {
                     resolved: true,
                     version: "",
                     line: 9,
+                    column: 23,
                 },
             ];
 
@@ -37,6 +39,7 @@ describe("Given declarations from the parser", () => {
                     terraformProperty: "module",
                     provider: { source: "a/b/c", version: "~> 6.0" },
                     sourceLine: 2,
+                    sourceColumn: 12,
                     writtenSource: "a/b/c",
                     sourceResolved: true,
                 },
@@ -45,6 +48,7 @@ describe("Given declarations from the parser", () => {
                     terraformProperty: "required_providers",
                     provider: { source: "hashicorp/aws", version: "" },
                     sourceLine: 9,
+                    sourceColumn: 23,
                     writtenSource: "hashicorp/aws",
                     sourceResolved: true,
                 },
@@ -52,11 +56,18 @@ describe("Given declarations from the parser", () => {
         });
     });
 
-    describe("When a version, line, written source or resolution is missing or the wrong type", () => {
-        test("Then I expect it read as unresolved, written as its source, with no version or line", () => {
+    describe("When a version, position, written source or resolution is missing or the wrong type", () => {
+        test("Then I expect it read as unresolved, written as its source, with no version or position", () => {
             // Arrange
             const emitted = [
-                { name: "vpc", block: "module", source: "a/b/c", version: 5, line: "2" },
+                {
+                    name: "vpc",
+                    block: "module",
+                    source: "a/b/c",
+                    version: 5,
+                    line: "2",
+                    column: "12",
+                },
             ];
 
             // Act
@@ -69,6 +80,7 @@ describe("Given declarations from the parser", () => {
                     terraformProperty: "module",
                     provider: { source: "a/b/c", version: "" },
                     sourceLine: null,
+                    sourceColumn: null,
                     writtenSource: "a/b/c",
                     sourceResolved: false,
                 },
