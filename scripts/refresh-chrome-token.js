@@ -19,12 +19,15 @@ const SCOPE = "https://www.googleapis.com/auth/chromewebstore";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const CALLBACK_TIMEOUT_MS = 120_000;
 
+/** What counts as saying yes at a prompt. Anything else is no. */
+const YES = ["y", "yes"];
+
 function upsertEnvValue(filePath, key, value) {
     const lines = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8").split("\n") : [];
-    const pattern = new RegExp(`^${key}=`);
+    const assignment = `${key}=`;
     let found = false;
     const updated = lines.map((line) => {
-        if (pattern.test(line)) {
+        if (line.startsWith(assignment)) {
             found = true;
             return `${key}=${value}`;
         }
@@ -193,7 +196,7 @@ async function main() {
         const answer = await prompt(
             "Push CHROME_REFRESH_TOKEN to the GitHub Actions secret now? [y/N] ",
         );
-        if (/^y(es)?$/i.test(answer.trim())) {
+        if (YES.includes(answer.trim().toLowerCase())) {
             const result = spawnSync(
                 "gh",
                 [

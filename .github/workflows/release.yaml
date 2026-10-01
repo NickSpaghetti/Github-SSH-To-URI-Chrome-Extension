@@ -3,12 +3,21 @@ name: Publish To Chrome Store
 on:
   release:
     types: [published]
-    tags:
-      - v.*.*.*
+  workflow_dispatch:
+    inputs:
+      skip_e2e:
+        description: "Publish without running end to end tests"
+        type: boolean
+        default: false
 
 jobs:
   build:
     name: Build and Release to Chrome Extension Store
+    # The release event takes no tag filter, so the tag is checked here.
+    # Prereleases stay off the store, because the upload auto-publishes.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.event.release.tag_name, 'v') && !github.event.release.prerelease)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -18,33 +27,44 @@ jobs:
         with:
           node-version: 26.x
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
       - name: Run install
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
-      - name: Install Cypress dependencies
-        working-directory: tests/cypress
-        run: yarn install
+      # The wasm build runs in a container, so Go's caches are bind mounted out
+      # of it. Without this every run re-downloads the module graph.
+      - name: Cache the Go module and build cache
+        uses: actions/cache@v6
+        with:
+          path: .gocache
+          key: gocache-${{ runner.os }}-${{ hashFiles('wasm/go.sum', 'Makefile') }}
+          restore-keys: gocache-${{ runner.os }}-
 
       - name: Run build
-        run: yarn build
+        run: make build
 
       - name: Test the app
-        run: yarn test
+        run: make test
 
-      - name: Run Cypress
-        working-directory: tests/cypress
-        run: yarn cypress:run
+      - name: Install Chromium for Playwright
+        if: ${{ inputs.skip_e2e != true }}
+        working-directory: tests/e2e
+        run: pnpm exec playwright install --with-deps chromium
 
-      - name: add chrome-webstore-cli
-        working-directory: src/
-        run: yarn add chrome-webstore-upload-cli@3
+      - name: Run end to end tests
+        if: ${{ inputs.skip_e2e != true }}
+        working-directory: tests/e2e
+        # Extensions need a full browser, so the run is headed under a
+        # virtual display rather than headless.
+        run: xvfb-run -a pnpm e2e
 
       - name: Submit to Chrome Extension Store
         working-directory: dist
-        run: npx chrome-webstore-upload-cli@3 upload --auto-publish
+        run: pnpm dlx chrome-webstore-upload-cli@3 upload --auto-publish
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}

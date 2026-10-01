@@ -1,10 +1,7 @@
 export type Terraform = {
     source?: string;
-    required_providers?: [];
-};
-
-export type RequiredProvider = {
-    providerTypes: Map<string, ProviderType>;
+    /** One entry per block, each a map of provider name to its declaration. */
+    required_providers?: Array<Record<string, ProviderType>>;
 };
 
 export type ProviderType = {

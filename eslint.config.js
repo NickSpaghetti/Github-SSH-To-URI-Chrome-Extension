@@ -7,16 +7,20 @@ module.exports = tseslint.config(
     {
         ignores: [
             "dist/**",
+            "dist-bench/**",
             "node_modules/**",
+            // Go's module and build cache for the wasm container, not ours.
+            ".gocache/**",
             "tests/cypress/**",
+            "tests/e2e/**",
+            "src/vendor/**",
             "coverage/**",
             "eslint.config.js",
-            "webpack.config.js",
         ],
     },
     eslint.configs.recommended,
     {
-        files: ["**/*.ts", "**/*.tsx"],
+        files: ["**/*.ts", "**/*.mts", "**/*.tsx"],
         extends: [...tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
@@ -34,12 +38,12 @@ module.exports = tseslint.config(
                 "error",
                 { checksVoidReturn: { arguments: false } },
             ],
-            "@typescript-eslint/no-explicit-any": "warn",
-            "@typescript-eslint/no-unsafe-assignment": "warn",
-            "@typescript-eslint/no-unsafe-member-access": "warn",
-            "@typescript-eslint/no-unsafe-argument": "warn",
-            "@typescript-eslint/no-unsafe-call": "warn",
-            "@typescript-eslint/no-unsafe-return": "warn",
+            "@typescript-eslint/no-explicit-any": "error",
+            "@typescript-eslint/no-unsafe-assignment": "error",
+            "@typescript-eslint/no-unsafe-member-access": "error",
+            "@typescript-eslint/no-unsafe-argument": "error",
+            "@typescript-eslint/no-unsafe-call": "error",
+            "@typescript-eslint/no-unsafe-return": "error",
             "@typescript-eslint/no-unused-vars": [
                 "error",
                 { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
@@ -121,6 +125,50 @@ module.exports = tseslint.config(
                 {
                     selector: "import",
                     format: null,
+                },
+            ],
+        },
+    },
+    {
+        // The layers, enforced rather than remembered. `domain` is the pure
+        // Terraform rules: no I/O, so it can be read and tested without a
+        // browser, a registry or a chrome runtime.
+        files: ["src/domain/**/*.ts"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/data-access/*", "**/services/*"],
+                            message:
+                                "domain is pure: it may not reach a layer that does I/O. Take what it needs as an argument instead.",
+                        },
+                    ],
+                },
+            ],
+            "no-restricted-globals": [
+                "error",
+                { name: "chrome", message: "domain does no I/O." },
+                { name: "fetch", message: "domain does no I/O." },
+            ],
+        },
+    },
+    {
+        // `util` is what is left when a module knows neither the domain nor a
+        // boundary: generic helpers only.
+        files: ["src/util/**/*.ts"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/domain/*", "**/data-access/*", "**/services/*"],
+                            message:
+                                "util holds no domain knowledge and no I/O. If it needs one, it is not a util.",
+                        },
+                    ],
                 },
             ],
         },

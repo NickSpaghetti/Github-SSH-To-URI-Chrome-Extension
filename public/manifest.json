@@ -1,10 +1,15 @@
 {
     "manifest_version": 3,
     "name": "IaC Module Linker",
-    "description": "Converts Terraform module sources into clickable links that take you to the module definition page. Works on GitHub.",
+    "description": "Converts Terraform and OpenTofu module sources into clickable links that take you to the module definition. Works on GitHub.",
     "permissions": ["tabs", "scripting", "activeTab", "storage"],
-    "host_permissions": ["https://github.com/*", "https://registry.terraform.io/*"],
-    "version": "0.0.0.17",
+    "host_permissions": [
+        "https://github.com/*",
+        "https://registry.terraform.io/*",
+        "https://registry.opentofu.org/*"
+    ],
+    "version": "0.0.0.18",
+    "minimum_chrome_version": "112",
     "action": {
         "default_popup": "index.html"
     },
@@ -23,5 +28,8 @@
         "48": "icons/icon48.png",
         "96": "icons/icon96.png",
         "128": "icons/icon128.png"
+    },
+    "content_security_policy": {
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
     }
 }

@@ -1,0 +1,5 @@
+packages:
+  - tests/e2e
+
+overrides:
+  "@babel/runtime": "^7.26.10"

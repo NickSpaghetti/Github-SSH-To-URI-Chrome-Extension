@@ -1,0 +1,184 @@
+/* Chrome's own surface colours, so the popup reads as part of the browser
+   rather than as a page inside it. Chrome exposes no api for its palette, so
+   these are its published greys and blues rather than anything it reports. */
+:root {
+    --bg: #f1f3f4;
+    --paper: #ffffff;
+    --ink: #202124;
+    --muted: #5f6368;
+    --line: #dadce0;
+    --accent: #1a73e8;
+    --accent-soft: #e8f0fe;
+    --warn: #b06000;
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #202124;
+        --paper: #292a2d;
+        --ink: #e8eaed;
+        --muted: #9aa0a6;
+        --line: #3c4043;
+        --accent: #8ab4f8;
+        --accent-soft: #283142;
+        --warn: #fdd663;
+    }
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    width: 380px;
+    background: var(--paper);
+    color: var(--ink);
+    font:
+        14px/1.4 system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+}
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.ml-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+.ml-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 13px;
+    border-bottom: 1px solid var(--line);
+}
+.ml-count {
+    flex: none;
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.ml-search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 10px;
+}
+.ml-search input:focus-visible {
+    outline-offset: 0;
+}
+
+.ml-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 420px;
+    overflow-y: auto;
+}
+.ml-list li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 8px 13px;
+    border-bottom: 1px solid var(--line);
+}
+.ml-list li:last-child {
+    border-bottom: 0;
+}
+.ml-name {
+    font:
+        13px ui-monospace,
+        "SFMono-Regular",
+        Menlo,
+        Consolas,
+        monospace;
+    color: var(--accent);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ml-name:hover {
+    text-decoration: underline;
+}
+.ml-sub {
+    grid-column: 1;
+    font-size: 12px;
+    color: var(--muted);
+}
+.ml-up {
+    color: var(--warn);
+    font-weight: 600;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.ml-act {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    display: flex;
+    gap: 5px;
+    opacity: 0.35;
+    transition: opacity 0.15s;
+}
+.ml-list li:hover .ml-act,
+.ml-list li:focus-within .ml-act {
+    opacity: 1;
+}
+.ml-act button {
+    font:
+        500 11.5px system-ui,
+        sans-serif;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 4px 7px;
+    cursor: pointer;
+    transition:
+        background-color 0.12s,
+        border-color 0.12s;
+}
+/* Row hover only reveals the buttons. Without a state of their own there is
+   nothing to say which one the pointer is actually on. */
+.ml-act button:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+}
+.ml-act button:active {
+    transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .ml-act,
+    .ml-act button {
+        transition: none;
+    }
+    .ml-act button:active {
+        transform: none;
+    }
+}
+
+.ml-empty {
+    margin: 0;
+    padding: 16px 13px;
+    color: var(--muted);
+    font-size: 13px;
+}
+.ml-live {
+    padding: 0 13px 8px;
+    font-size: 11.5px;
+    color: var(--accent);
+    min-height: 1.3em;
+}

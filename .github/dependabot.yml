@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # The Go toolchain that builds the parser.
+  - package-ecosystem: docker
+    directory: /wasm
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"
+
+  # pnpm, and the tests/e2e workspace with it.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "bumped"
+
+  - package-ecosystem: gomod
+    directory: /wasm
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "bumped"

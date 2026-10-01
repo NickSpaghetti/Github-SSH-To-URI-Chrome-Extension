@@ -275,15 +275,6 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
-# Yarn Berry
-**/.yarn/*
-!**/.yarn/patches
-!**/.yarn/plugins
-!**/.yarn/releases
-!**/.yarn/sdks
-!**/.yarn/versions
-**/.pnp.*
-
 # Visual Studio 6 build log
 *.plg
 
@@ -390,11 +381,26 @@ sensitive
 #Jetbrains IDE
 .idea
 
-# Ignore webpack bundle
+# Build output
 dist
 dist.*
+iac-module-linker-*.zip
 
 # Ignore cypresss
 tests/cypress/cypress/videos/*
 tests/cypress/cypress/screenshots/*
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+dist-bench/
+tests/e2e/benchmarks/.recorded/
 
+# Working docs: reviews, benchmark notes. Local only.
+docs/*.md
+
+# Built by `make build-wasm` from wasm/. Both come out of the same container
+# run and have to match, so neither is committed.
+public/main.wasm.gz
+src/vendor/wasm_exec.js
+
+# Go module and build cache for the wasm container. Safe to delete.
+.gocache/

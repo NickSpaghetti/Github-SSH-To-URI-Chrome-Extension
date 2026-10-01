@@ -12,16 +12,18 @@ A new Chrome Web Store listing is pending. Until it is live, build from source w
 
 ### on page load
 
-When the page loads the extension will try and parse the sources of your modules in your terraform file from an ssh to a clickable uri. The extension supports parsing `.tf` and `.hcl` file types. You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
+When the page loads the extension parses the module sources in your file and turns them into clickable links. It supports `.tf`, `.tofu`, `.hcl`, `.tf.json` and `.tofu.json` files, and both the Terraform and OpenTofu registries. You must grant the extensions permission to have access to [github](https://github.com). See the [Devloping Locally Section](#developing-locally)
 
 ![Module sources in a .tf file on GitHub rendered as clickable links](docs/screenshots/sshUrlATag.png)
 
 ### viewing all sources
 
-Navigate to a GitHub page where there is Terraform code and click on the extension. If no modules are found then `No Moduels found` will be displayed on the pop-up.
-If a modules is found then a table displaying the module name and source type will be shown. The module name is a hyperlink to the github page of that module.
+Navigate to a GitHub page where there is Terraform code and click on the extension. The pop-up lists every module on the page with its source type, and its version constraint when it has one.
+The module name links to where the source points. The search box filters the list, and `Copy name` copies a module's name.
+When a registry module's constraint lags behind the version it resolves to, a second button copies a constraint pinned to that version.
+If the page has no modules then `No modules on this page.` is shown.
 
-![Extension popup listing each module found on the page next to its source type](docs/screenshots/mutiLinkPopup.png)
+![Extension popup listing each module found on the page with its source type](docs/screenshots/mutiLinkPopup.png)
 
 # How to contribute
 
@@ -39,12 +41,14 @@ Before you submit your pull request consider the following guidelines:
 
 ## Developing Locally
 
+Needs Node and Docker. The HCL parser is a Go wasm module built from `wasm/`.
+It is not committed. `make` produces it. See [wasm/README.md](wasm/README.md).
+
 Clone this repository and run.
 
 ```
 cd iac-module-linker
-yarn install
-yarn build
+make build
 ```
 
 This will generate a dist folder where the javascript is exported to.
@@ -52,25 +56,41 @@ Then open up chrome and paste `chrome://extensions/` in the search bar. Once the
 Navigate to the `dist` folder and click okay. To see the extension you must also enable dev mode.
 You must also allow the Extension to have access to [github](https://github.com) found in the Site access setting on the `chrome://extensions` page.
 Alternatively the extension will flash white in the corner when you navigate to [github](https://github.com) click the Icon to allow the extension to have access to your page.
-Note you must do this each time you run `yarn build` and update the extension.
+Note you must do this each time you run `make build` and update the extension.
 
 # Testing
 
-This project uses [jest](https://jestjs.io/docs/getting-started) and [cypress](https://docs.cypress.io/guides/tooling/typescript-support).
+Unit tests run with [jest](https://jestjs.io/docs/getting-started). End to end
+tests load the built extension into Chromium with
+[Playwright](https://playwright.dev).
 
-### To run the Jest unit tests
+### Unit tests
 
-`yarn tests`
-
-### To run cypress e2e testing run:
-
-```cd tests\cypress\cypress
-   yarn cypress:run
+```
+make test
 ```
 
-To see cypress running instead run `yarn cypress:open`
+They run offline. Registry responses are recorded in
+`tests/unit/fixtures/registry-responses.json`, so no test reaches the network.
+Refresh them with `make record-fixtures`.
+
+### End to end tests
+
+```
+make e2e
+```
+
+That builds the extension, installs the test dependencies and runs Playwright
+against [iac-module-linker-fixtures](https://github.com/NickSpaghetti/iac-module-linker-fixtures),
+a repository of Terraform files covering every module source form.
+
+These load a real browser and visit real GitHub pages, so they are slower and
+subject to rate limiting. They run on a schedule and before a release rather
+than on every pull request.
+
+Extensions cannot be loaded by a headless browser, so the run is headed. On a
+machine with no display, put `xvfb-run -a` in front of it.
 
 # Credit
 
 1. This icon was created with the assistance of DALL·E 2.
-1. Thanks to [bec-uk](https://github.com/benc-uk) for his work on [hcl2-parser](https://github.com/benc-uk/hcl2-parser).
