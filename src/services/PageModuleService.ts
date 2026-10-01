@@ -5,6 +5,7 @@ import { readModuleDeclarations } from "../domain/ModuleDeclarationReader";
 import { ChromeRuntimeParserService } from "./ChromeRuntimeParserService";
 import { ModuleSourceLinker } from "./ModuleSourceLinker";
 import { IGitHubPageDataAccess } from "../data-access/IGitHubPageDataAccess";
+import { logRecovered } from "../util/Log";
 
 const REGISTRY_REQUESTS_AT_ONCE = 10;
 
@@ -38,7 +39,7 @@ export class PageModuleService {
             const hclFile = await this.parserService.parseAsync(contents, this.page.getFileName());
             declarations = readModuleDeclarations(hclFile);
         } catch (error) {
-            console.log(`could not parse the file being viewed: ${String(error)}`);
+            logRecovered("could not parse the file being viewed", error);
             return [];
         }
 

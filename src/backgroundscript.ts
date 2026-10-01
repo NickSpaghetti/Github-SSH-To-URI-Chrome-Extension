@@ -4,11 +4,12 @@ import { isAllowedFetchHost, isFetchRequest, isParseRequest } from "./WorkerRequ
 import { SENDERS } from "./types/TabMessage";
 import { HclParser } from "./services/HclParser";
 import { RunTimeFetchResponse } from "./types/RunTimeFetchResponse";
+import { logRecovered } from "./util/Log";
 
 // Session storage is closed to content scripts until the worker opens it.
 chrome.storage.session
     .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
-    .catch((error) => console.log(`could not open session storage: ${String(error)}`));
+    .catch((error) => logRecovered("could not open session storage", error));
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (tab.url === undefined) {
@@ -52,9 +53,9 @@ chrome.runtime.onMessage.addListener((request: unknown, sender, sendResponse) =>
                             data: data,
                         } satisfies RunTimeFetchResponse<unknown>);
                     })
-                    .catch((err) => sendResponse({ ok: false, error: JSON.stringify(err) }));
+                    .catch((err) => sendResponse({ ok: false, error: String(err) }));
             })
-            .catch((err) => sendResponse({ ok: false, error: JSON.stringify(err) }));
+            .catch((err) => sendResponse({ ok: false, error: String(err) }));
     }
     return true;
 });

@@ -16,7 +16,7 @@ const PAGE = new URL("https://github.com/owner/repo/blob/main/main.tf");
 const UNKNOWN_MODULE = "some-namespace/not-a-real-module/aws";
 
 beforeEach(() => {
-    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "debug").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
