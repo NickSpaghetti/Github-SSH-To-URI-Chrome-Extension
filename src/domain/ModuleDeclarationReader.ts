@@ -1,6 +1,7 @@
 import { IHclFile } from "../types/IHclFile";
 import { isHclModule } from "../types/HclModuleType";
 import { TerraformModule } from "../types/Terraform";
+import { Nullable } from "../types/Nullable";
 /** The block names this reads, and the prefix the popup shows for a provider. */
 export const TERRAFORM_SYNTAX = {
     TERRAFORM: "terraform",
@@ -59,6 +60,11 @@ const isRequiredProviders = (value: unknown): value is RequiredProviders =>
 const versionOf = (declared: { version?: unknown }): string =>
     typeof declared.version === "string" ? declared.version : "";
 
+const lineOf = (hclFile: IHclFile, name: string): Nullable<number> => {
+    const line: unknown = hclFile.sourceLines?.[name];
+    return typeof line === "number" ? line : null;
+};
+
 /** The `terraform {}` block: its own `source`, and each `required_providers` entry. */
 const readTerraformBlocks = (hclFile: IHclFile, into: Map<string, TerraformModule>): void => {
     for (const block of hclFile.terraform ?? []) {
@@ -68,6 +74,7 @@ const readTerraformBlocks = (hclFile: IHclFile, into: Map<string, TerraformModul
                 moduleName: TERRAFORM_SYNTAX.TERRAFORM,
                 terraformProperty: TERRAFORM_SYNTAX.TERRAFORM,
                 provider: { source: terraform.source, version: "" },
+                sourceLine: lineOf(hclFile, TERRAFORM_SYNTAX.TERRAFORM),
             });
         }
 
@@ -86,6 +93,7 @@ const readTerraformBlocks = (hclFile: IHclFile, into: Map<string, TerraformModul
                 moduleName: moduleName,
                 terraformProperty: TERRAFORM_SYNTAX.REQUIRED_PROVIDERS,
                 provider: { source: provider.source, version: versionOf(provider) },
+                sourceLine: lineOf(hclFile, moduleName),
             });
         }
     }
@@ -102,6 +110,7 @@ const readModuleBlocks = (hclFile: IHclFile, into: Map<string, TerraformModule>)
             moduleName: moduleName,
             terraformProperty: TERRAFORM_SYNTAX.MODULE,
             provider: { source: body.source, version: versionOf(body) },
+            sourceLine: lineOf(hclFile, moduleName),
         });
     }
 };

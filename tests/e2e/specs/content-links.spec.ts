@@ -189,3 +189,25 @@ test("a .tf.json file is parsed as JSON", async ({ context }) => {
     expect(names).toContain("json_registry");
     expect(names).toContain("json_git");
 });
+
+for (const file of ["17-duplicate-sources.tf", "18-duplicate-sources.tf.json"]) {
+    test(`two modules sharing a source each link to their own version in ${file}`, async ({
+        context,
+    }) => {
+        // Arrange
+        const page = await context.newPage();
+        await context
+            .serviceWorkers()[0]
+            .evaluate(async () => await chrome.storage.session.clear());
+
+        // Act
+        await page.goto(`${FIXTURES}/blob/main/${file}`, { waitUntil: "domcontentloaded" });
+        await expect
+            .poll(async () => (await readAnchors(page)).length, { timeout: 20_000 })
+            .toBe(2);
+
+        // Assert
+        const versions = (await readAnchors(page)).map((a) => a.href.split("/").pop());
+        expect(versions).toEqual(["0.1.0", "0.11.0"]);
+    });
+}

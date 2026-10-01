@@ -3,6 +3,12 @@
 The HCL parser, built from [tmccombs/hcl2json](https://github.com/tmccombs/hcl2json)
 for `js/wasm`.
 
+`tofuParseToString(contents, fileName)` returns `{ json, sourceLines }` for HCL
+and `{ sourceLines }` for JSON. `sourceLines` is the 1-based line of each
+declaration's `source`, found by `sourcelines/`, keyed by the name the
+extension shows it under: the module name, `terraform`, or
+`required_providers.<name>`.
+
 ## Building
 
 Requires Docker. Two files are generated and are in the .gitignore. Webpack
@@ -13,7 +19,8 @@ copies `public/main.wasm.gz` into `dist`. `src/services/HclParser.ts` imports
 make build
 ```
 
-Rebuilt only when `main.go`, `go.mod` or `go.sum` changes. To force it:
+Rebuilt only when `main.go`, `sourcelines/`, `go.mod` or `go.sum` changes. The
+build runs `go test ./sourcelines/` first. To force it:
 
 ```
 make build-wasm

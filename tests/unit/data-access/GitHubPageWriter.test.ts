@@ -4,11 +4,22 @@
  */
 import { expect } from "@jest/globals";
 import { GitHubPageWriter } from "../../../src/data-access/GitHubPageWriter";
+import { SourceLinks } from "../../../src/types/SourceLinks";
 
 const SOURCE = "hashicorp/consul/aws";
 const URL = "https://registry.terraform.io/modules/hashicorp/consul/aws/0.1.0";
 
 const writer = new GitHubPageWriter();
+
+/**
+ * Builds links that match on source alone.
+ * @param entries Each source and the url it opens.
+ * @returns The links.
+ */
+const bySource = (entries: [string, string][]): SourceLinks => ({
+    atLine: new Map(),
+    bySource: new Map(entries),
+});
 
 /**
  * Builds a rendered line the way GitHub tokenizes it.
@@ -44,7 +55,7 @@ describe("Given a page with a module source", () => {
             render(line("LC2", [["source", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map([[SOURCE, URL]]));
+            writer.linkSources(bySource([[SOURCE, URL]]));
 
             // Assert
             const [anchor] = anchors();
@@ -58,7 +69,7 @@ describe("Given a page with a module source", () => {
             render(line("LC2", [["source", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map([[SOURCE, URL]]));
+            writer.linkSources(bySource([[SOURCE, URL]]));
 
             // Assert
             expect<boolean>(document.getElementById("LC2")?.hasAttribute("inert") ?? true).toBe(
@@ -71,7 +82,7 @@ describe("Given a page with a module source", () => {
             render(line("LC2", [["source", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map([[SOURCE, URL]]));
+            writer.linkSources(bySource([[SOURCE, URL]]));
 
             // Assert
             const codeLines = document.querySelector(".react-code-lines") as HTMLElement;
@@ -85,7 +96,7 @@ describe("Given a page with a module source", () => {
             render(line("LC2", [["source", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map());
+            writer.linkSources(bySource([]));
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -98,7 +109,7 @@ describe("Given a page with a module source", () => {
             render(line("LC2", [["source", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map([[SOURCE, "javascript:alert(1)"]]));
+            writer.linkSources(bySource([[SOURCE, "javascript:alert(1)"]]));
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -109,7 +120,7 @@ describe("Given a page with a module source", () => {
         test("Then I expect one anchor", () => {
             // Arrange
             render(line("LC2", [["source", SOURCE]]));
-            const links = new Map([[SOURCE, URL]]);
+            const links = bySource([[SOURCE, URL]]);
 
             // Act
             writer.linkSources(links);
@@ -128,7 +139,7 @@ describe("Given a page with a string that matches a source", () => {
             render(line("LC2", [["description", SOURCE]]));
 
             // Act
-            writer.linkSources(new Map([[SOURCE, URL]]));
+            writer.linkSources(bySource([[SOURCE, URL]]));
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -150,7 +161,7 @@ describe("Given a line with two sources", () => {
 
             // Act
             writer.linkSources(
-                new Map([
+                bySource([
                     [SOURCE, URL],
                     [other, "https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws"],
                 ]),
@@ -160,6 +171,51 @@ describe("Given a line with two sources", () => {
             expect<string[]>(anchors().map((anchor) => anchor.id)).toEqual([
                 "GithubTerraformSourceUrl-LC2-0",
                 "GithubTerraformSourceUrl-LC2-1",
+            ]);
+        });
+    });
+});
+
+describe("Given two lines with the same source", () => {
+    describe("When each line has its own url", () => {
+        test("Then I expect each anchor to open its line's url", () => {
+            // Arrange
+            render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
+            const links: SourceLinks = {
+                atLine: new Map([
+                    [12, new Map([[SOURCE, `${URL}/0.1.0`]])],
+                    [19, new Map([[SOURCE, `${URL}/0.12.0`]])],
+                ]),
+                bySource: new Map([[SOURCE, `${URL}/0.1.0`]]),
+            };
+
+            // Act
+            writer.linkSources(links);
+
+            // Assert
+            expect<string[]>(anchors().map((anchor) => anchor.href)).toEqual([
+                `${URL}/0.1.0`,
+                `${URL}/0.12.0`,
+            ]);
+        });
+    });
+
+    describe("When only one line has a url of its own", () => {
+        test("Then I expect the other to open the url by source", () => {
+            // Arrange
+            render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
+            const links: SourceLinks = {
+                atLine: new Map([[19, new Map([[SOURCE, `${URL}/0.12.0`]])]]),
+                bySource: new Map([[SOURCE, `${URL}/0.1.0`]]),
+            };
+
+            // Act
+            writer.linkSources(links);
+
+            // Assert
+            expect<string[]>(anchors().map((anchor) => anchor.href)).toEqual([
+                `${URL}/0.1.0`,
+                `${URL}/0.12.0`,
             ]);
         });
     });

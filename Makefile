@@ -3,7 +3,7 @@
 # Generated, not committed, so every target that reads one names both as
 # prerequisites. `jest` needs them too, not just the bundle: `HclParser.ts`
 # imports `wasm_exec.js`. Rebuilt only when the Go sources change.
-WASM_SOURCES = wasm/main.go wasm/go.mod wasm/go.sum
+WASM_SOURCES = wasm/main.go wasm/go.mod wasm/go.sum $(wildcard wasm/sourcelines/*.go)
 WASM = public/main.wasm.gz src/vendor/wasm_exec.js
 
 # Installed when a manifest or the lockfile moves, the same way the parser is
@@ -125,6 +125,7 @@ $(WASM) &: $(WASM_SOURCES) wasm/Dockerfile
 		-e GOMODCACHE=/gocache/mod \
 		$(WASM_BUILDER) sh -euc '\
 			go mod tidy; \
+			go test ./sourcelines/; \
 			GOOS=js GOARCH=wasm go build -trimpath -ldflags="-s -w" -o main.wasm ./; \
 			cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" /src/src/vendor/wasm_exec.js'
 	gzip -9 -f -c wasm/main.wasm > public/main.wasm.gz

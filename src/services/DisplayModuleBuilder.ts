@@ -28,6 +28,7 @@ export const buildDisplayModuleAsync = async (
 
     const module = emptyDisplayModule(terraformModule.moduleName);
     module.versionConstraint = terraformModule.provider.version ?? "";
+    module.sourceLine = terraformModule.sourceLine;
     const source = terraformModule.provider.source;
     if (source === undefined || source === "") {
         return module;

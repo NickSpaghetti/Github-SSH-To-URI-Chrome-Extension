@@ -122,3 +122,40 @@ describe("Given a terraform block", () => {
         });
     });
 });
+
+describe("Given a config with source lines", () => {
+    describe("When a declaration's line is known", () => {
+        test("Then I expect it read under the declaration's name", () => {
+            // Arrange
+            const config = {
+                terraform: [{ required_providers: [{ aws: { source: "hashicorp/aws" } }] }],
+                module: { vpc: [{ source: "a/b/c" }] },
+                sourceLines: { vpc: 12, "required_providers.aws": 4 },
+            };
+
+            // Act
+            const declarations = readModuleDeclarations(config as unknown as IHclFile);
+
+            // Assert
+            expect(declarations.get("vpc")?.sourceLine).toBe(12);
+            expect(declarations.get("required_providers.aws")?.sourceLine).toBe(4);
+        });
+    });
+
+    describe("When a declaration's line is missing or not a number", () => {
+        test("Then I expect null", () => {
+            // Arrange
+            const config = {
+                module: { vpc: [{ source: "a/b/c" }], constructor: [{ source: "d/e/f" }] },
+                sourceLines: { vpc: "12" },
+            };
+
+            // Act
+            const declarations = readModuleDeclarations(config as unknown as IHclFile);
+
+            // Assert
+            expect(declarations.get("vpc")?.sourceLine).toBeNull();
+            expect(declarations.get("constructor")?.sourceLine).toBeNull();
+        });
+    });
+});

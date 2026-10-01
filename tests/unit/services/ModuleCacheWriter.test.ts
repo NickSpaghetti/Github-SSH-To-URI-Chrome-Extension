@@ -18,6 +18,7 @@ const ENTRY: CachedModules = {
             resolvedUrl: "https://registry.terraform.io/x",
             versionConstraint: "~> 6.0",
             resolvedVersion: "6.7.3",
+            sourceLine: 12,
         },
     ],
 };

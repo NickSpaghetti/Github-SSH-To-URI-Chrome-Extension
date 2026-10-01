@@ -2,12 +2,13 @@ import "../vendor/wasm_exec.js";
 import { IHclFile } from "../types/IHclFile";
 import { Nullable } from "../types/Nullable";
 import { parseJsonConfig } from "../domain/TerraformJsonParser";
+import { logRecovered } from "../util/Log";
 
 const WASM_FILE = "main.wasm.gz";
 const JSON_SUFFIX = ".json";
 const COMPRESSION_FORMAT = "gzip";
 
-type ParseResult = { json?: string; error?: string };
+type ParseResult = { json?: string; sourceLines?: Record<string, number>; error?: string };
 type GoRuntime = { importObject: WebAssembly.Imports; run: (i: WebAssembly.Instance) => void };
 
 /**
@@ -31,20 +32,39 @@ export class HclParser {
      */
     public static async parseAsync(contents: string, fileName: string): Promise<IHclFile> {
         if (fileName.toLowerCase().endsWith(JSON_SUFFIX)) {
-            return parseJsonConfig(contents);
+            const config = parseJsonConfig(contents);
+            config.sourceLines = await HclParser.findSourceLinesAsync(contents, fileName);
+            return config;
         }
 
+        const result = await HclParser.runAsync(contents, fileName);
+        if (result.error !== undefined || result.json === undefined) {
+            throw new Error(result.error ?? "the parser returned nothing");
+        }
+        const config = JSON.parse(result.json) as IHclFile;
+        config.sourceLines = result.sourceLines;
+        return config;
+    }
+
+    private static async findSourceLinesAsync(
+        contents: string,
+        fileName: string,
+    ): Promise<Record<string, number> | undefined> {
+        try {
+            return (await HclParser.runAsync(contents, fileName)).sourceLines;
+        } catch (error) {
+            logRecovered(`could not find the source lines in ${fileName}`, error);
+            return undefined;
+        }
+    }
+
+    private static async runAsync(contents: string, fileName: string): Promise<ParseResult> {
         await HclParser.startAsync();
         const parse = (globalThis as unknown as Record<string, unknown>)["tofuParseToString"] as (
             hcl: string,
             name: string,
         ) => ParseResult;
-
-        const result = parse(contents, fileName);
-        if (result.error !== undefined || result.json === undefined) {
-            throw new Error(result.error ?? "the parser returned nothing");
-        }
-        return JSON.parse(result.json) as IHclFile;
+        return parse(contents, fileName);
     }
 
     /**

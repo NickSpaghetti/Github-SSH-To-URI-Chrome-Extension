@@ -1,10 +1,14 @@
 import { Nullable } from "../types/Nullable";
 import { isSafeHttpUrl } from "../util/UrlSafety";
 import { IGitHubPageWriter } from "./IGitHubPageWriter";
+import { SourceLinks } from "../types/SourceLinks";
+
+// GitHub ids each rendered line `LC` and its 1-based line number.
+const LINE_ID_PREFIX = "LC";
 
 // GitHub tokenizes a string literal into a `span.pl-s` holding a `span.pl-pds`
 // for each of its two quotes.
-const STRING_QUOTE = `div[id^="LC"] > span.pl-s > span.pl-pds`;
+const STRING_QUOTE = `div[id^="${LINE_ID_PREFIX}"] > span.pl-s > span.pl-pds`;
 const STRING_LITERAL = "span.pl-s";
 const LINE_NUMBERS = ".react-line-numbers";
 const CODE_LINES = ".react-code-lines";
@@ -35,9 +39,11 @@ export class GitHubPageWriter implements IGitHubPageWriter {
      *
      * A source whose url is not http or https is left as text. Calling this
      * again on the same page changes nothing that is already linked.
-     * @param links Each source, exactly as written in the file, mapped to the url it opens.
+     * A source on a line the links name is given that line's url; any other
+     * is given the url of the first module that declares it.
+     * @param links The url of each source, by the line it is written on and by source alone.
      */
-    public linkSources(links: ReadonlyMap<string, string>): void {
+    public linkSources(links: SourceLinks): void {
         for (const textNode of this.readStringLiteralTextNodes()) {
             const literal = textNode.parentElement;
             const line = literal?.parentElement;
@@ -51,7 +57,7 @@ export class GitHubPageWriter implements IGitHubPageWriter {
             }
 
             const text = literal.textContent.trim().split('"').join("");
-            const url = links.get(text);
+            const url = links.atLine.get(lineNumberOf(line))?.get(text) ?? links.bySource.get(text);
             if (url === undefined || !isSafeHttpUrl(url)) {
                 continue;
             }
@@ -90,6 +96,11 @@ const isSourceValue = (literal: Element): boolean => {
     const name = NAME_PUNCTUATION.reduce((text, mark) => text.split(mark).join(""), label).trim();
     return name === SOURCE_KEY;
 };
+
+const lineNumberOf = (line: Element): number =>
+    line.id.startsWith(LINE_ID_PREFIX)
+        ? Number.parseInt(line.id.slice(LINE_ID_PREFIX.length), 10)
+        : Number.NaN;
 
 const anchorId = (line: Element, literal: Element): string => {
     const position = Array.from(line.querySelectorAll(STRING_LITERAL)).indexOf(literal);

@@ -1,8 +1,10 @@
+import { SourceLinks } from "../types/SourceLinks";
+
 /** Writes to the rendered GitHub page. */
 export interface IGitHubPageWriter {
     /**
      * Replaces each module source on the page that has a link with an anchor to it.
-     * @param links Each source, exactly as written in the file, mapped to the url it opens.
+     * @param links The url of each source, by the line it is written on and by source alone.
      */
-    linkSources(links: ReadonlyMap<string, string>): void;
+    linkSources(links: SourceLinks): void;
 }

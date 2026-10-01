@@ -1,4 +1,4 @@
-import { expect } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 import { gzipSync } from "zlib";
 import { HclParser } from "../../../src/services/HclParser";
 import { IHclFile } from "../../../src/types/IHclFile";
@@ -12,7 +12,7 @@ import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
  */
 
 type Mutable = Record<string, unknown>;
-type ParseResult = { json?: string; error?: string };
+type ParseResult = { json?: string; sourceLines?: Record<string, number>; error?: string };
 
 const globals = globalThis as unknown as Mutable;
 const realInstantiate = WebAssembly.instantiate;
@@ -60,17 +60,14 @@ afterEach(() => {
     delete globals.fetch;
     globals.Go = realGo;
     (WebAssembly as unknown as Mutable).instantiate = realInstantiate;
+    jest.restoreAllMocks();
 });
 
 describe("Given a Terraform JSON file", () => {
     describe("When it is parsed", () => {
-        test("Then I expect the JSON reader used, without loading the wasm", async () => {
+        test("Then I expect the JSON reader's config with the wasm's source lines", async () => {
             // Arrange
-            let fetched = false;
-            globals.fetch = () => {
-                fetched = true;
-                return Promise.reject(new Error("the wasm must not be loaded for JSON"));
-            };
+            parserAnswers({ sourceLines: { vpc: 1 } });
 
             // Act
             const parsed = await HclParser.parseAsync(
@@ -79,8 +76,28 @@ describe("Given a Terraform JSON file", () => {
             );
 
             // Assert
-            expect<boolean>(fetched).toBe(false);
+            expect<IHclFile>(parsed).toEqual({
+                module: { vpc: [{ source: "./modules/vpc" }] },
+                sourceLines: { vpc: 1 },
+            });
+        });
+    });
+
+    describe("When the wasm cannot be loaded", () => {
+        test("Then I expect the config without source lines", async () => {
+            // Arrange
+            jest.spyOn(console, "debug").mockImplementation(() => undefined);
+            globals.fetch = () => Promise.reject(new Error("offline"));
+
+            // Act
+            const parsed = await HclParser.parseAsync(
+                '{"module":{"vpc":{"source":"./modules/vpc"}}}',
+                "main.tf.json",
+            );
+
+            // Assert
             expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
+            expect(parsed.sourceLines).toBeUndefined();
         });
     });
 });
@@ -96,6 +113,20 @@ describe("Given the wasm parser is loaded", () => {
 
             // Assert
             expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
+        });
+
+        test("Then I expect the source lines it emitted", async () => {
+            // Arrange
+            parserAnswers({
+                json: '{"module":{"vpc":[{"source":"./modules/vpc"}]}}',
+                sourceLines: { vpc: 2 },
+            });
+
+            // Act
+            const parsed = await HclParser.parseAsync("module {}", "main.tf");
+
+            // Assert
+            expect(parsed.sourceLines).toEqual({ vpc: 2 });
         });
     });
 
