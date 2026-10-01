@@ -8,12 +8,5 @@ export type PlacedSourceLink = {
     readonly url: string;
 };
 
-/** The url each module source on a page links to, keyed by the source as the page shows it. */
-export type SourceLinks = {
-    /** The url of each source, by the 1-based line it is written on. */
-    readonly atLine: ReadonlyMap<number, ReadonlyMap<string, string>>;
-    /** The url of each source wherever it is written, from the first module that declares it. */
-    readonly bySource: ReadonlyMap<string, string>;
-    /** Each source whose column is known, by the 1-based line it is written on. */
-    readonly placed: ReadonlyMap<number, readonly PlacedSourceLink[]>;
-};
+/** Each module source on a page that has a url, by the 1-based line it is written on. */
+export type SourceLinks = ReadonlyMap<number, readonly PlacedSourceLink[]>;

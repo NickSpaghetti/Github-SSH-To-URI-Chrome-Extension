@@ -4,73 +4,88 @@
  */
 import { expect } from "@jest/globals";
 import { GitHubPageWriter } from "../../../src/data-access/GitHubPageWriter";
-import { SourceLinks } from "../../../src/types/SourceLinks";
+import {
+    Line,
+    Token,
+    anchors,
+    fillLine,
+    lineText,
+    numberLines,
+    placedAt,
+    text,
+} from "./RenderedLines";
 
 const SOURCE = "hashicorp/consul/aws";
 const URL = "https://registry.terraform.io/modules/hashicorp/consul/aws/0.1.0";
+const OTHER_URL = "https://registry.terraform.io/modules/hashicorp/consul/aws/0.2.0";
 
 const writer = new GitHubPageWriter();
 
 /**
- * Builds links that match on source alone.
- * @param entries Each source and the url it opens.
- * @returns The links.
+ * Puts a file on the window the way GitHub renders it: an inert `div` with an
+ * `LC{n}` id per line inside its code lines, next to its line numbers.
+ * @param lines Each line, from line 1, or by line number. Lines not given are empty.
  */
-const bySource = (entries: [string, string][]): SourceLinks => ({
-    placed: new Map(),
-    atLine: new Map(),
-    bySource: new Map(entries),
-});
-
-/**
- * Builds a rendered line the way GitHub tokenizes it.
- * @param id The line's id.
- * @param attributes Each attribute name and string value on the line.
- * @returns The line's html.
- */
-const line = (id: string, attributes: [string, string][]): string =>
-    `<div id="${id}" inert>${attributes
-        .map(
-            ([name, value]) =>
-                `<span class="pl-v">${name} = </span>` +
-                `<span class="pl-s"><span class="pl-pds">"</span>${value}<span class="pl-pds">"</span></span>`,
-        )
-        .join(" ")}</div>`;
-
-/**
- * Renders lines into a page with GitHub's line numbers and code lines.
- * @param lines The html of each line.
- */
-const render = (...lines: string[]): void => {
+const renderLines = (lines: readonly Line[] | Readonly<Record<number, Line>>): void => {
+    const { byNumber, last } = numberLines(lines);
     document.body.innerHTML =
-        `<div class="react-line-numbers"></div>` +
-        `<div class="react-code-lines">${lines.join("")}</div>`;
+        `<div class="react-line-numbers"></div>` + `<div class="react-code-lines"></div>`;
+    const codeLines = document.querySelector(".react-code-lines") as HTMLElement;
+    for (let number = 1; number <= last; number++) {
+        const line = document.createElement("div");
+        line.id = `LC${number}`;
+        line.setAttribute("inert", "");
+        fillLine(line, byNumber[number] ?? "");
+        codeLines.append(line);
+    }
 };
 
-const anchors = (): HTMLAnchorElement[] => Array.from(document.querySelectorAll("a"));
+/**
+ * A string as GitHub tokenizes it: a span holding its two quote spans, with
+ * what is between them.
+ * @param inside The tokens between the quotes.
+ * @returns The string's token.
+ */
+const quoted = (...inside: Token[]): Token => ['"', ...inside, '"'];
+
+/**
+ * An attribute line as GitHub tokenizes it: the name and operator in one span, then the string.
+ * @param name The attribute's name.
+ * @param value The value between the quotes, as bare text.
+ * @returns The line.
+ */
+const attribute = (name: string, value: string): Token[] => [`${name} = `, quoted(text(value))];
+
+// `source = "` is ten characters, so the value starts at column 10.
+const SOURCE_COLUMN = 10;
 
 describe("Given a page with a module source", () => {
     describe("When the source has a link", () => {
         test("Then I expect it replaced by an anchor to the url", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([[SOURCE, URL]]));
+            writer.linkSources(
+                placedAt({ line: 2, column: SOURCE_COLUMN, written: SOURCE, url: URL }),
+            );
 
             // Assert
             const [anchor] = anchors();
             expect<string>(anchor.href).toBe(URL);
             expect<string>(anchor.textContent ?? "").toBe(SOURCE);
             expect<string>(anchor.id).toBe("GithubTerraformSourceUrl-LC2-0");
+            expect<string>(lineText("LC2")).toBe(`source = "${SOURCE}"`);
         });
 
         test("Then I expect the inert attribute removed from the line", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([[SOURCE, URL]]));
+            writer.linkSources(
+                placedAt({ line: 2, column: SOURCE_COLUMN, written: SOURCE, url: URL }),
+            );
 
             // Assert
             expect<boolean>(document.getElementById("LC2")?.hasAttribute("inert") ?? true).toBe(
@@ -80,10 +95,12 @@ describe("Given a page with a module source", () => {
 
         test("Then I expect the code lines raised above the line numbers", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([[SOURCE, URL]]));
+            writer.linkSources(
+                placedAt({ line: 2, column: SOURCE_COLUMN, written: SOURCE, url: URL }),
+            );
 
             // Assert
             const codeLines = document.querySelector(".react-code-lines") as HTMLElement;
@@ -94,10 +111,10 @@ describe("Given a page with a module source", () => {
     describe("When the source has no link", () => {
         test("Then I expect no anchor", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([]));
+            writer.linkSources(placedAt());
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -107,10 +124,17 @@ describe("Given a page with a module source", () => {
     describe("When the link is not an http url", () => {
         test("Then I expect no anchor", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([[SOURCE, "javascript:alert(1)"]]));
+            writer.linkSources(
+                placedAt({
+                    line: 2,
+                    column: SOURCE_COLUMN,
+                    written: SOURCE,
+                    url: "javascript:alert(1)",
+                }),
+            );
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -120,8 +144,8 @@ describe("Given a page with a module source", () => {
     describe("When the sources are linked twice", () => {
         test("Then I expect one anchor", () => {
             // Arrange
-            render(line("LC2", [["source", SOURCE]]));
-            const links = bySource([[SOURCE, URL]]);
+            renderLines({ 2: attribute("source", SOURCE) });
+            const links = placedAt({ line: 2, column: SOURCE_COLUMN, written: SOURCE, url: URL });
 
             // Act
             writer.linkSources(links);
@@ -131,16 +155,31 @@ describe("Given a page with a module source", () => {
             expect<number>(anchors().length).toBe(1);
         });
     });
-});
 
-describe("Given a page with a string that matches a source", () => {
-    describe("When the string is not the value of a source attribute", () => {
-        test("Then I expect it left as text", () => {
+    describe("When the line's text at the column is not the source", () => {
+        test("Then I expect the line left as text", () => {
             // Arrange
-            render(line("LC2", [["description", SOURCE]]));
+            renderLines({ 2: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(bySource([[SOURCE, URL]]));
+            writer.linkSources(
+                placedAt({ line: 2, column: SOURCE_COLUMN - 1, written: SOURCE, url: URL }),
+            );
+
+            // Assert
+            expect<number>(anchors().length).toBe(0);
+        });
+    });
+
+    describe("When the line is not rendered yet", () => {
+        test("Then I expect nothing linked", () => {
+            // Arrange
+            renderLines({ 2: attribute("source", SOURCE) });
+
+            // Act
+            writer.linkSources(
+                placedAt({ line: 9, column: SOURCE_COLUMN, written: SOURCE, url: URL }),
+            );
 
             // Assert
             expect<number>(anchors().length).toBe(0);
@@ -148,30 +187,53 @@ describe("Given a page with a string that matches a source", () => {
     });
 });
 
+describe("Given a line where another attribute holds the same text as a source", () => {
+    describe("When the source is linked", () => {
+        test("Then I expect only the text at the source's column linked", () => {
+            // Arrange
+            renderLines({
+                1: [...attribute("description", SOURCE), " ", ...attribute("source", SOURCE)],
+            });
+            const column = `description = "${SOURCE}" source = "`.length;
+
+            // Act
+            writer.linkSources(placedAt({ line: 1, column, written: SOURCE, url: URL }));
+
+            // Assert
+            expect<number>(anchors().length).toBe(1);
+            expect<string>(
+                anchors()[0].parentElement?.previousElementSibling?.textContent ?? "",
+            ).toBe("source = ");
+        });
+    });
+});
+
 describe("Given a line with two sources", () => {
     describe("When both are linked", () => {
-        test("Then I expect each anchor to have its own id", () => {
+        test("Then I expect each anchor to have its own id and url", () => {
             // Arrange
             const other = "terraform-aws-modules/vpc/aws";
-            render(
-                line("LC2", [
-                    ["source", SOURCE],
-                    ["source", other],
-                ]),
-            );
+            renderLines({
+                2: [...attribute("source", SOURCE), " ", ...attribute("source", other)],
+            });
 
             // Act
             writer.linkSources(
-                bySource([
-                    [SOURCE, URL],
-                    [other, "https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws"],
-                ]),
+                placedAt(
+                    { line: 2, column: SOURCE_COLUMN, written: SOURCE, url: URL },
+                    {
+                        line: 2,
+                        column: `source = "${SOURCE}" source = "`.length,
+                        written: other,
+                        url: OTHER_URL,
+                    },
+                ),
             );
 
             // Assert
-            expect<string[]>(anchors().map((anchor) => anchor.id)).toEqual([
-                "GithubTerraformSourceUrl-LC2-0",
-                "GithubTerraformSourceUrl-LC2-1",
+            expect(anchors().map((anchor) => [anchor.id, anchor.href])).toEqual([
+                ["GithubTerraformSourceUrl-LC2-0", URL],
+                ["GithubTerraformSourceUrl-LC2-1", OTHER_URL],
             ]);
         });
     });
@@ -181,45 +243,18 @@ describe("Given two lines with the same source", () => {
     describe("When each line has its own url", () => {
         test("Then I expect each anchor to open its line's url", () => {
             // Arrange
-            render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
-            const links: SourceLinks = {
-                placed: new Map(),
-                atLine: new Map([
-                    [12, new Map([[SOURCE, `${URL}/0.1.0`]])],
-                    [19, new Map([[SOURCE, `${URL}/0.12.0`]])],
-                ]),
-                bySource: new Map([[SOURCE, `${URL}/0.1.0`]]),
-            };
+            renderLines({ 12: attribute("source", SOURCE), 19: attribute("source", SOURCE) });
 
             // Act
-            writer.linkSources(links);
+            writer.linkSources(
+                placedAt(
+                    { line: 12, column: SOURCE_COLUMN, written: SOURCE, url: URL },
+                    { line: 19, column: SOURCE_COLUMN, written: SOURCE, url: OTHER_URL },
+                ),
+            );
 
             // Assert
-            expect<string[]>(anchors().map((anchor) => anchor.href)).toEqual([
-                `${URL}/0.1.0`,
-                `${URL}/0.12.0`,
-            ]);
-        });
-    });
-
-    describe("When only one line has a url of its own", () => {
-        test("Then I expect the other to open the url by source", () => {
-            // Arrange
-            render(line("LC12", [["source", SOURCE]]), line("LC19", [["source", SOURCE]]));
-            const links: SourceLinks = {
-                placed: new Map(),
-                atLine: new Map([[19, new Map([[SOURCE, `${URL}/0.12.0`]])]]),
-                bySource: new Map([[SOURCE, `${URL}/0.1.0`]]),
-            };
-
-            // Act
-            writer.linkSources(links);
-
-            // Assert
-            expect<string[]>(anchors().map((anchor) => anchor.href)).toEqual([
-                `${URL}/0.1.0`,
-                `${URL}/0.12.0`,
-            ]);
+            expect(anchors().map((anchor) => anchor.href)).toEqual([URL, OTHER_URL]);
         });
     });
 });
@@ -228,33 +263,17 @@ describe("Given a source written as a template", () => {
     describe("When it is linked", () => {
         test("Then I expect one anchor around everything between the quotes, text unchanged", () => {
             // Arrange
-            document.body.innerHTML =
-                `<div class="react-code-lines"><div id="LC7">` +
-                `<span class="pl-v">source = </span>` +
-                `<span class="pl-s"><span class="pl-pds">"</span>` +
-                `<span class="pl-pse">\${</span><span class="pl-s1">local.repo</span>` +
-                `<span class="pl-pse">}</span>//vpc<span class="pl-pds">"</span></span>` +
-                `</div></div>`;
+            renderLines({ 7: ["source = ", quoted("${", "local.repo", "}", text("//vpc"))] });
             const written = "${local.repo}//vpc";
 
             // Act
-            writer.linkSources({
-                placed: new Map(),
-                atLine: new Map([[7, new Map([[written, URL]])]]),
-                bySource: new Map(),
-            });
+            writer.linkSources(placedAt({ line: 7, column: SOURCE_COLUMN, written, url: URL }));
 
             // Assert
-            const literal = document.querySelector("span.pl-s") as HTMLElement;
             const [anchor] = anchors();
             expect<number>(anchors().length).toBe(1);
             expect<string>(anchor.textContent ?? "").toBe(written);
-            expect<string>(literal.textContent ?? "").toBe(`"${written}"`);
-            expect<string[]>(Array.from(literal.children).map((child) => child.tagName)).toEqual([
-                "SPAN",
-                "A",
-                "SPAN",
-            ]);
+            expect<string>(lineText("LC7")).toBe(`source = "${written}"`);
         });
     });
 });
@@ -263,28 +282,26 @@ describe("Given a template with a string inside its interpolation", () => {
     describe("When it is linked", () => {
         test("Then I expect it matched by its inner quotes as written", () => {
             // Arrange
-            const inner = (text: string) =>
-                `<span class="pl-s"><span class="pl-pds">"</span>${text}<span class="pl-pds">"</span></span>`;
-            document.body.innerHTML =
-                `<div class="react-code-lines"><div id="LC4">` +
-                `<span class="pl-v">source = </span>` +
-                `<span class="pl-s"><span class="pl-pds">"</span>` +
-                `<span class="pl-pse">\${</span><span class="pl-s1">var.env == ${inner("prod")} ? ${inner("a")} : ${inner("b")}</span>` +
-                `<span class="pl-pse">}</span>/vpc<span class="pl-pds">"</span></span>` +
-                `</div></div>`;
+            renderLines({
+                4: [
+                    "source = ",
+                    quoted(
+                        "${",
+                        ["var.env == ", quoted(text("prod")), " ? ", quoted(text("a")), " : "],
+                        quoted(text("b")),
+                        "}",
+                        text("/vpc"),
+                    ),
+                ],
+            });
             const written = '${var.env == "prod" ? "a" : "b"}/vpc';
 
             // Act
-            writer.linkSources({
-                placed: new Map(),
-                atLine: new Map([[4, new Map([[written, URL]])]]),
-                bySource: new Map(),
-            });
+            writer.linkSources(placedAt({ line: 4, column: SOURCE_COLUMN, written, url: URL }));
 
             // Assert
-            const [anchor] = anchors();
             expect<number>(anchors().length).toBe(1);
-            expect<string>(anchor.textContent ?? "").toBe(written);
+            expect<string>(anchors()[0].textContent ?? "").toBe(written);
         });
     });
 });
@@ -293,19 +310,13 @@ describe("Given a JSON source with an escaped quote", () => {
     describe("When it is linked", () => {
         test("Then I expect it matched with the escape as written", () => {
             // Arrange
-            document.body.innerHTML =
-                `<div class="react-code-lines"><div id="LC3">` +
-                `<span class="pl-ent">"source"</span>: ` +
-                `<span class="pl-s"><span class="pl-pds">"</span>\${local.m[\\"vpc\\"]}<span class="pl-pds">"</span></span>` +
-                `</div></div>`;
+            renderLines({ 3: ['"source"', ": ", quoted(text('${local.m[\\"vpc\\"]}'))] });
             const written = '${local.m[\\"vpc\\"]}';
 
             // Act
-            writer.linkSources({
-                placed: new Map(),
-                atLine: new Map(),
-                bySource: new Map([[written, URL]]),
-            });
+            writer.linkSources(
+                placedAt({ line: 3, column: '"source": "'.length, written, url: URL }),
+            );
 
             // Assert
             expect<number>(anchors().length).toBe(1);

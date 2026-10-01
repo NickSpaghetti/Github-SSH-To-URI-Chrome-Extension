@@ -223,17 +223,18 @@ test("OpenTofu sources and versions built from variables and locals are linked",
     await page.goto(`${FIXTURES}/blob/main/19-opentofu-static-evaluation.tofu`, {
         waitUntil: "domcontentloaded",
     });
-    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(7);
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(8);
 
     // Assert
-    // In page order. `source_is_a_local` is not a string on the page, so it has
-    // nothing to anchor, and the three unresolved sources have no link.
+    // In page order. `source_is_a_local` is linked on its bare `local.vpc_git`,
+    // and the three unresolved sources have no link.
     const anchors = await readAnchors(page);
     expect(anchors.map((a) => a.text)).toEqual([
         "${local.fixtures}//${local.vpc_path}?ref=${var.fixtures_ref}",
         "git::https://${local.fixtures}.git//modules/vpc?ref=${var.fixtures_ref}",
         '${var.env == "prod" ? local.fixtures : "example.com/unused"}//modules/vpc?ref=${var.fixtures_ref}',
         "${local.registry}/vpc/aws",
+        "local.vpc_git",
         "hashicorp/consul/aws",
         "hashicorp/consul/aws",
         "terraform-aws-modules/vpc/aws",
@@ -241,8 +242,9 @@ test("OpenTofu sources and versions built from variables and locals are linked",
     expect(anchors[0].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
     expect(anchors[1].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
     expect(anchors[2].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
-    expect(anchors.slice(3).map((a) => a.href.split("/").pop())).toEqual([
-        "6.7.3",
+    expect(anchors[3].href.split("/").pop()).toBe("6.7.3");
+    expect(anchors[4].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors.slice(5).map((a) => a.href.split("/").pop())).toEqual([
         "0.1.0",
         "0.11.0",
         "6.7.3",
@@ -357,3 +359,79 @@ test("a scroll while the cache waits for the commit header still links", async (
     // Assert
     await expect.poll(async () => (await readAnchors(page)).length, { timeout: 10_000 }).toBe(5);
 });
+
+/**
+ * Reads each line GitHub rendered for the file being viewed, as the writer
+ * selects them.
+ * @param page The page to read from.
+ * @returns Each line's id and text, in page order.
+ */
+const readRenderedLines = async (page: import("@playwright/test").Page) =>
+    await page.evaluate(() =>
+        Array.from(document.querySelectorAll("div[id^='LC']")).map((line) => ({
+            id: line.id,
+            text: line.textContent ?? "",
+        })),
+    );
+
+/**
+ * @param id An element id.
+ * @returns The line number an `LC{n}` id names, or null when the id is not one.
+ */
+const lineNumberOf = (id: string): number | null => {
+    const digits = id.slice("LC".length);
+    const number = Number(digits);
+    return id.startsWith("LC") && digits !== "" && Number.isInteger(number) && number > 0
+        ? number
+        : null;
+};
+
+// The GitHub writer relies on GitHub numbering each rendered line `LC{n}` and
+// holding that line of the file in it. GitHub renders an empty line as "\n",
+// which holds no source. These check that against github.com, so a change on
+// GitHub's side fails here with the assumption it broke.
+for (const file of [
+    "01-local-paths.tf",
+    "19-opentofu-static-evaluation.tofu",
+    "16-everything.tf.json",
+]) {
+    test(`each LC-numbered line GitHub renders for ${file} holds that line of the file`, async ({
+        context,
+    }) => {
+        // Arrange
+        const page = await context.newPage();
+        const raw = await (
+            await page.request.get(
+                `https://raw.githubusercontent.com/NickSpaghetti/iac-module-linker-fixtures/main/${file}`,
+            )
+        ).text();
+        const fileLines = raw.split("\n");
+
+        // Act
+        await page.goto(`${FIXTURES}/blob/main/${file}`, { waitUntil: "domcontentloaded" });
+        await expect
+            .poll(async () => (await readRenderedLines(page)).length, { timeout: 20_000 })
+            .toBeGreaterThan(0);
+        const rendered = await readRenderedLines(page);
+
+        // Assert
+        expect(
+            rendered.map((line) => lineNumberOf(line.id)),
+            "the lines are div elements numbered LC1, LC2, ... in order",
+        ).toEqual(rendered.map((_, index) => index + 1));
+        expect(
+            rendered
+                .filter(
+                    (line) =>
+                        (line.text === "\n" ? "" : line.text) !==
+                        fileLines[(lineNumberOf(line.id) ?? 0) - 1],
+                )
+                .map((line) => ({
+                    id: line.id,
+                    rendered: line.text,
+                    file: fileLines[(lineNumberOf(line.id) ?? 0) - 1],
+                })),
+            'each line\'s text is that line of the file, character for character, an empty one as "\\n"',
+        ).toEqual([]);
+    });
+}

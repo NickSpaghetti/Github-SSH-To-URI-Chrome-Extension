@@ -4,46 +4,20 @@
  */
 import { expect } from "@jest/globals";
 import { GitLabPageWriter } from "../../../src/data-access/GitLabPageWriter";
-import { SourceLinks } from "../../../src/types/SourceLinks";
+import {
+    Line,
+    Placement,
+    Token,
+    anchors,
+    fillLine,
+    lineText,
+    numberLines,
+    placedAt,
+    text,
+} from "./RenderedLines";
 
 const URL = "https://registry.terraform.io/modules/hashicorp/consul/aws/0.1.0";
 const OTHER_URL = "https://registry.terraform.io/modules/hashicorp/consul/aws/0.2.0";
-
-/** Text GitLab leaves between its spans, not wrapped in one. */
-type Bare = { readonly bare: string };
-
-/** A highlighter token: a span of text, a span holding tokens, or bare text. */
-type Token = string | readonly Token[] | Bare;
-
-/** A line: its text as one text node, or its tokens. */
-type Line = string | readonly Token[];
-
-/**
- * Makes text GitLab leaves between its spans.
- * @param value The text.
- * @returns The bare text token.
- */
-const text = (value: string): Bare => ({ bare: value });
-
-const isBare = (token: Token): token is Bare => typeof token === "object" && "bare" in token;
-
-/**
- * Renders a token the way a highlighter does.
- * @param token The token.
- * @returns A span for text or tokens, or a text node for bare text.
- */
-const renderToken = (token: Token): Node => {
-    if (isBare(token)) {
-        return document.createTextNode(token.bare);
-    }
-    const span = document.createElement("span");
-    if (typeof token === "string") {
-        span.textContent = token;
-    } else {
-        span.append(...token.map(renderToken));
-    }
-    return span;
-};
 
 /**
  * Puts a file on the window the way GitLab renders it: a `.line` with an
@@ -57,10 +31,7 @@ const renderLines = (
     lines: readonly Line[] | Readonly<Record<number, Line>>,
     options: { inert?: boolean; lineTag?: "div" | "span" } = {},
 ): void => {
-    const byNumber: Record<number, Line> = Array.isArray(lines)
-        ? Object.fromEntries(lines.map((line, index) => [index + 1, line]))
-        : lines;
-    const last = Math.max(...Object.keys(byNumber).map(Number));
+    const { byNumber, last } = numberLines(lines);
     window.history.replaceState({}, "", "/group/repo/-/blob/main/main.tf");
     const body = document.createElement("body");
     const code = document.createElement("code");
@@ -71,12 +42,7 @@ const renderLines = (
         const line = document.createElement(options.lineTag ?? "div");
         line.id = `LC${number}`;
         line.className = "line";
-        const spec = byNumber[number] ?? "";
-        if (typeof spec === "string") {
-            line.textContent = spec;
-        } else {
-            line.append(...spec.map(renderToken));
-        }
+        fillLine(line, byNumber[number] ?? "");
         code.append(line);
     }
     const pre = document.createElement("pre");
@@ -133,25 +99,6 @@ const TOFU_TEMPLATE: Line = [
  * @returns The line.
  */
 const jsonSource = (indent: string, value: Token): Line => [indent, '"source"', ":", " ", value];
-
-/** A source as the parser places it: its line, its column, and what the file writes. */
-type Placement = { line: number; column: number; written: string; url: string };
-
-/**
- * Builds links from where the parser read each source.
- * @param placements Each source's line, column, text as written, and url.
- * @returns The links.
- */
-const placedAt = (...placements: Placement[]): SourceLinks => {
-    const placed = new Map<number, { column: number; written: string; url: string }[]>();
-    for (const { line, column, written, url } of placements) {
-        placed.set(line, [...(placed.get(line) ?? []), { column, written, url }]);
-    }
-    return { atLine: new Map(), bySource: new Map(), placed };
-};
-
-const anchors = (): HTMLAnchorElement[] => Array.from(document.querySelectorAll("a"));
-const lineText = (id: string): string => document.getElementById(id)?.textContent ?? "";
 
 const LOCAL_VPC: Placement = { line: 4, column: 12, written: "./modules/vpc", url: URL };
 const LOCAL_LAMBDA: Placement = {

@@ -198,18 +198,28 @@ const linkLocalPath = (source: ModuleSource, pageUrl: URL): Nullable<string> => 
     }
     const replacement = routeMarker(browseRoute(host, resolved.pathname));
 
-    for (const route of [host.fileRoute, host.directoryRoute]) {
-        const marker = routeMarker(route);
-        const markerAt = resolved.pathname.indexOf(marker);
-        if (markerAt !== -1) {
-            const pathname =
-                resolved.pathname.slice(0, markerAt) +
-                replacement +
-                resolved.pathname.slice(markerAt + marker.length);
-            return `${resolved.origin}${pathname}`;
-        }
+    // The route follows the owner and the repository, either of which can be
+    // named like one, so the search starts after them.
+    const from = afterOwnerAndRepository(resolved.pathname);
+    const found = [host.fileRoute, host.directoryRoute]
+        .map(routeMarker)
+        .map((marker) => ({ marker, at: resolved.pathname.indexOf(marker, from) }))
+        .filter(({ at }) => at !== -1)
+        .sort((a, b) => a.at - b.at)[0];
+    if (found === undefined) {
+        return resolved.href;
     }
-    return resolved.href;
+    const pathname =
+        resolved.pathname.slice(0, found.at) +
+        replacement +
+        resolved.pathname.slice(found.at + found.marker.length);
+    return `${resolved.origin}${pathname}`;
+};
+
+const afterOwnerAndRepository = (pathname: string): number => {
+    const ownerEnd = pathname.indexOf(PATH_SEPARATOR, 1);
+    const repositoryEnd = ownerEnd === -1 ? -1 : pathname.indexOf(PATH_SEPARATOR, ownerEnd + 1);
+    return repositoryEnd === -1 ? pathname.length : repositoryEnd;
 };
 
 const routeMarker = (route: string): string => `${PATH_SEPARATOR}${route}${PATH_SEPARATOR}`;

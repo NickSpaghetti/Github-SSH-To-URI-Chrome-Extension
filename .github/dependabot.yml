@@ -15,12 +15,16 @@ updates:
     commit-message:
       prefix: "bumped"
 
-  # pnpm, and the tests/e2e workspace with it.
+  # pnpm, and the tests/e2e workspace with it. One pull request a week, since
+  # every one of them edits pnpm-lock.yaml.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      npm:
+        patterns: ["*"]
     commit-message:
       prefix: "bumped"
 
@@ -28,5 +32,10 @@ updates:
     directory: /wasm
     schedule:
       interval: weekly
+    # A replace in go.mod points this at OpenTofu's fork, at the commit
+    # OpenTofu pins, so a bump of the require line changes nothing that is
+    # built. wasm/README.md says how to move the fork.
+    ignore:
+      - dependency-name: "github.com/hashicorp/hcl/v2"
     commit-message:
       prefix: "bumped"
