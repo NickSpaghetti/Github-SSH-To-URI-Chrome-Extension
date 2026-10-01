@@ -17,13 +17,11 @@ jobs:
         with:
           node-version: 26.x
 
-      # Reads the version from `packageManager` in package.json.
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
         with:
           cache: true
 
-      # One install covers the root and the tests/e2e workspace.
       - name: Run install
         run: pnpm install --frozen-lockfile
 
@@ -48,13 +46,9 @@ jobs:
           key: gocache-${{ runner.os }}-${{ hashFiles('wasm/go.sum', 'Makefile') }}
           restore-keys: gocache-${{ runner.os }}-
 
-      # `make build` builds the wasm parser first: it is generated from wasm/
-      # and not committed, so a fresh checkout has to produce it. Needs Docker,
-      # which the runner provides.
       - name: Run build
         run: make build
 
-      # The build type checks the .ts files but not the .svelte components.
       - name: Typecheck
         run: make typecheck
 

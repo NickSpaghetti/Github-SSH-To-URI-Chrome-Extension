@@ -153,7 +153,7 @@ test("a .tofu file is treated as HCL", async ({ context }) => {
     // Assert
     const hrefs = (await readAnchors(page)).map((a) => a.href);
     // The registry module and the git source link. The oci source does not.
-    expect(hrefs.some((h) => h.includes("registry.terraform.io"))).toBe(true);
+    expect(hrefs.some((h) => new URL(h).hostname === "registry.terraform.io")).toBe(true);
     expect(hrefs.some((h) => h.includes("iac-module-linker-fixtures/tree/v1.0.0"))).toBe(true);
     expect(hrefs.some((h) => h.startsWith("oci://"))).toBe(false);
 });

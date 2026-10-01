@@ -20,13 +20,11 @@ jobs:
         with:
           node-version: 26.x
 
-      # Reads the version from `packageManager` in package.json.
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
         with:
           cache: true
 
-      # One install covers the root and the tests/e2e workspace.
       - name: Run install
         run: pnpm install --frozen-lockfile
 
