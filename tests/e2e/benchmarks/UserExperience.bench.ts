@@ -76,9 +76,8 @@ for (const HOST of [GITHUB, GITLAB]) {
                 await cdp.send("Profiler.start");
 
                 await scrollThrough(page, SCROLL_STEPS, HOST);
-                // A host that keeps what it rendered would make a cycle that
-                // scrolls back over it measure nothing, so each cycle there
-                // goes on to lines not rendered yet.
+                // On a host that keeps rendered lines, scrolling back would
+                // leave the next cycle nothing to render.
                 if (!HOST.keepsRenderedLines) {
                     await HOST.scrollToTop(page);
                 }

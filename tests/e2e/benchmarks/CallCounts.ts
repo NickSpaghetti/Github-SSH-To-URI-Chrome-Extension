@@ -45,11 +45,9 @@ export class CallCounts {
     }
 
     /**
-     * Summed over every function of that name, in every script declaring one.
-     * A content script injected more than once into the same document is
-     * several scripts to v8, and one script can declare the name more than
-     * once: each page writer has a `linkSources`, and only one runs on a page.
-     * Reading only the first of either reports part of the work as the total.
+     * Returns how many times functions of a name were entered. Every function
+     * of that name, in every one of the extension's scripts, counts toward the
+     * total.
      * @param functionName The function as it is named in a readable build.
      * @returns How many times it was entered, 0 when it never was.
      */

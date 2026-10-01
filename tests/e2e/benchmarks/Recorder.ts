@@ -44,9 +44,7 @@ export const record = (axis: string, values: Recorded): void => {
 
 /**
  * Writes what a benchmark measured on a host, for `record-baseline` to assemble.
- *
- * GitHub's numbers sit under the axis itself. Every other host's sit under the
- * host's name, so adding a host leaves GitHub's baseline where it was.
+ * GitHub's numbers go under the axis, and another host's under the host's name.
  * @param host The host the page was on.
  * @param axis The baseline key this belongs under, such as `scrolling`.
  * @param values What was measured.

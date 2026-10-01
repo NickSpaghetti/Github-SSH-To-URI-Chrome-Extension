@@ -1,22 +1,22 @@
 import { Page } from "@playwright/test";
 import { FIXTURES, GITLAB_FIXTURES } from "../extension";
 
-/** The shape of a fixture file, which a benchmark asserts so a changed file is noticed. */
+/** The shape of a fixture file: its line count and its size in UTF-8 bytes. */
 export type Fingerprint = { lines: number; bytes: number };
 
-/** What a benchmark needs to know about the host whose pages it measures. */
+/** A host whose file pages the benchmarks measure. */
 export type BenchHost = {
-    /** The host, as a benchmark's output names it. */
+    /** The host's name in benchmark output and in the baseline. */
     readonly name: string;
     /**
-     * Builds the url of a fixture file's page.
+     * Returns the url of a fixture file's page.
      * @param path The file's path in the fixture repository.
      * @returns The page's url.
      */
     readonly fileUrl: (path: string) => string;
-    /** Selects the anchors the extension injects on this host's pages. */
+    /** The selector of the anchors the extension injects on this host's pages. */
     readonly anchor: string;
-    /** Whether the extension's optional access to this host has to be granted. */
+    /** Whether this host is an optional permission that has to be granted. */
     readonly grantOptionalHosts: boolean;
     /**
      * Scrolls the code one viewport down.
@@ -28,7 +28,7 @@ export type BenchHost = {
      * @param page The page to scroll.
      */
     readonly scrollToTop: (page: Page) => Promise<void>;
-    /** Whether lines stay rendered once scrolled past, so scrolling back over them costs nothing. */
+    /** Whether lines stay rendered once scrolled past. */
     readonly keepsRenderedLines: boolean;
     /**
      * Reads the shape of the file a page shows.
@@ -36,7 +36,7 @@ export type BenchHost = {
      * @returns The file's line count and size in UTF-8 bytes.
      */
     readonly fingerprint: (page: Page) => Promise<Fingerprint>;
-    /** The links clicked, in order, to move from `benchmarks/parse/small.tf` to `benchmarks/parse/large.tf` without a reload. */
+    /** The links that lead from `benchmarks/parse/small.tf` to `benchmarks/parse/large.tf`, in order, without a reload. */
     readonly browseToLargeParse: readonly string[];
 };
 
@@ -98,8 +98,8 @@ export const GITLAB: BenchHost = {
     },
     // GitLab renders a file in chunks of 70 lines and never removes one.
     keepsRenderedLines: true,
-    // GitLab never holds the whole file on the page, so it is read the way the
-    // extension reads it, and measured as GitHub's textarea holds it.
+    // GitLab never holds the whole file on the page. Its raw file is measured
+    // as GitHub's textarea holds it, without its final newline.
     fingerprint: async (page) => {
         const raw = page.url().split(GITLAB_BLOB_ROUTE).join(GITLAB_RAW_ROUTE);
         const text = await (await page.request.get(raw)).text();

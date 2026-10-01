@@ -124,15 +124,10 @@ test("a lost cache makes the next scroll pay for everything again", async ({ con
     expect(entries).toBeGreaterThan(0);
 });
 
-/** Scroll steps a GitLab run may take to bring the file's last line into view. */
 const MAX_GITLAB_STEPS = 40;
 
-/**
- * GitLab renders the file in chunks as they scroll into view and never
- * removes one, and its scroll stays inside its code panel, so the content
- * script's scroll listener never fires there. The observer is what links each
- * new chunk, from the links already made, and that is what this measures.
- */
+// GitLab scrolls inside its code panel, so the content script's scroll
+// listener never fires there. The observer links each chunk GitLab renders.
 test.describe(GITLAB.name, () => {
     test.use({ grantOptionalHosts: GITLAB.grantOptionalHosts });
 
@@ -200,15 +195,13 @@ test.describe(GITLAB.name, () => {
         expect(fingerprint.bytes).toBe(baseline.scrolling.fingerprint.bytes);
         expect(cached).toBe(DECLARATIONS);
 
-        // Every chunk rendered, or the rest measured part of the file.
+        // Every chunk rendered.
         expect(await lastLine.count()).toBe(1);
 
-        // Scrolling resolves nothing; the observer links from what it has.
         expect(resolutions).toBe(0);
         expect(observerRuns).toBeGreaterThan(0);
 
-        // Each source with a link is linked exactly once: a chunk left
-        // unlinked reads low, a chunk linked twice reads high.
+        // Exactly once: a chunk left unlinked reads low, one linked twice reads high.
         expect(anchors).toBe(linkable);
     });
 });

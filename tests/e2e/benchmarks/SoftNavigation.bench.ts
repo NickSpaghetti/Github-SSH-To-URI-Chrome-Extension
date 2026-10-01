@@ -90,13 +90,9 @@ test("browsing between files does not multiply what a scroll pause costs", async
     expect(afterBrowsing).toBe(baseline.softNavigation.injectionsPerPauseAfterBrowsing);
 });
 
-/**
- * GitLab's scroll stays inside its code panel, so the content script's scroll
- * listener never fires there and a scroll pause costs nothing to count. A
- * second set of listeners shows instead on arrival: each would answer the
- * background script's refresh, so a file reached after browsing would be
- * linked once per set.
- */
+// GitLab scrolls inside its code panel, so the content script's scroll
+// listener never fires there. A second set of listeners shows on arrival
+// instead, as a second answer to the background script's refresh.
 test.describe(GITLAB.name, () => {
     test.use({ grantOptionalHosts: GITLAB.grantOptionalHosts });
 
@@ -142,13 +138,11 @@ test.describe(GITLAB.name, () => {
         });
 
         // Assert
-        // Without this the test measures page loads rather than injections
-        // into one document, and would pass for the wrong reason.
+        // One document throughout, or this measured page loads.
         expect(sameDocument).toBe("same document");
         expect(anchors).toBeGreaterThan(0);
 
-        // One run per file. A second set of listeners would make the arrival
-        // count grow with every file browsed past.
+        // One run per file; a second set of listeners makes it one per set.
         expect(onLoad).toBe(1);
         expect(onArrival).toBe(1);
     });

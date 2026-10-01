@@ -139,8 +139,7 @@ test("OpenTofu sources and versions do not make a larger file slower to show lin
     expect(large.toFirstLinkMs).toBeLessThan(WORK_MS);
 });
 
-// GitLab never holds the whole file on the page, so the extension fetches it
-// before parsing. That request is part of what a user waits for here.
+// GitLab never holds the whole file on the page, so the wait includes fetching it.
 test("on GitLab, a four times larger file is not four times slower to show links", async () => {
     // Act
     const small = await measureAsync("small.tf", GITLAB);
