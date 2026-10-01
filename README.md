@@ -18,10 +18,12 @@ When the page loads the extension parses the module sources in your file and tur
 
 ### viewing all sources
 
-Navigate to a GitHub page where there is Terraform code and click on the extension. If no modules are found then `No Moduels found` will be displayed on the pop-up.
-If a modules is found then a table displaying the module name and source type will be shown. The module name is a hyperlink to the github page of that module.
+Navigate to a GitHub page where there is Terraform code and click on the extension. The pop-up lists every module on the page with its source type, and its version constraint when it has one.
+The module name links to where the source points. The search box filters the list, and `Copy name` copies a module's name.
+When a registry module's constraint lags behind the version it resolves to, a second button copies a constraint pinned to that version.
+If the page has no modules then `No modules on this page.` is shown.
 
-![Extension popup listing each module found on the page next to its source type](docs/screenshots/mutiLinkPopup.png)
+![Extension popup listing each module found on the page with its source type](docs/screenshots/mutiLinkPopup.png)
 
 # How to contribute
 

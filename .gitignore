@@ -384,6 +384,7 @@ sensitive
 # Build output
 dist
 dist.*
+iac-module-linker-*.zip
 
 # Ignore cypresss
 tests/cypress/cypress/videos/*

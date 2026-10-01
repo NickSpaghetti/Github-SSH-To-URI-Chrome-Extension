@@ -1,4 +1,4 @@
-.PHONY: install build test e2e benchmark record-baseline lint typecheck lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm clean-go-cache
+.PHONY: install build test e2e benchmark record-baseline lint typecheck lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm clean-go-cache package
 
 # Generated, not committed, so every target that reads one names both as
 # prerequisites. `jest` needs them too, not just the bundle: `HclParser.ts`
@@ -72,6 +72,17 @@ check: lint typecheck format-check audit audit-dev test
 
 clean:
 	rm -rf dist
+
+# The zip for a manual upload to the Chrome Web Store dashboard. Built from a
+# clean dist so nothing left over from an earlier build ships.
+VERSION = $(shell node -p "require('./public/manifest.json').version")
+PACKAGE = iac-module-linker-$(VERSION).zip
+
+package: node_modules $(WASM)
+	rm -rf dist $(PACKAGE)
+	pnpm build
+	cd dist && zip -qr ../$(PACKAGE) .
+	@echo "packaged $(PACKAGE)"
 
 # Separate from `clean`: a build cache, not build output.
 clean-go-cache:
