@@ -150,3 +150,50 @@ test("resolution cost tracks module count", async () => {
     expect(small.fingerprint).toEqual(baseline.resolution.small.fingerprint);
     expect(large.fingerprint).toEqual(baseline.resolution.large.fingerprint);
 });
+
+test("OpenTofu sources and versions resolve every registry module", async () => {
+    // Arrange
+    /**
+     * Measures one fixture. One browser at a time: two cannot bind the same
+     * debugging port.
+     * @param name The fixture file to open.
+     * @returns Its request count, its shape, and how long the requests spanned.
+     */
+    const measure = async (name: string) => {
+        const { requests, fingerprint, closeAsync } = await watchAsync(name);
+        try {
+            return {
+                count: requests.length,
+                fingerprint,
+                span: Math.round(
+                    Math.max(...requests.map((r) => r.end)) -
+                        Math.min(...requests.map((r) => r.start)),
+                ),
+            };
+        } finally {
+            await closeAsync();
+        }
+    };
+
+    // Act
+    const small = await measure("small.tofu");
+    const large = await measure("large.tofu");
+
+    console.log(
+        `BENCH resolution tofu small ${small.count} requests ${small.span}ms, large ${large.count} requests ${large.span}ms`,
+    );
+    record("resolution", {
+        tofu: {
+            small: { modules: small.count, spanMs: small.span, fingerprint: small.fingerprint },
+            large: { modules: large.count, spanMs: large.span, fingerprint: large.fingerprint },
+        },
+    });
+
+    // Assert
+    // The same modules as the .tf files. One whose source did not evaluate
+    // would make no request, so a count short of theirs is a module lost.
+    expect(small.count).toBe(baseline.resolution.small.modules);
+    expect(large.count).toBe(baseline.resolution.large.modules);
+    expect(small.fingerprint).toEqual(baseline.resolution.tofu.small.fingerprint);
+    expect(large.fingerprint).toEqual(baseline.resolution.tofu.large.fingerprint);
+});

@@ -1,11 +1,5 @@
 import { Nullable } from "./Nullable";
 
-export type Terraform = {
-    source?: string;
-    /** One entry per block, each a map of provider name to its declaration. */
-    required_providers?: Array<Record<string, ProviderType>>;
-};
-
 export type ProviderType = {
     source?: string;
     version?: string;
@@ -17,4 +11,8 @@ export type TerraformModule = {
     terraformProperty: string;
     /** The 1-based line the source is written on, or null when the parser did not say. */
     sourceLine: Nullable<number>;
+    /** The source as the file writes it, which a template's resolved source differs from. */
+    writtenSource: string;
+    /** false when the source could not be evaluated from the file, so it cannot be linked. */
+    sourceResolved: boolean;
 };

@@ -1,70 +1,43 @@
 import "../vendor/wasm_exec.js";
-import { IHclFile } from "../types/IHclFile";
 import { Nullable } from "../types/Nullable";
-import { parseJsonConfig } from "../domain/TerraformJsonParser";
-import { logRecovered } from "../util/Log";
+import { ParsedDeclaration } from "../types/ParsedDeclaration";
 
 const WASM_FILE = "main.wasm.gz";
-const JSON_SUFFIX = ".json";
 const COMPRESSION_FORMAT = "gzip";
 
-type ParseResult = { json?: string; sourceLines?: Record<string, number>; error?: string };
+type ParseResult = { declarations?: string; error?: string };
 type GoRuntime = { importObject: WebAssembly.Imports; run: (i: WebAssembly.Instance) => void };
 
 /**
- * Parses HCL by way of tmccombs/hcl2json compiled to wasm. The binary is
- * fetched and inflated on first use rather than bundled.
- *
- * The twin of `TerraformJsonParser`, which this delegates to for `.json`.
- * That one stays in `domain/` because it is pure; this one reaches chrome,
- * so it cannot.
+ * Reads the declarations in a Terraform or OpenTofu file, using HashiCorp's HCL
+ * compiled to wasm. The binary is fetched and inflated on first use.
  */
 export class HclParser {
     private static starting: Nullable<Promise<void>> = null;
 
     /**
+     * Reads the module sources a file declares.
      * @param contents The raw text of the file being viewed.
-     * @param fileName Used to pick the JSON reader, and for parse error positions.
-     * @returns The parsed config.
+     * @param fileName The file's name. One ending in `.json` is read as JSON syntax.
+     * @returns The declarations in the file, in the order the file writes them.
      * @throws When the wasm binary cannot be read, or never registers itself.
-     * @throws When the parser reports an error or returns nothing.
-     * @throws When the parser's output, or a `.json` file, is not valid JSON.
+     * @throws When the file does not parse, or the parser returns nothing.
      */
-    public static async parseAsync(contents: string, fileName: string): Promise<IHclFile> {
-        if (fileName.toLowerCase().endsWith(JSON_SUFFIX)) {
-            const config = parseJsonConfig(contents);
-            config.sourceLines = await HclParser.findSourceLinesAsync(contents, fileName);
-            return config;
-        }
-
-        const result = await HclParser.runAsync(contents, fileName);
-        if (result.error !== undefined || result.json === undefined) {
-            throw new Error(result.error ?? "the parser returned nothing");
-        }
-        const config = JSON.parse(result.json) as IHclFile;
-        config.sourceLines = result.sourceLines;
-        return config;
-    }
-
-    private static async findSourceLinesAsync(
+    public static async parseAsync(
         contents: string,
         fileName: string,
-    ): Promise<Record<string, number> | undefined> {
-        try {
-            return (await HclParser.runAsync(contents, fileName)).sourceLines;
-        } catch (error) {
-            logRecovered(`could not find the source lines in ${fileName}`, error);
-            return undefined;
-        }
-    }
-
-    private static async runAsync(contents: string, fileName: string): Promise<ParseResult> {
+    ): Promise<ParsedDeclaration[]> {
         await HclParser.startAsync();
         const parse = (globalThis as unknown as Record<string, unknown>)["tofuParseToString"] as (
-            hcl: string,
+            contents: string,
             name: string,
         ) => ParseResult;
-        return parse(contents, fileName);
+
+        const result = parse(contents, fileName);
+        if (result.error !== undefined || result.declarations === undefined) {
+            throw new Error(result.error ?? "the parser returned nothing");
+        }
+        return JSON.parse(result.declarations) as ParsedDeclaration[];
     }
 
     /**

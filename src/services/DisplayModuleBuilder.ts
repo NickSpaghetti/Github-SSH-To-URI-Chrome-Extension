@@ -35,6 +35,10 @@ export const buildDisplayModuleAsync = async (
     }
 
     module.source = source;
+    module.writtenSource = terraformModule.writtenSource;
+    if (!terraformModule.sourceResolved) {
+        return module;
+    }
     const moduleSource = classify(detect(split(source)));
     module.sourceType = moduleSource.sourceType;
 

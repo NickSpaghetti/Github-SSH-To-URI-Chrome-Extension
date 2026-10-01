@@ -102,6 +102,39 @@ test("a four times larger file is not four times slower to show links", async ()
     expect(large.toFirstLinkMs).toBeLessThan(WORK_MS);
 });
 
+test("OpenTofu sources and versions do not make a larger file slower to show links", async () => {
+    // Act
+    const small = await measureAsync("small.tofu");
+    const large = await measureAsync("large.tofu");
+    const ratio = Math.round((large.toFirstLinkMs / Math.max(small.toFirstLinkMs, 1)) * 100) / 100;
+
+    console.log(
+        `BENCH parse tofu small ${small.toFirstLinkMs}ms to first link, large ${large.toFirstLinkMs}ms, ratio ${ratio} against ${baseline.parse.tofu.sizeRatio} the bytes`,
+    );
+    record("parse", {
+        tofu: {
+            smallLines: small.lines,
+            largeLines: large.lines,
+            smallBytes: small.bytes,
+            largeBytes: large.bytes,
+            smallToFirstLinkMs: small.toFirstLinkMs,
+            largeToFirstLinkMs: large.toFirstLinkMs,
+            latencyRatio: ratio,
+        },
+    });
+
+    // Assert
+    expect(small.lines).toBe(baseline.parse.tofu.smallLines);
+    expect(large.lines).toBe(baseline.parse.tofu.largeLines);
+
+    // Every source and version here is evaluated, through a chain of locals
+    // written in the slowest order to resolve. That must still not scale with
+    // the file the way the bytes do.
+    expect(ratio).toBeLessThan(baseline.parse.tofu.sizeRatio);
+    expect(small.toFirstLinkMs).toBeLessThan(WORK_MS);
+    expect(large.toFirstLinkMs).toBeLessThan(WORK_MS);
+});
+
 /*
  * There is no assertion here on how many times the file is parsed.
  * `Profiler.takePreciseCoverage` on the worker reports two entries for

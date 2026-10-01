@@ -45,6 +45,8 @@ describe("Given a registry lookup that fails", () => {
                 terraformProperty: "module",
                 sourceLine: null,
                 provider: { source: UNKNOWN_MODULE, version: "" },
+                writtenSource: UNKNOWN_MODULE,
+                sourceResolved: true,
             };
 
             // Act
@@ -69,18 +71,24 @@ describe("Given a page with one broken module among good ones", () => {
                     terraformProperty: "module",
                     sourceLine: null,
                     provider: { source: "git::https://github.com/a/b.git?ref=v1.0.0", version: "" },
+                    writtenSource: "git::https://github.com/a/b.git?ref=v1.0.0",
+                    sourceResolved: true,
                 },
                 {
                     moduleName: "broken",
                     terraformProperty: "module",
                     sourceLine: null,
                     provider: { source: UNKNOWN_MODULE, version: "" },
+                    writtenSource: UNKNOWN_MODULE,
+                    sourceResolved: true,
                 },
                 {
                     moduleName: "good_path",
                     terraformProperty: "module",
                     sourceLine: null,
                     provider: { source: "./modules/vpc", version: "" },
+                    writtenSource: "./modules/vpc",
+                    sourceResolved: true,
                 },
             ];
 

@@ -31,7 +31,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.runtime.onMessage.addListener((request: unknown, sender, sendResponse) => {
     if (isParseRequest(request)) {
         HclParser.parseAsync(request.contents, request.fileName)
-            .then((hclFile) => sendResponse({ ok: true, hclFile: hclFile }))
+            .then((declarations) => sendResponse({ ok: true, declarations: declarations }))
             .catch((error) => sendResponse({ ok: false, error: String(error) }));
         return true;
     }

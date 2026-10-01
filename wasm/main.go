@@ -3,42 +3,35 @@
 package main
 
 import (
-	"strings"
+	"encoding/json"
 	"syscall/js"
 
-	"github.com/tmccombs/hcl2json/convert"
-
-	"iac-module-linker/wasm/sourcelines"
+	"iac-module-linker/wasm/declarations"
 )
 
-const jsonSuffix = ".json"
-
-// parseToString returns {json, sourceLines} for HCL and {sourceLines} for
-// JSON, which hcl2json cannot read and the extension parses itself.
-func parseToString(this js.Value, args []js.Value) any {
+// parseToString reads args[0] as the file named args[1] and returns
+// {declarations: JSON array} or {error: message}.
+func parseToString(_ js.Value, args []js.Value) any {
 	if len(args) < 1 {
-		return map[string]any{"error": "expected (hclString, filename?)"}
+		return map[string]any{"error": "expected (contents, filename?)"}
 	}
 	filename := "main.tf"
 	if len(args) > 1 && args[1].Type() == js.TypeString {
 		filename = args[1].String()
 	}
-	contents := []byte(args[0].String())
 
-	lines := map[string]any{}
-	for name, line := range sourcelines.Find(contents, filename) {
-		lines[name] = line
-	}
-
-	if strings.HasSuffix(strings.ToLower(filename), jsonSuffix) {
-		return map[string]any{"sourceLines": lines}
-	}
-
-	out, err := convert.Bytes(contents, filename, convert.Options{})
+	found, err := declarations.Read([]byte(args[0].String()), filename)
 	if err != nil {
 		return map[string]any{"error": err.Error()}
 	}
-	return map[string]any{"json": string(out), "sourceLines": lines}
+	if found == nil {
+		found = []declarations.Declaration{}
+	}
+	out, err := json.Marshal(found)
+	if err != nil {
+		return map[string]any{"error": err.Error()}
+	}
+	return map[string]any{"declarations": string(out)}
 }
 
 func main() {

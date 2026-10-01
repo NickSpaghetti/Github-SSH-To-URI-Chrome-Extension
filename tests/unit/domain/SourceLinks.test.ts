@@ -23,6 +23,30 @@ const displayModule = (
     versionConstraint: "",
     resolvedVersion: "",
     sourceLine: sourceLine,
+    writtenSource: SOURCE,
+});
+
+describe("Given a module whose source is a template", () => {
+    describe("When its links are mapped", () => {
+        test("Then I expect them keyed by the source as the page shows it", () => {
+            // Arrange
+            const module: DisplayModule = {
+                ...displayModule("https://example.com/a", 7),
+                source: "terraform-aws-modules/vpc/aws",
+                writtenSource: "${local.registry}/vpc/aws",
+            };
+
+            // Act
+            const links = toSourceLinks([module]);
+
+            // Assert
+            expect(links.atLine.get(7)?.get("${local.registry}/vpc/aws")).toBe(
+                "https://example.com/a",
+            );
+            expect(links.bySource.get("${local.registry}/vpc/aws")).toBe("https://example.com/a");
+            expect(links.bySource.has("terraform-aws-modules/vpc/aws")).toBe(false);
+        });
+    });
 });
 
 describe("Given modules declared on a page", () => {

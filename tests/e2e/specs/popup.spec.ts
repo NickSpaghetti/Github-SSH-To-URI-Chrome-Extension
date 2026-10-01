@@ -262,3 +262,24 @@ test("a module behind the newest version is offered a bumped constraint", async 
     // Assert
     await expect(popup.locator(".ml-live")).toHaveText("Copied ~> 6.7");
 });
+
+test("the popup keeps OpenTofu modules it cannot resolve, unlinked", async ({
+    context,
+    extensionId,
+}) => {
+    // Arrange
+    const page = await primeCacheAsync(context, "19-opentofu-static-evaluation.tofu");
+
+    // Act
+    const popup = await openPopupAsync(context, extensionId, page);
+    await expect(popup.locator(LIST)).toBeVisible({ timeout: 15_000 });
+
+    // Assert
+    await expect(popup.locator(ROW)).toHaveCount(11);
+    for (const name of ["unresolved_variable", "unresolved_function", "unresolved_resource"]) {
+        await expect(popup.locator("span.ml-name", { hasText: name })).toBeVisible();
+    }
+    // A source that is a bare local has nothing to anchor on the page, but the
+    // popup still links it.
+    await expect(popup.locator("a.ml-name", { hasText: "source_is_a_local" })).toBeVisible();
+});

@@ -1,0 +1,47 @@
+[
+  {
+    "name": "terraform",
+    "block": "terraform",
+    "source": "hashicorp/terraform",
+    "written": "hashicorp/terraform",
+    "resolved": true,
+    "version": "",
+    "line": 2
+  },
+  {
+    "name": "required_providers.aws",
+    "block": "required_providers",
+    "source": "hashicorp/aws",
+    "written": "hashicorp/aws",
+    "resolved": true,
+    "version": "~\u003e 6.0",
+    "line": 6
+  },
+  {
+    "name": "vpc",
+    "block": "module",
+    "source": "terraform-aws-modules/vpc/aws",
+    "written": "terraform-aws-modules/vpc/aws",
+    "resolved": true,
+    "version": "6.7.3",
+    "line": 13
+  },
+  {
+    "name": "templated",
+    "block": "module",
+    "source": "terraform-aws-modules/security-group/aws",
+    "written": "${local.modules}/security-group/aws",
+    "resolved": true,
+    "version": "",
+    "line": 22
+  },
+  {
+    "name": "unresolved",
+    "block": "module",
+    "source": "${var.not_in_this_file}//modules/vpc",
+    "written": "${var.not_in_this_file}//modules/vpc",
+    "resolved": false,
+    "version": "",
+    "line": 26
+  }
+]

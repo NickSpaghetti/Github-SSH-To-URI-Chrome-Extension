@@ -19,6 +19,7 @@ const ENTRY: CachedModules = {
             versionConstraint: "~> 6.0",
             resolvedVersion: "6.7.3",
             sourceLine: 12,
+            writtenSource: "terraform-aws-modules/vpc/aws",
         },
     ],
 };

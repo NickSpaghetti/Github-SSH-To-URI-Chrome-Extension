@@ -1,7 +1,6 @@
 import { DisplayModule } from "../types/DisplayModule";
 import { buildDisplayModuleAsync } from "./DisplayModuleBuilder";
 import { Nullable } from "../types/Nullable";
-import { readModuleDeclarations } from "../domain/ModuleDeclarationReader";
 import { ChromeRuntimeParserService } from "./ChromeRuntimeParserService";
 import { ModuleSourceLinker } from "./ModuleSourceLinker";
 import { IGitHubPageDataAccess } from "../data-access/IGitHubPageDataAccess";
@@ -34,16 +33,14 @@ export class PageModuleService {
             return null;
         }
 
-        let declarations;
+        let declared;
         try {
-            const hclFile = await this.parserService.parseAsync(contents, this.page.getFileName());
-            declarations = readModuleDeclarations(hclFile);
+            declared = await this.parserService.parseAsync(contents, this.page.getFileName());
         } catch (error) {
             logRecovered("could not parse the file being viewed", error);
             return [];
         }
 
-        const declared = Array.from(declarations.values());
         const resolved: DisplayModule[][] = [];
         for (let start = 0; start < declared.length; start += REGISTRY_REQUESTS_AT_ONCE) {
             const batch = declared.slice(start, start + REGISTRY_REQUESTS_AT_ONCE);

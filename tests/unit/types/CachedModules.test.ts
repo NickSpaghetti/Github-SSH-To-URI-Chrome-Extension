@@ -22,6 +22,7 @@ const row = {
     versionConstraint: "~> 6.0",
     resolvedVersion: "6.7.3",
     sourceLine: 12,
+    writtenSource: "terraform-aws-modules/vpc/aws",
 };
 
 describe("Given a cache entry read back from storage", () => {
@@ -84,7 +85,22 @@ describe("Given a cache entry read back from storage", () => {
                 versionConstraint: "",
                 resolvedVersion: "",
                 sourceLine: null,
+                writtenSource: "",
             });
+        });
+    });
+
+    describe("When a row has no written source", () => {
+        test("Then I expect its source used", () => {
+            // Arrange
+            const { writtenSource: _, ...older } = row;
+            const stored = entry([older]);
+
+            // Act
+            const read = readCachedModules(stored);
+
+            // Assert
+            expect(read?.modules[0].writtenSource).toBe(row.source);
         });
     });
 

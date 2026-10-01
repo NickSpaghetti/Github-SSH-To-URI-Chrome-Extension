@@ -10,3 +10,6 @@ src/vendor
 
 # Go module and build cache for the wasm container.
 .gocache
+
+# Written by `go test -update`, which the Go contract test compares byte for byte.
+wasm/declarations/testdata/contract.json

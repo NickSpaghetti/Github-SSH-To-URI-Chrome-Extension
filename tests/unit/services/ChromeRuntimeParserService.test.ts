@@ -1,11 +1,21 @@
 import { expect } from "@jest/globals";
 import { ChromeRuntimeParserService } from "../../../src/services/ChromeRuntimeParserService";
-import { IHclFile } from "../../../src/types/IHclFile";
 import { WORKER_QUERIES } from "../../../src/types/WorkerRequest";
+import { TerraformModule } from "../../../src/types/Terraform";
 import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
 
-/** The config a worker answers with when the parse succeeded. */
-const parsed = { module: { vpc: [{ source: "./modules/vpc" }] } } as unknown as IHclFile;
+/** The declarations a worker answers with when the parse succeeded. */
+const parsed = [
+    {
+        name: "vpc",
+        block: "module",
+        source: "./modules/vpc",
+        written: "./modules/vpc",
+        resolved: true,
+        version: "",
+        line: 1,
+    },
+];
 
 const service = new ChromeRuntimeParserService();
 const CONTENTS = 'module "vpc" { source = "./modules/vpc" }';
@@ -15,22 +25,45 @@ afterEach(() => clearChromeRuntime());
 
 describe("Given the service worker parses the file", () => {
     describe("When a file is parsed", () => {
-        test("Then I expect the parsed config returned", async () => {
+        test("Then I expect the declarations read into modules", async () => {
             // Arrange
-            stubChromeRuntime(() => ({ ok: true, hclFile: parsed }));
+            stubChromeRuntime(() => ({ ok: true, declarations: parsed }));
 
             // Act
-            const config = await service.parseAsync(CONTENTS, FILE_NAME);
+            const declarations = await service.parseAsync(CONTENTS, FILE_NAME);
 
             // Assert
-            expect<IHclFile>(config).toEqual(parsed);
+            expect<TerraformModule[]>(declarations).toEqual([
+                {
+                    moduleName: "vpc",
+                    terraformProperty: "module",
+                    provider: { source: "./modules/vpc", version: "" },
+                    sourceLine: 1,
+                    writtenSource: "./modules/vpc",
+                    sourceResolved: true,
+                },
+            ]);
+        });
+
+        test("Then I expect a malformed declaration left out", async () => {
+            // Arrange
+            stubChromeRuntime(() => ({
+                ok: true,
+                declarations: [...parsed, { name: "bad", block: "resource", source: "x" }],
+            }));
+
+            // Act
+            const declarations = await service.parseAsync(CONTENTS, FILE_NAME);
+
+            // Assert
+            expect<string[]>(declarations.map((module) => module.moduleName)).toEqual(["vpc"]);
         });
     });
 
     describe("When the message is sent", () => {
         test("Then I expect the contents and file name carried with the query", async () => {
             // Arrange
-            const stub = stubChromeRuntime(() => ({ ok: true, hclFile: parsed }));
+            const stub = stubChromeRuntime(() => ({ ok: true, declarations: parsed }));
 
             // Act
             await service.parseAsync(CONTENTS, FILE_NAME);

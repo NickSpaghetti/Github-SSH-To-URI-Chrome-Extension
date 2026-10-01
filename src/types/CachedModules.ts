@@ -26,6 +26,8 @@ const readModule = (value: unknown): Nullable<DisplayModule> => {
         versionConstraint: readText(value.versionConstraint),
         resolvedVersion: readText(value.resolvedVersion),
         sourceLine: typeof value.sourceLine === "number" ? value.sourceLine : null,
+        writtenSource:
+            typeof value.writtenSource === "string" ? value.writtenSource : readText(value.source),
     };
 };
 
