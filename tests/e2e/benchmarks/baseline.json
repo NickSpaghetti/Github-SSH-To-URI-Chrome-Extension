@@ -116,5 +116,15 @@
         "storedKeys": 21,
         "storedBytes": 45957,
         "cachedFiles": 21
+    },
+    "gitlab": {
+        "userExperience": {
+            "cpuSharePercent": 0.13,
+            "cycles": 3,
+            "allocSharePercent": 0,
+            "allocKb": 0,
+            "cpuMs": 1.6,
+            "longTasks": 2
+        }
     }
 }

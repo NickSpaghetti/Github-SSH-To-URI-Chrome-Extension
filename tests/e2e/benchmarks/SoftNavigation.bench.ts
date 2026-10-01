@@ -1,10 +1,12 @@
-import { test, expect, FIXTURES } from "../extension";
+import { test, expect } from "../extension";
+import { GITHUB } from "./BenchHost";
 import { CallCounts } from "./CallCounts";
 import { settle, scrollThrough } from "./Harness";
 import { record } from "./Recorder";
 import baseline from "./baseline.json";
 
-const START = `${FIXTURES}/blob/main/benchmarks/parse/small.tf`;
+const HOST = GITHUB;
+const START = HOST.fileUrl("benchmarks/parse/small.tf");
 
 /**
  * The synchronous step of an injection. `injectHyperLinksToPageAsync` wraps
@@ -14,7 +16,7 @@ const START = `${FIXTURES}/blob/main/benchmarks/parse/small.tf`;
 const INJECTOR = "linkSources";
 
 /** Breadcrumb, directory, then a file. Each is a `tabs.onUpdated` completion. */
-const SOFT_NAVIGATIONS = 3;
+const SOFT_NAVIGATIONS = HOST.browseToLargeParse.length;
 
 /**
  * Clicks the first visible match and waits for the soft navigation to land.
@@ -45,25 +47,25 @@ test("browsing between files does not multiply what a scroll pause costs", async
 
     // Act
     await page.goto(START, { waitUntil: "domcontentloaded" });
-    await settle(page);
+    await settle(page, HOST);
     // Survives a soft navigation, dies on a reload. If this is gone the test
     // measured four page loads rather than four injections into one document.
     await page.evaluate(() => ((globalThis as unknown as { s: string }).s = "same document"));
     await CallCounts.takeAsync(send);
 
-    await scrollThrough(page, 1);
+    await scrollThrough(page, 1, HOST);
     const onFreshLoad = (await CallCounts.takeAsync(send)).callsTo(INJECTOR);
 
-    await clickVisible(page, 'a[href$="/tree/main/benchmarks"]');
-    await clickVisible(page, 'a[href$="/benchmarks/parse"]');
-    await clickVisible(page, 'a[href*="parse/large.tf"]');
+    for (const link of HOST.browseToLargeParse) {
+        await clickVisible(page, link);
+    }
     await page.waitForTimeout(3_000);
 
     const sameDocument = await page.evaluate(
         () => (globalThis as unknown as { s?: string }).s ?? "reloaded",
     );
     await CallCounts.takeAsync(send);
-    await scrollThrough(page, 1);
+    await scrollThrough(page, 1, HOST);
     const afterBrowsing = (await CallCounts.takeAsync(send)).callsTo(INJECTOR);
 
     console.log(

@@ -1,10 +1,12 @@
-import { test, expect, FIXTURES } from "../extension";
+import { test, expect } from "../extension";
+import { GITHUB } from "./BenchHost";
 import { CallCounts } from "./CallCounts";
 import { readFingerprint, scrollThrough, settle } from "./Harness";
 import { record } from "./Recorder";
 import baseline from "./baseline.json";
 
-const FIXTURE = `${FIXTURES}/blob/main/benchmarks/scrolling/large.tf`;
+const HOST = GITHUB;
+const FIXTURE = HOST.fileUrl("benchmarks/scrolling/large.tf");
 
 /** Every module block plus every entry in `required_providers`. */
 const DECLARATIONS = baseline.scrolling.fingerprint.declarations;
@@ -25,7 +27,7 @@ test("scrolling a long file resolves nothing it already resolved", async ({ cont
 
     // Act
     await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
-    await settle(page);
+    await settle(page, HOST);
 
     // The total comes from what was stored rather than from a call count. V8
     // counts a resumption of an async function as another entry to it, so a
@@ -39,12 +41,12 @@ test("scrolling a long file resolves nothing it already resolved", async ({ cont
     // Resets the counters, so what follows is what scrolling costs rather
     // than what the first render cost.
     await CallCounts.takeAsync(send);
-    await scrollThrough(page, SCROLL_STEPS);
+    await scrollThrough(page, SCROLL_STEPS, HOST);
 
     const counts = await CallCounts.takeAsync(send);
     const injections = counts.callsTo("linkSources");
     const resolutions = counts.callsTo("buildDisplayModuleAsync");
-    const fingerprint = await readFingerprint(page);
+    const fingerprint = await readFingerprint(page, HOST);
     console.log(
         `BENCH scrolling: ${cached} cached on render, then ${injections} injections and ${resolutions} resolver entries across ${SCROLL_STEPS} pauses`,
     );
@@ -95,13 +97,13 @@ test("a lost cache makes the next scroll pay for everything again", async ({ con
 
     // Act
     await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
-    await settle(page);
+    await settle(page, HOST);
     const onLoad = await readEntry();
 
     // Resets the counters, so what follows is what the lost cache causes.
     await CallCounts.takeAsync(send);
     await worker.evaluate(async () => await chrome.storage.session.clear());
-    await scrollThrough(page, 1);
+    await scrollThrough(page, 1, HOST);
 
     const afterLoss = await readEntry();
     const entries = (await CallCounts.takeAsync(send)).callsTo("buildDisplayModuleAsync");

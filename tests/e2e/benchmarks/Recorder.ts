@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { BenchHost, GITHUB } from "./BenchHost";
 
 export const RECORDED_DIR = path.resolve(__dirname, ".recorded");
 
@@ -39,4 +40,21 @@ export const record = (axis: string, values: Recorded): void => {
         ? (JSON.parse(fs.readFileSync(file, "utf8")) as Recorded)
         : {};
     fs.writeFileSync(file, `${JSON.stringify(merge(existing, values), null, 4)}\n`);
+};
+
+/**
+ * Writes what a benchmark measured on a host, for `record-baseline` to assemble.
+ *
+ * GitHub's numbers sit under the axis itself. Every other host's sit under the
+ * host's name, so adding a host leaves GitHub's baseline where it was.
+ * @param host The host the page was on.
+ * @param axis The baseline key this belongs under, such as `scrolling`.
+ * @param values What was measured.
+ */
+export const recordFor = (host: BenchHost, axis: string, values: Recorded): void => {
+    if (host === GITHUB) {
+        record(axis, values);
+        return;
+    }
+    record(host.name, { [axis]: values });
 };

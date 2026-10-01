@@ -3,15 +3,15 @@ import * as fs from "fs";
 import * as path from "path";
 import { BrowserCdp } from "./BrowserCdp";
 import { readFingerprint } from "./Harness";
+import { GITHUB } from "./BenchHost";
 import { record } from "./Recorder";
 import baseline from "./baseline.json";
 
 const DIST = path.resolve(__dirname, "../../..", process.env.IAC_BUILD ?? "dist");
 const DEBUG_PORT = 9339;
-const FIXTURES = "https://github.com/NickSpaghetti/iac-module-linker-fixtures";
-const fixture = (name: string) => `${FIXTURES}/blob/main/benchmarks/parse/${name}`;
+const HOST = GITHUB;
+const fixture = (name: string) => HOST.fileUrl(`benchmarks/parse/${name}`);
 const WORK_MS = 12_000;
-const LINK = 'a[id^="GithubTerraformSourceUrl"]';
 
 /** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
@@ -55,10 +55,10 @@ const measureAsync = async (
         const started = Date.now();
         await page.goto(fixture(name), { waitUntil: "domcontentloaded" });
         // What a user waits for: the first link appearing on the page.
-        await page.waitForSelector(LINK, { timeout: WORK_MS }).catch(() => undefined);
+        await page.waitForSelector(HOST.anchor, { timeout: WORK_MS }).catch(() => undefined);
         const toFirstLinkMs = Date.now() - started;
         await page.waitForTimeout(1_000);
-        const fingerprint = await readFingerprint(page);
+        const fingerprint = await readFingerprint(page, HOST);
 
         cdp.close();
         return { toFirstLinkMs, ...fingerprint };

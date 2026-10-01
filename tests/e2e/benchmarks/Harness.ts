@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { BenchHost, Fingerprint, GITHUB } from "./BenchHost";
 
 /** Longer than the content script's 100ms scroll debounce. */
 const DEBOUNCE_MS = 400;
@@ -12,9 +13,6 @@ const TAIL_MS = 500;
 /** How often a wait re-reads what it is waiting on. */
 const POLL_MS = 100;
 
-/** The id `contentscript.ts` gives every anchor it injects. */
-const INJECTED = 'a[id^="GithubTerraformSourceUrl-"]';
-
 /**
  * Waits for the extension to finish the work a page load costs it.
  *
@@ -23,10 +21,11 @@ const INJECTED = 'a[id^="GithubTerraformSourceUrl-"]';
  * page costs on the machine running it. A page with nothing to link waits the
  * full deadline, which is what this did for every page before.
  * @param page The page to wait on.
+ * @param host The host the page is on.
  */
-export const settle = async (page: Page): Promise<void> => {
+export const settle = async (page: Page, host: BenchHost = GITHUB): Promise<void> => {
     await page
-        .locator(INJECTED)
+        .locator(host.anchor)
         .first()
         .waitFor({ state: "attached", timeout: FIRST_RENDER_MS })
         .catch(() => undefined);
@@ -67,10 +66,15 @@ export const untilQuietAsync = async (
 /**
  * @param page The page to scroll.
  * @param steps How many viewport heights to scroll, pausing past the debounce.
+ * @param host The host the page is on.
  */
-export const scrollThrough = async (page: Page, steps: number): Promise<void> => {
+export const scrollThrough = async (
+    page: Page,
+    steps: number,
+    host: BenchHost = GITHUB,
+): Promise<void> => {
     for (let step = 0; step < steps; step += 1) {
-        await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        await host.scrollStep(page);
         await page.waitForTimeout(DEBOUNCE_MS);
     }
 };
@@ -80,21 +84,11 @@ export const scrollThrough = async (page: Page, steps: number): Promise<void> =>
  * knowing, which would leave every count and duration describing a different
  * file. Each axis records this and asserts it.
  * @param page The page to read from.
+ * @param host The host the page is on.
  * @returns The shape of the file being measured.
  */
-export const readFingerprint = async (page: Page): Promise<{ lines: number; bytes: number }> =>
-    await page.evaluate(() => {
-        const area = document.getElementById(
-            "read-only-cursor-text-area",
-        ) as HTMLTextAreaElement | null;
-        if (area === null) {
-            return { lines: 0, bytes: 0 };
-        }
-        return {
-            lines: area.value.split("\n").length,
-            bytes: new TextEncoder().encode(area.value).length,
-        };
-    });
+export const readFingerprint = async (page: Page, host: BenchHost = GITHUB): Promise<Fingerprint> =>
+    await host.fingerprint(page);
 
 /**
  * The registry data access fetches with `force-cache`, so a module resolved
