@@ -189,3 +189,103 @@ test("a .tf.json file is parsed as JSON", async ({ context }) => {
     expect(names).toContain("json_registry");
     expect(names).toContain("json_git");
 });
+
+for (const file of ["17-duplicate-sources.tf", "18-duplicate-sources.tf.json"]) {
+    test(`two modules sharing a source each link to their own version in ${file}`, async ({
+        context,
+    }) => {
+        // Arrange
+        const page = await context.newPage();
+        await context
+            .serviceWorkers()[0]
+            .evaluate(async () => await chrome.storage.session.clear());
+
+        // Act
+        await page.goto(`${FIXTURES}/blob/main/${file}`, { waitUntil: "domcontentloaded" });
+        await expect
+            .poll(async () => (await readAnchors(page)).length, { timeout: 20_000 })
+            .toBe(2);
+
+        // Assert
+        const versions = (await readAnchors(page)).map((a) => a.href.split("/").pop());
+        expect(versions).toEqual(["0.1.0", "0.11.0"]);
+    });
+}
+
+test("OpenTofu sources and versions built from variables and locals are linked", async ({
+    context,
+}) => {
+    // Arrange
+    const page = await context.newPage();
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
+    await page.goto(`${FIXTURES}/blob/main/19-opentofu-static-evaluation.tofu`, {
+        waitUntil: "domcontentloaded",
+    });
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(7);
+
+    // Assert
+    // In page order. `source_is_a_local` is not a string on the page, so it has
+    // nothing to anchor, and the three unresolved sources have no link.
+    const anchors = await readAnchors(page);
+    expect(anchors.map((a) => a.text)).toEqual([
+        "${local.fixtures}//${local.vpc_path}?ref=${var.fixtures_ref}",
+        "git::https://${local.fixtures}.git//modules/vpc?ref=${var.fixtures_ref}",
+        '${var.env == "prod" ? local.fixtures : "example.com/unused"}//modules/vpc?ref=${var.fixtures_ref}',
+        "${local.registry}/vpc/aws",
+        "hashicorp/consul/aws",
+        "hashicorp/consul/aws",
+        "terraform-aws-modules/vpc/aws",
+    ]);
+    expect(anchors[0].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors[1].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors[2].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors.slice(3).map((a) => a.href.split("/").pop())).toEqual([
+        "6.7.3",
+        "0.1.0",
+        "0.11.0",
+        "6.7.3",
+    ]);
+});
+
+test("OpenTofu JSON sources and versions built from variables and locals are linked", async ({
+    context,
+}) => {
+    // Arrange
+    const page = await context.newPage();
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
+    await page.goto(`${FIXTURES}/blob/main/20-opentofu-static-evaluation.tofu.json`, {
+        waitUntil: "domcontentloaded",
+    });
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(5);
+
+    // Assert
+    const anchors = await readAnchors(page);
+    expect(anchors[0].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors[1].href).toBe(`${FIXTURES}/tree/v1.0.0/modules/vpc`);
+    expect(anchors.slice(2).map((a) => a.href.split("/").pop())).toEqual([
+        "6.7.3",
+        "0.1.0",
+        "0.11.0",
+    ]);
+});
+
+test("OpenTofu sources and versions in a .tf file are linked too", async ({ context }) => {
+    // Arrange
+    const page = await context.newPage();
+    await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
+
+    // Act
+    await page.goto(`${FIXTURES}/blob/main/21-opentofu-static-evaluation.tf`, {
+        waitUntil: "domcontentloaded",
+    });
+    await expect.poll(async () => (await readAnchors(page)).length, { timeout: 20_000 }).toBe(1);
+
+    // Assert
+    const [anchor] = await readAnchors(page);
+    expect(anchor.text).toBe("${local.registry}/vpc/aws");
+    expect(anchor.href.split("/").pop()).toBe("6.7.3");
+});

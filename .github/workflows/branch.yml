@@ -52,6 +52,9 @@ jobs:
       - name: Run build
         run: make build
 
+      - name: Check the third-party notices match what ships
+        run: make check-third-party-notices
+
       - name: Typecheck
         run: make typecheck
 

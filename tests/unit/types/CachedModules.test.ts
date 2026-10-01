@@ -21,6 +21,8 @@ const row = {
     resolvedUrl: "https://registry.terraform.io/x",
     versionConstraint: "~> 6.0",
     resolvedVersion: "6.7.3",
+    sourceLine: 12,
+    writtenSource: "terraform-aws-modules/vpc/aws",
 };
 
 describe("Given a cache entry read back from storage", () => {
@@ -82,7 +84,49 @@ describe("Given a cache entry read back from storage", () => {
                 resolvedUrl: null,
                 versionConstraint: "",
                 resolvedVersion: "",
+                sourceLine: null,
+                writtenSource: "",
             });
+        });
+    });
+
+    describe("When a row has no written source", () => {
+        test("Then I expect its source used", () => {
+            // Arrange
+            const { writtenSource: _, ...older } = row;
+            const stored = entry([older]);
+
+            // Act
+            const read = readCachedModules(stored);
+
+            // Assert
+            expect(read?.modules[0].writtenSource).toBe(row.source);
+        });
+    });
+
+    describe("When a row has a source line", () => {
+        test("Then I expect the line kept", () => {
+            // Arrange
+            const stored = entry([row]);
+
+            // Act
+            const read = readCachedModules(stored);
+
+            // Assert
+            expect(read?.modules[0].sourceLine).toBe(12);
+        });
+    });
+
+    describe("When a row's source line is not a number", () => {
+        test("Then I expect it read as null", () => {
+            // Arrange
+            const stored = entry([{ ...row, sourceLine: "12" }]);
+
+            // Act
+            const read = readCachedModules(stored);
+
+            // Assert
+            expect(read?.modules[0].sourceLine).toBeNull();
         });
     });
 

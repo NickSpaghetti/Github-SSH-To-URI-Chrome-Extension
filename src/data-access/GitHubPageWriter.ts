@@ -1,10 +1,15 @@
 import { Nullable } from "../types/Nullable";
 import { isSafeHttpUrl } from "../util/UrlSafety";
 import { IGitHubPageWriter } from "./IGitHubPageWriter";
+import { SourceLinks } from "../types/SourceLinks";
+
+// GitHub ids each rendered line `LC` and its 1-based line number.
+const LINE_ID_PREFIX = "LC";
 
 // GitHub tokenizes a string literal into a `span.pl-s` holding a `span.pl-pds`
 // for each of its two quotes.
-const STRING_QUOTE = `div[id^="LC"] > span.pl-s > span.pl-pds`;
+const QUOTE = "span.pl-pds";
+const STRING_QUOTE = `div[id^="${LINE_ID_PREFIX}"] > span.pl-s > ${QUOTE}`;
 const STRING_LITERAL = "span.pl-s";
 const LINE_NUMBERS = ".react-line-numbers";
 const CODE_LINES = ".react-code-lines";
@@ -35,13 +40,14 @@ export class GitHubPageWriter implements IGitHubPageWriter {
      *
      * A source whose url is not http or https is left as text. Calling this
      * again on the same page changes nothing that is already linked.
-     * @param links Each source, exactly as written in the file, mapped to the url it opens.
+     * A source on a line the links name is given that line's url; any other
+     * is given the url of the first module that declares it.
+     * @param links The url of each source, by the line it is written on and by source alone.
      */
-    public linkSources(links: ReadonlyMap<string, string>): void {
-        for (const textNode of this.readStringLiteralTextNodes()) {
-            const literal = textNode.parentElement;
-            const line = literal?.parentElement;
-            if (literal == null || literal.textContent == null || line == null) {
+    public linkSources(links: SourceLinks): void {
+        for (const literal of readStringLiterals()) {
+            const line = literal.parentElement;
+            if (line === null || isLinked(literal)) {
                 continue;
             }
 
@@ -50,8 +56,12 @@ export class GitHubPageWriter implements IGitHubPageWriter {
                 continue;
             }
 
-            const text = literal.textContent.trim().split('"').join("");
-            const url = links.get(text);
+            const inside = betweenQuotes(literal);
+            if (inside === null) {
+                continue;
+            }
+            const text = inside.map((node) => node.textContent ?? "").join("");
+            const url = links.atLine.get(lineNumberOf(line))?.get(text) ?? links.bySource.get(text);
             if (url === undefined || !isSafeHttpUrl(url)) {
                 continue;
             }
@@ -59,31 +69,47 @@ export class GitHubPageWriter implements IGitHubPageWriter {
             // GitHub marks the rendered line inert so its own overlay takes
             // the click. The anchor is unreachable until that is lifted.
             literal.closest(`[${INERT}]`)?.removeAttribute(INERT);
-            textNode.replaceWith(createAnchor(url, text, anchorId(line, literal)));
+            const anchor = createAnchor(url, anchorId(line, literal));
+            inside[inside.length - 1].after(anchor);
+            anchor.append(...inside);
         }
 
         raiseCodeLinesAboveLineNumbers();
     }
-
-    private readStringLiteralTextNodes(): ChildNode[] {
-        const literals = new Set<Element>();
-        for (const quote of Array.from(document.querySelectorAll(STRING_QUOTE))) {
-            if (quote.parentElement !== null) {
-                literals.add(quote.parentElement);
-            }
-        }
-
-        const textNodes: ChildNode[] = [];
-        for (const literal of literals) {
-            for (const node of Array.from(literal.childNodes)) {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    textNodes.push(node);
-                }
-            }
-        }
-        return textNodes;
-    }
 }
+
+const readStringLiterals = (): Element[] => {
+    const literals = new Set<Element>();
+    for (const quote of Array.from(document.querySelectorAll(STRING_QUOTE))) {
+        if (quote.parentElement !== null) {
+            literals.add(quote.parentElement);
+        }
+    }
+    return Array.from(literals);
+};
+
+const isLinked = (literal: Element): boolean =>
+    literal.querySelector(`a[id^="${ANCHOR_ID_PREFIX}"]`) !== null;
+
+// GitHub renders a template's interpolations as spans of their own, a string
+// inside one included, between the literal's own two `span.pl-pds` quotes.
+// Those nodes are the source exactly as the file writes it.
+const betweenQuotes = (literal: Element): Nullable<ChildNode[]> => {
+    const quotes = Array.from(literal.children).filter((child) => child.matches(QUOTE));
+    if (quotes.length < 2) {
+        return null;
+    }
+    const closing = quotes[quotes.length - 1];
+    const inside: ChildNode[] = [];
+    for (
+        let node = quotes[0].nextSibling;
+        node !== null && node !== closing;
+        node = node.nextSibling
+    ) {
+        inside.push(node);
+    }
+    return inside.length === 0 ? null : inside;
+};
 
 const isSourceValue = (literal: Element): boolean => {
     const label = literal.previousElementSibling?.textContent ?? "";
@@ -91,19 +117,23 @@ const isSourceValue = (literal: Element): boolean => {
     return name === SOURCE_KEY;
 };
 
+const lineNumberOf = (line: Element): number =>
+    line.id.startsWith(LINE_ID_PREFIX)
+        ? Number.parseInt(line.id.slice(LINE_ID_PREFIX.length), 10)
+        : Number.NaN;
+
 const anchorId = (line: Element, literal: Element): string => {
     const position = Array.from(line.querySelectorAll(STRING_LITERAL)).indexOf(literal);
     const within = position === -1 ? crypto.randomUUID() : String(position);
     return `${ANCHOR_ID_PREFIX}-${line.id === "" ? crypto.randomUUID() : line.id}-${within}`;
 };
 
-const createAnchor = (url: string, text: string, id: string): HTMLAnchorElement => {
+const createAnchor = (url: string, id: string): HTMLAnchorElement => {
     const anchor = document.createElement("a");
     anchor.id = id;
     anchor.href = url;
     anchor.rel = "noreferrer";
     anchor.target = "_blank";
-    anchor.textContent = text;
     anchor.style.cssText = ANCHOR_STYLE;
     return anchor;
 };

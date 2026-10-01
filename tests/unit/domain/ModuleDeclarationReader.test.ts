@@ -1,124 +1,112 @@
 import { expect } from "@jest/globals";
 import { readModuleDeclarations } from "../../../src/domain/ModuleDeclarationReader";
-import { IHclFile } from "../../../src/types/IHclFile";
+import { TerraformModule } from "../../../src/types/Terraform";
 
-/**
- * @param config A parsed config, in any shape.
- * @returns The source and version of each declaration, by name.
- */
-const read = (config: unknown): Record<string, { source?: string; version?: string }> =>
-    Object.fromEntries(
-        [...readModuleDeclarations(config as IHclFile)].map(([name, module]) => [
-            name,
-            module.provider,
-        ]),
-    );
-
-describe("Given a module block", () => {
-    describe("When its source and version are strings", () => {
-        test("Then I expect both read", () => {
+describe("Given declarations from the parser", () => {
+    describe("When each has every field", () => {
+        test("Then I expect them read in order", () => {
             // Arrange
-            const config = { module: { vpc: [{ source: "a/b/c", version: "~> 6.0", cidr: "x" }] } };
+            const emitted = [
+                {
+                    name: "vpc",
+                    block: "module",
+                    source: "a/b/c",
+                    written: "a/b/c",
+                    resolved: true,
+                    version: "~> 6.0",
+                    line: 2,
+                },
+                {
+                    name: "required_providers.aws",
+                    block: "required_providers",
+                    source: "hashicorp/aws",
+                    written: "hashicorp/aws",
+                    resolved: true,
+                    version: "",
+                    line: 9,
+                },
+            ];
 
             // Act
-            const declarations = read(config);
+            const declarations = readModuleDeclarations(emitted);
 
             // Assert
-            expect(declarations).toEqual({ vpc: { source: "a/b/c", version: "~> 6.0" } });
+            expect<TerraformModule[]>(declarations).toEqual([
+                {
+                    moduleName: "vpc",
+                    terraformProperty: "module",
+                    provider: { source: "a/b/c", version: "~> 6.0" },
+                    sourceLine: 2,
+                    writtenSource: "a/b/c",
+                    sourceResolved: true,
+                },
+                {
+                    moduleName: "required_providers.aws",
+                    terraformProperty: "required_providers",
+                    provider: { source: "hashicorp/aws", version: "" },
+                    sourceLine: 9,
+                    writtenSource: "hashicorp/aws",
+                    sourceResolved: true,
+                },
+            ]);
         });
     });
 
-    describe("When its version is not a string", () => {
-        test("Then I expect the module kept with no version", () => {
+    describe("When a version, line, written source or resolution is missing or the wrong type", () => {
+        test("Then I expect it read as unresolved, written as its source, with no version or line", () => {
             // Arrange
-            const config = { module: { vpc: [{ source: "a/b/c", version: 5 }] } };
+            const emitted = [
+                { name: "vpc", block: "module", source: "a/b/c", version: 5, line: "2" },
+            ];
 
             // Act
-            const declarations = read(config);
+            const declarations = readModuleDeclarations(emitted);
 
             // Assert
-            expect(declarations).toEqual({ vpc: { source: "a/b/c", version: "" } });
+            expect<TerraformModule[]>(declarations).toEqual([
+                {
+                    moduleName: "vpc",
+                    terraformProperty: "module",
+                    provider: { source: "a/b/c", version: "" },
+                    sourceLine: null,
+                    writtenSource: "a/b/c",
+                    sourceResolved: false,
+                },
+            ]);
         });
     });
 
-    describe("When its source is not a string, or is spelled `Source`", () => {
-        test("Then I expect the module left out", () => {
+    describe("When one lacks a name, a known block type or a source", () => {
+        test("Then I expect it left out and the rest read", () => {
             // Arrange
-            const config = { module: { a: [{ source: { ref: "x" } }], b: [{ Source: "a/b/c" }] } };
+            const emitted = [
+                null,
+                "vpc",
+                { block: "module", source: "a/b/c" },
+                { name: "", block: "module", source: "a/b/c" },
+                { name: "a", block: "resource", source: "a/b/c" },
+                { name: "b", block: "module", source: 1 },
+                { name: "kept", block: "module", source: "a/b/c" },
+            ];
 
             // Act
-            const declarations = read(config);
+            const declarations = readModuleDeclarations(emitted);
 
             // Assert
-            expect(declarations).toEqual({});
+            expect<string[]>(declarations.map((module) => module.moduleName)).toEqual(["kept"]);
         });
     });
 
-    describe("When it is not a list of bodies", () => {
-        test("Then I expect it left out", () => {
+    describe("When they are not a list", () => {
+        test("Then I expect none", () => {
             // Arrange
-            const config = { module: { a: "x", b: [], c: [null], d: [{ cidr: "x" }] } };
+            const emitted = [undefined, null, {}, "[]", { module: { vpc: [{ source: "a" }] } }];
 
             // Act
-            const declarations = read(config);
+            const read = emitted.map(readModuleDeclarations);
 
             // Assert
-            expect(declarations).toEqual({});
-        });
-    });
-});
-
-describe("Given a terraform block", () => {
-    describe("When a required provider has a string source", () => {
-        test("Then I expect it read with its version", () => {
-            // Arrange
-            const config = {
-                terraform: [
-                    {
-                        required_providers: [
-                            { aws: { source: "hashicorp/aws", version: ">= 5.0" } },
-                        ],
-                    },
-                ],
-            };
-
-            // Act
-            const declarations = read(config);
-
-            // Assert
-            expect(declarations).toEqual({
-                "required_providers.aws": { source: "hashicorp/aws", version: ">= 5.0" },
-            });
-        });
-    });
-
-    describe("When its parts are not the shapes they should be", () => {
-        test("Then I expect each bad part left out and the rest read", () => {
-            // Arrange
-            const config = {
-                terraform: [
-                    null,
-                    "x",
-                    { source: 42, required_providers: "x" },
-                    {
-                        required_providers: [
-                            {
-                                aws: { source: 1 },
-                                google: "x",
-                                azurerm: { source: "hashicorp/azurerm", version: 4 },
-                            },
-                        ],
-                    },
-                ],
-            };
-
-            // Act
-            const declarations = read(config);
-
-            // Assert
-            expect(declarations).toEqual({
-                "required_providers.azurerm": { source: "hashicorp/azurerm", version: "" },
-            });
+            expect<TerraformModule[][]>(read).toEqual([[], [], [], [], []]);
         });
     });
 });

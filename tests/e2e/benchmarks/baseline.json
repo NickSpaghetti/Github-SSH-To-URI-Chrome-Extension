@@ -35,7 +35,21 @@
                 "bytes": 4029
             }
         },
-        "concurrency": 10
+        "concurrency": 10,
+        "tofu": {
+            "small": {
+                "fingerprint": {
+                    "lines": 103,
+                    "bytes": 1951
+                }
+            },
+            "large": {
+                "fingerprint": {
+                    "lines": 373,
+                    "bytes": 7416
+                }
+            }
+        }
     },
     "popup": {
         "warmToTableMs": 130,
@@ -53,7 +67,14 @@
         "largeToFirstLinkMs": 3477,
         "latencyRatio": 1.19,
         "smallBytes": 11963,
-        "largeBytes": 48277
+        "largeBytes": 48277,
+        "tofu": {
+            "smallLines": 553,
+            "largeLines": 2116,
+            "smallBytes": 13258,
+            "largeBytes": 51675,
+            "sizeRatio": 3.9
+        }
     },
     "userExperience": {
         "cpuSharePercent": 0.31,

@@ -9,6 +9,10 @@ export type DisplayModule = {
     resolvedUrl: Nullable<string>;
     versionConstraint: string;
     resolvedVersion: string;
+    /** The 1-based line the source is written on, or null when the parser did not say. */
+    sourceLine: Nullable<number>;
+    /** The source as the file writes it, which is what the page shows. */
+    writtenSource: string;
 };
 
 /**
@@ -22,4 +26,6 @@ export const emptyDisplayModule = (moduleName: string): DisplayModule => ({
     resolvedUrl: null,
     versionConstraint: "",
     resolvedVersion: "",
+    sourceLine: null,
+    writtenSource: "",
 });

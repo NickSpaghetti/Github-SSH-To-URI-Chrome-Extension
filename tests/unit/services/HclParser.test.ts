@@ -1,7 +1,7 @@
-import { expect } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 import { gzipSync } from "zlib";
 import { HclParser } from "../../../src/services/HclParser";
-import { IHclFile } from "../../../src/types/IHclFile";
+import { ParsedDeclaration } from "../../../src/types/ParsedDeclaration";
 import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
 
 /**
@@ -12,7 +12,7 @@ import { clearChromeRuntime, stubChromeRuntime } from "./ChromeRuntimeStub";
  */
 
 type Mutable = Record<string, unknown>;
-type ParseResult = { json?: string; error?: string };
+type ParseResult = { declarations?: string; error?: string };
 
 const globals = globalThis as unknown as Mutable;
 const realInstantiate = WebAssembly.instantiate;
@@ -60,42 +60,46 @@ afterEach(() => {
     delete globals.fetch;
     globals.Go = realGo;
     (WebAssembly as unknown as Mutable).instantiate = realInstantiate;
+    jest.restoreAllMocks();
 });
 
-describe("Given a Terraform JSON file", () => {
-    describe("When it is parsed", () => {
-        test("Then I expect the JSON reader used, without loading the wasm", async () => {
-            // Arrange
-            let fetched = false;
-            globals.fetch = () => {
-                fetched = true;
-                return Promise.reject(new Error("the wasm must not be loaded for JSON"));
-            };
-
-            // Act
-            const parsed = await HclParser.parseAsync(
-                '{"module":{"vpc":{"source":"./modules/vpc"}}}',
-                "main.tf.json",
-            );
-
-            // Assert
-            expect<boolean>(fetched).toBe(false);
-            expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
-        });
-    });
-});
+const VPC: ParsedDeclaration = {
+    name: "vpc",
+    block: "module",
+    source: "./modules/vpc",
+    written: "./modules/vpc",
+    resolved: true,
+    version: "",
+    line: 2,
+};
 
 describe("Given the wasm parser is loaded", () => {
     describe("When it parses the file", () => {
-        test("Then I expect the config it emitted", async () => {
+        test("Then I expect the declarations it emitted", async () => {
             // Arrange
-            parserAnswers({ json: '{"module":{"vpc":[{"source":"./modules/vpc"}]}}' });
+            parserAnswers({ declarations: JSON.stringify([VPC]) });
 
             // Act
             const parsed = await HclParser.parseAsync("module {}", "main.tf");
 
             // Assert
-            expect<IHclFile>(parsed).toEqual({ module: { vpc: [{ source: "./modules/vpc" }] } });
+            expect<ParsedDeclaration[]>(parsed).toEqual([VPC]);
+        });
+
+        test("Then I expect a JSON file handed to the same parser", async () => {
+            // Arrange
+            const names: string[] = [];
+            parserAnswers({ declarations: "[]" });
+            globals.tofuParseToString = (_contents: string, name: string) => {
+                names.push(name);
+                return { declarations: "[]" };
+            };
+
+            // Act
+            await HclParser.parseAsync('{"module":{}}', "main.tf.json");
+
+            // Assert
+            expect<string[]>(names).toEqual(["main.tf.json"]);
         });
     });
 
@@ -112,8 +116,8 @@ describe("Given the wasm parser is loaded", () => {
         });
     });
 
-    describe("When it answers with neither json nor an error", () => {
-        test("Then I expect a throw rather than an undefined config", async () => {
+    describe("When it answers with neither declarations nor an error", () => {
+        test("Then I expect a throw rather than undefined declarations", async () => {
             // Arrange
             parserAnswers({});
 
@@ -128,7 +132,7 @@ describe("Given the wasm parser is loaded", () => {
     describe("When its output is not valid JSON", () => {
         test("Then I expect a throw", async () => {
             // Arrange
-            parserAnswers({ json: "{not json" });
+            parserAnswers({ declarations: "[not json" });
 
             // Act
             const parsing = HclParser.parseAsync("module {}", "main.tf");
@@ -156,7 +160,7 @@ describe("Given the wasm binary cannot be read", () => {
 
 describe("Given the Go runtime registers the parser", () => {
     describe("When a file is parsed", () => {
-        test("Then I expect the whole load to run and the config to come back", async () => {
+        test("Then I expect the whole load to run and the declarations to come back", async () => {
             // Arrange
             stubFetch(gzippedStream());
             (WebAssembly as unknown as Mutable).instantiate = () =>
@@ -166,7 +170,7 @@ describe("Given the Go runtime registers the parser", () => {
                 run() {
                     // Before returning, as the real runtime does: Go's main
                     // registers the parser and then parks on `select {}`.
-                    globals.tofuParseToString = () => ({ json: '{"module":{}}' });
+                    globals.tofuParseToString = () => ({ declarations: "[]" });
                 }
             };
 
@@ -174,7 +178,7 @@ describe("Given the Go runtime registers the parser", () => {
             const parsed = await HclParser.parseAsync("module {}", "main.tf");
 
             // Assert
-            expect<IHclFile>(parsed).toEqual({ module: {} });
+            expect<ParsedDeclaration[]>(parsed).toEqual([]);
         });
     });
 });
@@ -193,7 +197,7 @@ describe("Given a load that already failed once", () => {
             globals.Go = class {
                 importObject = {};
                 run() {
-                    globals.tofuParseToString = () => ({ json: '{"module":{}}' });
+                    globals.tofuParseToString = () => ({ declarations: "[]" });
                 }
             };
 
@@ -201,7 +205,7 @@ describe("Given a load that already failed once", () => {
             const parsed = await HclParser.parseAsync("module {}", "main.tf");
 
             // Assert
-            expect<IHclFile>(parsed).toEqual({ module: {} });
+            expect<ParsedDeclaration[]>(parsed).toEqual([]);
         });
     });
 });

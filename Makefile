@@ -1,9 +1,9 @@
-.PHONY: install build test e2e benchmark record-baseline lint typecheck lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm clean-go-cache package
+.PHONY: install build test e2e benchmark record-baseline lint typecheck lint-fix format format-check audit audit-dev check clean refresh-chrome-token record-fixtures generate-baseline check-corpus-sync build-wasm clean-go-cache package third-party-notices check-third-party-notices go-notices
 
 # Generated, not committed, so every target that reads one names both as
 # prerequisites. `jest` needs them too, not just the bundle: `HclParser.ts`
 # imports `wasm_exec.js`. Rebuilt only when the Go sources change.
-WASM_SOURCES = wasm/main.go wasm/go.mod wasm/go.sum
+WASM_SOURCES = wasm/main.go wasm/go.mod wasm/go.sum $(wildcard wasm/declarations/*.go)
 WASM = public/main.wasm.gz src/vendor/wasm_exec.js
 
 # Installed when a manifest or the lockfile moves, the same way the parser is
@@ -125,12 +125,39 @@ $(WASM) &: $(WASM_SOURCES) wasm/Dockerfile
 		-e GOMODCACHE=/gocache/mod \
 		$(WASM_BUILDER) sh -euc '\
 			go mod tidy; \
+			go test ./declarations/; \
 			GOOS=js GOARCH=wasm go build -trimpath -ldflags="-s -w" -o main.wasm ./; \
 			cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" /src/src/vendor/wasm_exec.js'
 	gzip -9 -f -c wasm/main.wasm > public/main.wasm.gz
 	rm -f wasm/main.wasm
 	@echo "built with $$(docker run --rm $(WASM_BUILDER) go version)"
 	@ls -la $(WASM)
+
+# What the wasm links, listed by the toolchain that links it, for the notices
+# script. Run from the same pinned container as the build.
+go-notices:
+	@mkdir -p "$(GO_CACHE)/build" "$(GO_CACHE)/mod" "$(GO_CACHE)/notices"
+	docker build -q -t $(WASM_BUILDER) wasm/
+	docker run --rm \
+		--user "$$(id -u):$$(id -g)" \
+		-v "$(CURDIR):/src" \
+		-v "$(GO_CACHE):/gocache" \
+		-w /src/wasm \
+		-e GOFLAGS=-mod=mod \
+		-e GOCACHE=/gocache/build \
+		-e GOMODCACHE=/gocache/mod \
+		-e GOOS=js -e GOARCH=wasm \
+		$(WASM_BUILDER) sh -euc '\
+			go mod download; \
+			go list -deps -f "{{with .Module}}{{with .Replace}}{{.Path}} {{.Version}}{{else}}{{.Path}} {{.Version}}{{end}}{{end}}" . | sort -u > /gocache/notices/modules.txt; \
+			go env GOVERSION > /gocache/notices/go-version.txt; \
+			cp "$$(go env GOROOT)/LICENSE" "$$(go env GOROOT)/PATENTS" /gocache/notices/'
+
+third-party-notices: node_modules go-notices
+	node -r ts-node/register ./scripts/generate-third-party-notices.ts
+
+check-third-party-notices: node_modules go-notices
+	node -r ts-node/register ./scripts/generate-third-party-notices.ts --check
 
 # Forces a rebuild, for a toolchain bump or a container layer gone stale.
 build-wasm:
