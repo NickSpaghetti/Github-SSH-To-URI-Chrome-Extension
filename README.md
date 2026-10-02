@@ -6,8 +6,6 @@
 
 A new Chrome Web Store listing is pending. Until it is live, build from source with the [Developing Locally](#developing-locally) steps.
 
-> IaC Module Linker is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by GitHub, Microsoft, GitLab, HashiCorp, or IBM. Terraform is a trademark of HashiCorp; GitHub is a trademark of Microsoft; GitLab is a trademark of GitLab Inc. Both are referenced here only to describe what this extension works with.
-
 ## Using the extension
 
 ### on page load
@@ -99,6 +97,10 @@ than on every pull request.
 
 Extensions cannot be loaded by a headless browser, so the run is headed. On a
 machine with no display, put `xvfb-run -a` in front of it.
+
+# Disclaimer
+
+> IaC Module Linker is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by GitHub, Microsoft, GitLab, HashiCorp, or IBM. Terraform is a trademark of HashiCorp; GitHub is a trademark of Microsoft; GitLab is a trademark of GitLab Inc. They are referenced here only to describe what this extension works with.
 
 # Credit
 
