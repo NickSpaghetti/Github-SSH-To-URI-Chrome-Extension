@@ -1,10 +1,17 @@
 version: 2
+# Version updates are off except for the Go toolchain: an
+# open-pull-requests-limit of 0 stops them for an ecosystem. Security updates are
+# separate, and open a pull request only when a dependency has a known
+# vulnerability, once they are turned on in the repository's code security
+# settings.
 updates:
-  # The Go toolchain that builds the parser.
+  # The Go toolchain that builds the parser, whose standard library is compiled
+  # into the wasm. Dependabot has no security updates for Docker images, so it
+  # gets monthly version updates instead.
   - package-ecosystem: docker
     directory: /wasm
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: "bumped"
 
@@ -12,18 +19,20 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "bumped"
 
-  # pnpm, and the tests/e2e workspace with it. One pull request a week, since
-  # every one of them edits pnpm-lock.yaml.
+  # pnpm, and the tests/e2e workspace with it. Security fixes come as one pull
+  # request, since every one of them edits pnpm-lock.yaml.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
-      npm:
+      npm-security:
+        applies-to: security-updates
         patterns: ["*"]
     commit-message:
       prefix: "bumped"
@@ -32,6 +41,7 @@ updates:
     directory: /wasm
     schedule:
       interval: weekly
+    open-pull-requests-limit: 0
     # A replace in go.mod points this at OpenTofu's fork, at the commit
     # OpenTofu pins, so a bump of the require line changes nothing that is
     # built. wasm/README.md says how to move the fork.
