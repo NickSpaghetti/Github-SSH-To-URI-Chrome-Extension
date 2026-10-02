@@ -8,10 +8,8 @@ import baseline from "./baseline.json";
 const HOST = GITHUB;
 const FIXTURE = HOST.fileUrl("benchmarks/scrolling/large.tf");
 
-/** Every module block plus every entry in `required_providers`. */
 const DECLARATIONS = baseline.scrolling.fingerprint.declarations;
 
-/** Enough steps to bring the bottom of the fixture into view. */
 const SCROLL_STEPS = 5;
 
 test("scrolling a long file resolves nothing it already resolved", async ({ context }) => {
@@ -29,17 +27,14 @@ test("scrolling a long file resolves nothing it already resolved", async ({ cont
     await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
     await settle(page, HOST);
 
-    // The total comes from what was stored rather than from a call count. V8
-    // counts a resumption of an async function as another entry to it, so a
-    // count off the resolver is not a total.
+    // Read off the stored entry: a call count off the async resolver is not a total.
     const cached = (await worker.evaluate(async () => {
         const all = await chrome.storage.session.get(null);
         const entry = Object.values(all)[0] as { modules?: unknown[] } | undefined;
         return entry?.modules?.length ?? 0;
     })) as number;
 
-    // Resets the counters, so what follows is what scrolling costs rather
-    // than what the first render cost.
+    // Resets the counters, so what follows is what scrolling costs.
     await CallCounts.takeAsync(send);
     await scrollThrough(page, SCROLL_STEPS, HOST);
 
@@ -57,18 +52,13 @@ test("scrolling a long file resolves nothing it already resolved", async ({ cont
     });
 
     // Assert
-    // Every declaration resolved once, read off the entry the page wrote.
     expect(cached).toBe(DECLARATIONS);
 
-    // The cache assertion. Scrolling causes no resolution at all, and zero is
-    // the one thing a resumption cannot inflate.
+    // Zero is the one count a resumption cannot inflate.
     expect(resolutions).toBe(0);
 
-    // Injection still has to be happening, or the rest measures nothing.
     expect(injections).toBeGreaterThan(0);
 
-    // The fixture is in another repository and can grow without this one
-    // knowing, which would leave the counts describing a different file.
     expect(fingerprint.lines).toBe(baseline.scrolling.fingerprint.lines);
     expect(fingerprint.bytes).toBe(baseline.scrolling.fingerprint.bytes);
 });
@@ -84,7 +74,6 @@ test("a lost cache makes the next scroll pay for everything again", async ({ con
         cdp.send(method as never, params as never);
     await CallCounts.startAsync(send);
 
-    /** @returns The one cache entry, its module count, and the store's size. */
     const readEntry = async () =>
         (await worker.evaluate(async () => {
             const all = await chrome.storage.session.get(null);
@@ -113,14 +102,12 @@ test("a lost cache makes the next scroll pay for everything again", async ({ con
     record("scrolling", { lostCacheRebuiltModules: afterLoss.modules });
 
     // Assert
-    // One entry per file, so browsing does not accumulate a history of every
-    // file opened.
+    // One entry per file.
     expect(onLoad.modules).toBe(DECLARATIONS);
 
-    // The whole file resolved again, read off the entry rather than counted.
     expect(afterLoss.modules).toBe(DECLARATIONS);
 
-    // And it was the resolver that rebuilt it, not a stale entry reappearing.
+    // The resolver rebuilt it; a stale entry did not reappear.
     expect(entries).toBeGreaterThan(0);
 });
 

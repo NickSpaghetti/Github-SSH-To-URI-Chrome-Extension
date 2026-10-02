@@ -8,34 +8,16 @@ import baseline from "./baseline.json";
 const HOST = GITHUB;
 const START = HOST.fileUrl("benchmarks/parse/small.tf");
 
-/**
- * The synchronous step of an injection. `injectHyperLinksToPageAsync` wraps
- * it and awaits, and v8 counts a resumption as another entry, so counting the
- * wrapper would not give a number of injections.
- */
+// The synchronous step of linking a page. Its async callers count each resumption as an entry.
 const INJECTOR = "linkSources";
 
-/** Breadcrumb, directory, then a file. Each is a `tabs.onUpdated` completion. */
 const SOFT_NAVIGATIONS = HOST.browseToLargeParse.length;
 
-/**
- * Clicks the first visible match and waits for the soft navigation to land.
- * @param page The page to click on.
- * @param selector The link to click.
- */
 const clickVisible = async (page: import("@playwright/test").Page, selector: string) => {
     await page.locator(`${selector}:visible`).first().click({ timeout: 20_000 });
     await page.waitForTimeout(3_500);
 };
 
-/**
- * `backgroundscript.ts` re-injects `contentscript.js` on every
- * `chrome.tabs.onUpdated` completion, and github navigates between files
- * without reloading the document, so a second set of listeners would be added
- * per file visited. The guard in `contentscript.ts` is what keeps this at one,
- * and it has to live on the isolated world's global: module scope is a fresh
- * binding on every injection.
- */
 test("browsing between files does not multiply what a scroll pause costs", async ({ context }) => {
     // Arrange
     await context.serviceWorkers()[0].evaluate(async () => await chrome.storage.session.clear());
@@ -48,8 +30,7 @@ test("browsing between files does not multiply what a scroll pause costs", async
     // Act
     await page.goto(START, { waitUntil: "domcontentloaded" });
     await settle(page, HOST);
-    // Survives a soft navigation, dies on a reload. If this is gone the test
-    // measured four page loads rather than four injections into one document.
+    // Survives a soft navigation, not a reload.
     await page.evaluate(() => ((globalThis as unknown as { s: string }).s = "same document"));
     await CallCounts.takeAsync(send);
 
@@ -79,14 +60,12 @@ test("browsing between files does not multiply what a scroll pause costs", async
     });
 
     // Assert
-    // Without this the test measures page loads rather than injections into
-    // one document, and would pass for the wrong reason.
+    // One document throughout, or this measured page loads.
     expect(sameDocument).toBe("same document");
 
     expect(onFreshLoad).toBe(baseline.softNavigation.injectionsPerPauseOnLoad);
 
-    // The assertion the guard exists for. Unguarded this was one listener per
-    // file visited, so this read 4 after three navigations.
+    // Unguarded, each file visited adds a listener and this reads 4.
     expect(afterBrowsing).toBe(baseline.softNavigation.injectionsPerPauseAfterBrowsing);
 });
 

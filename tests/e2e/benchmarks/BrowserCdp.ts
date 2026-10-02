@@ -1,14 +1,9 @@
-/**
- * A CDP client at the browser level.
- *
- * Playwright's own `newCDPSession` takes a Page or Frame, so it cannot reach
- * a service worker target. The worker is where the wasm runtime lives, so
- * measuring it needs a session attached to that target directly.
- */
+/** A target the browser reports, such as a page or a service worker. */
 export type CdpTarget = { targetId: string; type: string; url: string };
 
 type Pending = { resolve: (value: unknown) => void; reject: (reason: Error) => void };
 
+/** A CDP client at the browser level, which can attach to a service worker. */
 export class BrowserCdp {
     private readonly socket: WebSocket;
     private readonly pending = new Map<number, Pending>();
@@ -22,13 +17,15 @@ export class BrowserCdp {
     }
 
     /**
-     * @param listener Called for every protocol event, which carry no id.
+     * Calls a listener for every protocol event.
+     * @param listener Called with each event's method and parameters.
      */
     public onEvent(listener: (method: string, params: Record<string, unknown>) => void): void {
         this.listener = listener;
     }
 
     /**
+     * Connects to a browser's debugging endpoint.
      * @param port The port Chrome was given as `--remote-debugging-port`.
      * @returns A client connected to the browser endpoint.
      */
@@ -48,6 +45,7 @@ export class BrowserCdp {
     }
 
     /**
+     * Sends a CDP command and returns its result.
      * @param method A CDP method name.
      * @param params Its parameters.
      * @param sessionId The attached session to send it to, browser level when absent.
@@ -69,7 +67,10 @@ export class BrowserCdp {
         });
     }
 
-    /** @returns Every target the browser knows about. */
+    /**
+     * Returns every target the browser knows about.
+     * @returns The targets.
+     */
     public async targetsAsync(): Promise<CdpTarget[]> {
         const { targetInfos } = await this.sendAsync<{ targetInfos: CdpTarget[] }>(
             "Target.getTargets",
@@ -78,6 +79,7 @@ export class BrowserCdp {
     }
 
     /**
+     * Attaches to a target.
      * @param targetId The target to attach to.
      * @returns The session id to pass to `sendAsync`.
      */
@@ -89,6 +91,7 @@ export class BrowserCdp {
         return sessionId;
     }
 
+    /** Closes the connection. */
     public close(): void {
         this.socket.close();
     }

@@ -13,7 +13,6 @@ const FIXTURE =
 const STARTUP_MS = 4_000;
 const WORK_MS = 12_000;
 
-/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),

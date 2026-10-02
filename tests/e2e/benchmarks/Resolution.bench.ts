@@ -12,26 +12,15 @@ const DEBUG_PORT = 9338;
 const REGISTRY = "registry.terraform.io";
 const FIXTURES = "https://github.com/NickSpaghetti/iac-module-linker-fixtures";
 const fixture = (name: string) => `${FIXTURES}/blob/main/benchmarks/resolution/${name}`;
-/** The longest resolution is given, whether or not it has gone quiet. */
 const SETTLE_MS = 15_000;
 
-/** No further request in this long means the last one has been seen. */
 const QUIET_MS = 1_500;
 
-/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),
     );
 
-/**
- * Opens a fixture and records every registry request it caused.
- *
- * Nothing in the extension is instrumented for this. Registry lookups are
- * requests, so they are counted where they happen.
- * @param name The fixture file to open.
- * @returns The requests, the ones refused, the file's shape, and a close.
- */
 const watchAsync = async (
     name: string,
 ): Promise<{
@@ -74,6 +63,22 @@ const watchAsync = async (
     };
 };
 
+// One browser at a time: two cannot bind the same debugging port.
+const measureAsync = async (name: string) => {
+    const { requests, fingerprint, closeAsync } = await watchAsync(name);
+    try {
+        return {
+            count: requests.length,
+            fingerprint,
+            span: Math.round(
+                Math.max(...requests.map((r) => r.end)) - Math.min(...requests.map((r) => r.start)),
+            ),
+        };
+    } finally {
+        await closeAsync();
+    }
+};
+
 test("registry lookups go out several at a time, bounded", async () => {
     // Act
     const { requests, rejected, fingerprint, closeAsync } = await watchAsync("large.tf");
@@ -87,19 +92,14 @@ test("registry lookups go out several at a time, bounded", async () => {
         );
 
         // Assert
-        // The bound exists to stay under the registry's rate limit, so a
-        // throttled response has to fail here rather than read as a fast run.
+        // A throttled response fails here, not as a fast run.
         expect(rejected).toHaveLength(0);
         record("resolution", { large: { modules: requests.length, spanMs: span }, concurrency });
 
         expect(requests.length).toBe(baseline.resolution.large.modules);
 
-        // These fixtures live in another repository and `Popup.bench.ts` reads
-        // them too. A change there would move every figure on both axes.
         expect(fingerprint).toEqual(baseline.resolution.large.fingerprint);
 
-        // A count taken at the network, so neither CI hardware nor the
-        // extension's own accounting enters into it.
         expect(concurrency).toBeGreaterThan(1);
         expect(concurrency).toBeLessThanOrEqual(baseline.resolution.concurrency);
     } finally {
@@ -108,32 +108,9 @@ test("registry lookups go out several at a time, bounded", async () => {
 });
 
 test("resolution cost tracks module count", async () => {
-    // Arrange
-    /**
-     * Measures one fixture. One browser at a time: two cannot bind the same
-     * debugging port.
-     * @param name The fixture file to open.
-     * @returns Its request count, its shape, and how long the requests spanned.
-     */
-    const measure = async (name: string) => {
-        const { requests, fingerprint, closeAsync } = await watchAsync(name);
-        try {
-            return {
-                count: requests.length,
-                fingerprint,
-                span: Math.round(
-                    Math.max(...requests.map((r) => r.end)) -
-                        Math.min(...requests.map((r) => r.start)),
-                ),
-            };
-        } finally {
-            await closeAsync();
-        }
-    };
-
     // Act
-    const small = await measure("small.tf");
-    const large = await measure("large.tf");
+    const small = await measureAsync("small.tf");
+    const large = await measureAsync("large.tf");
     const ratio = Math.round((large.span / Math.max(small.span, 1)) * 100) / 100;
 
     console.log(
@@ -152,32 +129,9 @@ test("resolution cost tracks module count", async () => {
 });
 
 test("OpenTofu sources and versions resolve every registry module", async () => {
-    // Arrange
-    /**
-     * Measures one fixture. One browser at a time: two cannot bind the same
-     * debugging port.
-     * @param name The fixture file to open.
-     * @returns Its request count, its shape, and how long the requests spanned.
-     */
-    const measure = async (name: string) => {
-        const { requests, fingerprint, closeAsync } = await watchAsync(name);
-        try {
-            return {
-                count: requests.length,
-                fingerprint,
-                span: Math.round(
-                    Math.max(...requests.map((r) => r.end)) -
-                        Math.min(...requests.map((r) => r.start)),
-                ),
-            };
-        } finally {
-            await closeAsync();
-        }
-    };
-
     // Act
-    const small = await measure("small.tofu");
-    const large = await measure("large.tofu");
+    const small = await measureAsync("small.tofu");
+    const large = await measureAsync("large.tofu");
 
     console.log(
         `BENCH resolution tofu small ${small.count} requests ${small.span}ms, large ${large.count} requests ${large.span}ms`,
@@ -190,8 +144,7 @@ test("OpenTofu sources and versions resolve every registry module", async () => 
     });
 
     // Assert
-    // The same modules as the .tf files. One whose source did not evaluate
-    // would make no request, so a count short of theirs is a module lost.
+    // The same modules as the .tf files; a source that did not evaluate makes no request.
     expect(small.count).toBe(baseline.resolution.small.modules);
     expect(large.count).toBe(baseline.resolution.large.modules);
     expect(small.fingerprint).toEqual(baseline.resolution.tofu.small.fingerprint);

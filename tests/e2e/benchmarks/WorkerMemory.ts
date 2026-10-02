@@ -2,22 +2,11 @@ import * as fs from "fs";
 
 const DIGITS = "0123456789";
 
-/**
- * Reports whether every character is a digit.
- * @param text The text to check.
- * @returns true if text is one or more digits and nothing else; otherwise, false.
- */
 const isDigits = (text: string): boolean =>
     text !== "" && [...text].every((character) => DIGITS.includes(character));
 
-/**
- * Reads the first run of digits out of a line.
- *
- * A `/proc/<pid>/status` line reads `VmRSS:\t   12345 kB`, so the number is
- * the only field that is digits alone.
- * @param line The line to read.
- * @returns That number, or 0 where the line carries none.
- */
+// A `/proc/<pid>/status` line reads `VmRSS:\t   12345 kB`, so the number is
+// the only field that is digits alone.
 const firstNumber = (line: string): number => {
     const field = line
         .split("\t")
@@ -28,13 +17,9 @@ const firstNumber = (line: string): number => {
 };
 
 /**
- * Resident memory of the process hosting the extension's service worker.
- *
- * The js heap is not the number that matters. The parser is a Go wasm module
- * whose linear memory sits outside the heap, so `Runtime.getHeapUsage`
- * reports under a megabyte while the process holds tens.
- *
- * Linux only: it reads `/proc`. CI runs ubuntu.
+ * Returns a process's resident memory. Linux only: it reads `/proc`.
+ * @param pid The process to read.
+ * @returns Its resident kilobytes, or 0 where it could not be read.
  */
 export const residentKb = (pid: number): number => {
     try {
@@ -54,10 +39,6 @@ const commandLine = (pid: number): string => {
     }
 };
 
-/**
- * @param pid The process to read.
- * @returns Its parent's pid, or 0 where it could not be read.
- */
 const parentOf = (pid: number): number => {
     try {
         const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8");
@@ -72,7 +53,6 @@ const parentOf = (pid: number): number => {
     }
 };
 
-/** @returns Every pid on the machine whose command line matches. */
 const pidsMatching = (wanted: (command: string) => boolean): number[] =>
     fs
         .readdirSync("/proc")
@@ -81,13 +61,7 @@ const pidsMatching = (wanted: (command: string) => boolean): number[] =>
         .filter((pid) => wanted(commandLine(pid)));
 
 /**
- * Finds the renderers belonging to a browser this suite launched.
- *
- * A developer's own Chrome is running while these benchmarks are, and it is
- * very likely loading an unpacked extension of its own, so `--load-extension`
- * alone matches it too. The build path does not. The browser process is the
- * one carrying that path and no `--type=`, and every process it owns descends
- * from it.
+ * Returns the renderers of the browser this suite launched with a build.
  * @param distPath The build this suite loaded, as an absolute path.
  * @returns The pid of every renderer under a browser running that build.
  */
@@ -111,10 +85,7 @@ export const ourRendererPids = (distPath: string): number[] => {
 };
 
 /**
- * Chrome shares large mappings between renderers, so resident kilobytes do
- * not add up across processes: a sum counts the shared pages once per process
- * and lands several times the real figure. Read one process, or read the same
- * process twice and take the difference.
+ * Returns the resident memory of the extension's own renderer.
  * @param distPath The build this suite loaded, as an absolute path.
  * @returns Resident kilobytes of the extension's own renderer, 0 if it is gone.
  */
@@ -126,6 +97,7 @@ export const extensionRendererKb = (distPath: string): number => {
 };
 
 /**
+ * Returns the resident memory of each tab's renderer.
  * @param distPath The build this suite loaded, as an absolute path.
  * @returns Resident kilobytes of each renderer that is not the extension's.
  */
@@ -134,15 +106,10 @@ export const tabRendererKbs = (distPath: string): number[] =>
         .filter((pid) => !commandLine(pid).includes("--extension-process"))
         .map(residentKb);
 
+// Chrome tags the renderer hosting an extension with `--extension-process`.
 /**
- * Chrome tags the renderer hosting an extension in its own command line, so
- * the process can be found without touching the browser.
- *
- * An earlier version had the worker allocate a slab and looked for the
- * process that grew by it. That understates the result by about a third:
- * freeing the slab leaves the allocator holding mapped pages, and the wasm
- * allocation reuses them without RSS growing.
- * @returns The pid of every renderer hosting an extension.
+ * Returns every renderer on the machine hosting an extension.
+ * @returns The pid of each.
  */
 export const extensionRendererPids = (): number[] =>
     fs
@@ -155,6 +122,7 @@ export const extensionRendererPids = (): number[] =>
         });
 
 /**
+ * Returns the extension renderer whose resident memory grew most.
  * @param before Resident kilobytes per pid, taken before the work.
  * @param after Resident kilobytes per pid, taken after.
  * @returns The extension renderer that grew most, or null where none did.
@@ -175,6 +143,9 @@ export const grewMost = (
     return grown === undefined || grown.deltaKb <= 0 ? null : grown;
 };
 
-/** @returns Resident kilobytes for every extension renderer, keyed by pid. */
+/**
+ * Returns the resident memory of every extension renderer.
+ * @returns Resident kilobytes, keyed by pid.
+ */
 export const residentByExtensionPid = (): Map<number, number> =>
     new Map(extensionRendererPids().map((pid) => [pid, residentKb(pid)]));

@@ -15,20 +15,11 @@ const EXTENSION = "chrome-extension://";
 const SAMPLE_INTERVAL_US = 50;
 const SCROLL_STEPS = 5;
 
-/**
- * The sampling profiler is stochastic, so one reading is not a ceiling. The
- * cycle runs several times and the highest is what gets recorded.
- */
+// The sampling profiler is stochastic, so the highest of several cycles is recorded.
 const CYCLES = 3;
 
-/** Anything holding the main thread this long is a stall a user sees. */
 const LONG_TASK_MS = 50;
 
-/**
- * What a user feels is the main thread being held, not wall clock. An await
- * costs nothing: the injection path waits on a cross process storage read,
- * which is why its duration is two orders of magnitude above its cpu.
- */
 for (const HOST of [GITHUB, GITLAB]) {
     test.describe(HOST.name, () => {
         test.use({ grantOptionalHosts: HOST.grantOptionalHosts });
@@ -111,11 +102,6 @@ for (const HOST of [GITHUB, GITLAB]) {
                 });
             }
 
-            /**
-             * Takes the highest reading of one measure across the cycles.
-             * @param key The measure to read.
-             * @returns Its highest value.
-             */
             const peak = <K extends keyof (typeof samples)[number]>(key: K) =>
                 Math.max(...samples.map((sample) => sample[key]));
             const cpuShare = peak("cpuShare");
@@ -144,18 +130,9 @@ for (const HOST of [GITHUB, GITLAB]) {
             const expected =
                 HOST === GITHUB ? baseline.userExperience : baseline.gitlab.userExperience;
             expect(cpuShare).toBeLessThan(expected.cpuSharePercent * baseline.ceiling);
-            // Allocations are recorded and not gated. Both forms of the number were
-            // tried as a ceiling and neither holds: the share moves with whatever
-            // github allocated on that cycle, and the absolute has read 0.4KB and
-            // 40KB on the same input, because at a 4096 byte sampling interval a few
-            // kilobytes of our own allocation is mostly luck. A gate that flaky
-            // trains people to ignore a red run.
-            //
-            // Cpu is what gates this axis, and it is the half a user feels.
+            // Allocations are recorded, not gated: at this sampling interval they flap.
 
-            // The proof that no stall on this page is ours: the extension's whole cpu
-            // cost across the scroll is below the threshold a single long task has to
-            // cross. It cannot be responsible for one.
+            // The whole scroll costs less than one long task, so no stall is ours.
             expect(ourCpuMs).toBeLessThan(LONG_TASK_MS);
         });
     });
