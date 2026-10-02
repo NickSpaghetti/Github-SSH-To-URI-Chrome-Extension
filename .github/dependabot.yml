@@ -1,13 +1,5 @@
 version: 2
-# Version updates are off except for the Go toolchain: an
-# open-pull-requests-limit of 0 stops them for an ecosystem. Security updates are
-# separate, and open a pull request only when a dependency has a known
-# vulnerability, once they are turned on in the repository's code security
-# settings.
 updates:
-  # The Go toolchain that builds the parser, whose standard library is compiled
-  # into the wasm. Dependabot has no security updates for Docker images, so it
-  # gets monthly version updates instead.
   - package-ecosystem: docker
     directory: /wasm
     schedule:
