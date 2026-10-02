@@ -1,14 +1,11 @@
 import { test, expect, FIXTURES } from "../extension";
 import { settle } from "./Harness";
+import { GITHUB } from "./BenchHost";
 import { record } from "./Recorder";
 import { extensionRendererKb, tabRendererKbs } from "./WorkerMemory";
 import * as path from "path";
 import { MODULE_SOURCE_CORPUS } from "../../unit/fixtures/module-sources";
 
-/**
- * Every corpus file, plus the files the other axes measure. Opened all at
- * once and left open, which is the question one file at a time cannot answer.
- */
 const FILES = [
     ...[...new Set(MODULE_SOURCE_CORPUS.map((row) => row.file))].sort(),
     "benchmarks/parse/small.tf",
@@ -18,23 +15,8 @@ const FILES = [
     "benchmarks/resolution/large.tf",
 ];
 
-const INJECTED = 'a[id^="GithubTerraformSourceUrl-"]';
 const DIST = path.resolve(__dirname, "../../..", process.env.IAC_BUILD ?? "dist");
 
-/**
- * Measures what N tabs cost at once, as against browsing N files in turn.
- *
- * The worker is one process however many tabs are open, and the cache holds
- * one entry a file rather than a tab, so neither should scale. What does scale
- * is the content script: one per tab, holding that page's modules and the
- * anchors it injected.
- *
- * Figures are per process and never summed. Chrome shares large mappings
- * between renderers, so adding resident across them counts the shared pages
- * once each and lands at several times the truth. Only our own browser's
- * processes are read: a developer's Chrome is running while this is, and is
- * very likely loading an unpacked extension of its own.
- */
 test("every benchmark file open at once", async ({ context }) => {
     test.setTimeout(240_000);
 
@@ -55,7 +37,7 @@ test("every benchmark file open at once", async ({ context }) => {
 
         let anchors = 0;
         for (const open of pages) {
-            anchors += await open.locator(INJECTED).count();
+            anchors += await open.locator(GITHUB.anchor).count();
         }
         samples.push({
             open: pages.length,
@@ -91,20 +73,16 @@ test("every benchmark file open at once", async ({ context }) => {
     });
 
     // Assert
-    // One entry a file, not a tab, so the cache does not scale with tabs.
+    // One entry a file, not a tab.
     expect(stored.keys).toBeLessThanOrEqual(FILES.length);
 
-    // And most of them cached. Not all: a page whose commit header has not
-    // hydrated when the content script reads it never caches, which
-    // `Browsing.bench.ts` measures happening across a longer run.
+    // Most cached: a page whose commit header has not hydrated in time caches nothing.
     expect(stored.keys).toBeGreaterThan(FILES.length / 2);
 
-    // Links were injected across the tabs. Not in every tab: `10-oci.tf` and
-    // `14-security-cases.tf` are files whose every source is deliberately
-    // unlinkable, so a per tab assertion would be false by design.
+    // Not in every tab: every source in `10-oci.tf` and `14-security-cases.tf` is unlinkable.
     expect(last.anchors).toBeGreaterThan(0);
 
-    // And nothing was torn down to make room for the rest.
+    // No tab was closed to make room.
     for (const page of pages) {
         expect(page.isClosed()).toBe(false);
     }

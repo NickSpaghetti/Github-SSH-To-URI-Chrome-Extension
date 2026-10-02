@@ -1,32 +1,22 @@
 import { Page } from "@playwright/test";
+import { BenchHost, Fingerprint, GITHUB } from "./BenchHost";
 
-/** Longer than the content script's 100ms scroll debounce. */
+// Both are past the content script's 100ms scroll debounce.
 const DEBOUNCE_MS = 400;
-
-/** How long the first render, parse and resolution are given to finish. */
-const FIRST_RENDER_MS = 10_000;
-
-/** Past the scroll debounce, so nothing the first render began is in flight. */
 const TAIL_MS = 500;
 
-/** How often a wait re-reads what it is waiting on. */
+const FIRST_RENDER_MS = 10_000;
 const POLL_MS = 100;
 
-/** The id `contentscript.ts` gives every anchor it injects. */
-const INJECTED = 'a[id^="GithubTerraformSourceUrl-"]';
-
 /**
- * Waits for the extension to finish the work a page load costs it.
- *
- * An injected anchor is the end of the whole pipeline: the page parsed, its
- * sources resolved, and the links written. Waiting for one costs what the
- * page costs on the machine running it. A page with nothing to link waits the
- * full deadline, which is what this did for every page before.
+ * Waits for the first link the extension injects, then past the scroll
+ * debounce. A page with nothing to link waits the full deadline.
  * @param page The page to wait on.
+ * @param host The host the page is on.
  */
-export const settle = async (page: Page): Promise<void> => {
+export const settle = async (page: Page, host: BenchHost = GITHUB): Promise<void> => {
     await page
-        .locator(INJECTED)
+        .locator(host.anchor)
         .first()
         .waitFor({ state: "attached", timeout: FIRST_RENDER_MS })
         .catch(() => undefined);
@@ -35,9 +25,6 @@ export const settle = async (page: Page): Promise<void> => {
 
 /**
  * Waits for a running count to stop moving.
- *
- * A benchmark that counts requests has to know they have all arrived, and the
- * only evidence of the last one is that no further one followed it.
  * @param count Reads the tally so far.
  * @param quietMs How long the tally must hold still to count as finished.
  * @param deadlineMs How long to wait in total, whether it settles or not.
@@ -65,41 +52,33 @@ export const untilQuietAsync = async (
 };
 
 /**
+ * Scrolls the code down one viewport at a time, pausing past the scroll debounce after each.
  * @param page The page to scroll.
- * @param steps How many viewport heights to scroll, pausing past the debounce.
+ * @param steps How many viewports to scroll.
+ * @param host The host the page is on.
  */
-export const scrollThrough = async (page: Page, steps: number): Promise<void> => {
+export const scrollThrough = async (
+    page: Page,
+    steps: number,
+    host: BenchHost = GITHUB,
+): Promise<void> => {
     for (let step = 0; step < steps; step += 1) {
-        await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        await host.scrollStep(page);
         await page.waitForTimeout(DEBOUNCE_MS);
     }
 };
 
 /**
- * The fixtures live in another repository and can change without this one
- * knowing, which would leave every count and duration describing a different
- * file. Each axis records this and asserts it.
+ * Reads the shape of the file a page shows.
  * @param page The page to read from.
+ * @param host The host the page is on.
  * @returns The shape of the file being measured.
  */
-export const readFingerprint = async (page: Page): Promise<{ lines: number; bytes: number }> =>
-    await page.evaluate(() => {
-        const area = document.getElementById(
-            "read-only-cursor-text-area",
-        ) as HTMLTextAreaElement | null;
-        if (area === null) {
-            return { lines: 0, bytes: 0 };
-        }
-        return {
-            lines: area.value.split("\n").length,
-            bytes: new TextEncoder().encode(area.value).length,
-        };
-    });
+export const readFingerprint = async (page: Page, host: BenchHost = GITHUB): Promise<Fingerprint> =>
+    await host.fingerprint(page);
 
 /**
- * The registry data access fetches with `force-cache`, so a module resolved
- * once is nearly free afterwards. Without this the benchmark measures
- * chrome's http cache rather than the cost of resolving.
+ * Empties the browser's HTTP cache.
  * @param page Any page in the context whose cache should be emptied.
  */
 export const clearHttpCacheAsync = async (page: Page): Promise<void> => {
@@ -109,8 +88,7 @@ export const clearHttpCacheAsync = async (page: Page): Promise<void> => {
 };
 
 /**
- * The popup renders from the cache the content script writes, which lands
- * after parsing and after every module is resolved.
+ * Waits for the content script to cache a page's modules.
  * @param worker The extension's service worker.
  * @param timeoutMs How long to allow.
  * @returns true if the modules were cached in time; otherwise, false.
@@ -133,15 +111,12 @@ export const waitForCachedModulesAsync = async (
     }
 };
 
+/** When a piece of work started and ended. */
 export type Interval = { start: number; end: number };
 
 /**
- * How many of these ran at once.
- *
- * Work taken one at a time never overlaps, so the answer is 1. Anything
- * concurrent answers higher. This is a count rather than a duration, so it
- * says nothing about how fast the machine is.
- * @param intervals When each recording started and ended.
+ * Returns the largest number of intervals that overlap at one moment.
+ * @param intervals When each piece of work started and ended.
  * @returns The largest number running at the same moment.
  */
 export const maxConcurrent = (intervals: Interval[]): number => {

@@ -12,10 +12,8 @@ import baseline from "./baseline.json";
 const fixture = (name: string) => `${FIXTURES}/blob/main/benchmarks/resolution/${name}`;
 const RESOLVE_TIMEOUT_MS = 90_000;
 const RENDER_TIMEOUT_MS = 20_000;
-/** The longest the cold popup is given, whether or not it has gone quiet. */
 const POPUP_SETTLE_MS = 9_000;
 
-/** No further registry request in this long means the popup has finished. */
 const QUIET_MS = 1_500;
 const LIST = "ul.ml-list";
 const ROW = "ul.ml-list > li";
@@ -24,42 +22,24 @@ const DEBUG_PORT = 9341;
 const REGISTRY = "registry.terraform.io";
 const DIST = path.resolve(__dirname, "../../..", process.env.IAC_BUILD ?? "dist");
 
-/**
- * The benchmark browser runs the readable build, so the bytes a user downloads
- * are read off the shipping build beside it. `make benchmark` produces both.
- */
+// The browser runs the readable build; `make benchmark` builds the shipping one beside it.
 const SHIPPED = path.resolve(__dirname, "../../..", "dist");
 
-/**
- * A byte count off a fixed build is exact, so its gate is tight enough to
- * notice a dependency arriving. Re-record the baseline when one is meant to.
- */
 const BUNDLE_CEILING = 1.1;
 
 const WHITESPACE = ["\n", "\r", "\t"];
 
-/**
- * Collapses every run of whitespace to one space, for a one line log.
- * @param text The text to flatten.
- * @returns The same text on one line, with no run of spaces left.
- */
 const oneLine = (text: string): string =>
     WHITESPACE.reduce((flat, mark) => flat.split(mark).join(" "), text)
         .split(" ")
         .filter((word) => word !== "")
         .join(" ");
 
-/** @returns The path to a full chromium build, which can load an extension. */
 const findBrowser = (): string | undefined =>
     ["/usr/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/chrome"].find((candidate) =>
         fs.existsSync(candidate),
     );
 
-/**
- * Reads what the popup's own page load cost, which is its bundle.
- * @param popup The page the popup was opened on.
- * @returns The milliseconds to dom content loaded and to load.
- */
 const navigationTiming = async (popup: import("@playwright/test").Page) =>
     await popup.evaluate(() => {
         const [entry] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
@@ -108,21 +88,13 @@ test("opening the popup on a warm cache resolves nothing", async ({ context, ext
     // Assert
     expect(shippedBundleBytes).toBeLessThan(baseline.popup.shippedBundleBytes * BUNDLE_CEILING);
 
-    // Wall clock on whatever machine is running, so this catches a framework
-    // sized regression and nothing finer. The byte count above is the sharp one.
+    // Wall clock, so only a large regression shows here.
     expect(toTable).toBeLessThan(baseline.popup.warmToTableMs * baseline.ceiling);
 
-    // The cache is warm, so the popup reads it and renders. Nothing is
-    // resolved again: counting started after the page had already finished.
+    // The cache is warm, so nothing is resolved again.
     expect((await CallCounts.takeAsync(send)).callsTo("buildDisplayModuleAsync")).toBe(0);
 });
 
-/**
- * Counted at the network rather than with `CallCounts`, because the question
- * is a total and a call count off an async function is not one. That needs a
- * session on the worker, which playwright cannot open, so this launches its
- * own browser on a debugging port.
- */
 test("opening the popup with no cache pays for the work again", async () => {
     // Arrange
     const context = await chromium.launchPersistentContext("", {
@@ -152,9 +124,8 @@ test("opening the popup with no cache pays for the work again", async () => {
         const onLoad = watch.requestsTo(REGISTRY).length;
 
         // Act
-        // A real popup does not take the active tab. Opening the extension
-        // page in a foreground tab does, and the popup then asks about itself,
-        // so the tab is parked and the file refocused.
+        // A popup opened as a foreground tab would ask about itself, so the
+        // file is brought back to the front first.
         const popup = await context.newPage();
         await popup.goto("about:blank");
         await page.bringToFront();
@@ -165,10 +136,6 @@ test("opening the popup with no cache pays for the work again", async () => {
         await popup.goto(`chrome-extension://${extensionId}/index.html`);
         await untilQuietAsync(() => watch.requestsTo(REGISTRY).length, QUIET_MS, POPUP_SETTLE_MS);
 
-        // No duration is recorded here. Cold names the extension's own cache,
-        // which the line above empties. Chrome's http cache still holds every
-        // registry response the file page just fetched, so a time measured
-        // here would be ten cache hits wearing the name of ten round trips.
         const onPopup = watch.requestsTo(REGISTRY).length - onLoad;
         const shown = oneLine((await popup.locator("body").innerText()).slice(0, 40));
         console.log(
@@ -177,15 +144,11 @@ test("opening the popup with no cache pays for the work again", async () => {
         record("popup", { coldRequests: onPopup });
 
         // Assert
-        // Exact, because it is counted where the requests happen. Opening the
-        // popup with no cache reparses the file and resolves every module
-        // again through the content script it injects.
+        // Every module resolved again, counted at the network.
         expect(onLoad).toBe(baseline.resolution.small.modules);
         expect(onPopup).toBe(baseline.resolution.small.modules);
 
-        // What the popup then shows is a race: sometimes the rows, sometimes
-        // "No Modules Found". Recorded, not asserted, because asserting
-        // either outcome pins a race. The defect is queued for review.
+        // Recorded, not asserted: whether the rows or "No Modules Found" show is a race.
         cdp.close();
     } finally {
         await context.close();
@@ -228,11 +191,10 @@ test("every module is rendered and the popup stays inside chrome's width", async
     record("popup", { renderedRows: rendered, bodyWidth: shape.bodyWidth });
 
     // Assert
-    // Pagination is gone, so every module is in the dom and the scroll
-    // container is what keeps the popup a sensible height.
+    // Every module is in the DOM, and the list scrolls to keep the popup's height.
     expect(rendered).toBe(baseline.resolution.large.modules);
     expect(shape.scrolls).toBe(true);
 
-    // What pagination used to protect. The list scrolls rather than widening.
+    // The list scrolls instead of widening the popup.
     expect(shape.bodyWidth).toBeLessThanOrEqual(CHROME_POPUP_MAX_WIDTH);
 });

@@ -11,32 +11,10 @@ const EXTENSION = "chrome-extension://";
 const SAMPLE_INTERVAL_US = 50;
 const DIST = path.resolve(__dirname, "../../..", process.env.IAC_BUILD ?? "dist");
 
-/** Every file the fixture repository holds, from the corpus that covers it. */
 const FILES = [...new Set(MODULE_SOURCE_CORPUS.map((row) => row.file))].sort();
 
-/**
- * One process, never a sum. Chrome shares large mappings between renderers, so
- * adding resident across them counts the shared pages once each.
- * @returns Resident kilobytes of the extension's own renderer.
- */
 const residentKb = (): number => extensionRendererKb(DIST);
 
-/**
- * Measures what the extension holds after browsing every file in the fixtures.
- *
- * Every other memory and cpu axis opens one file, so nothing said whether
- * resident memory is flat, steps once on the wasm load, or climbs per file.
- *
- * Each file is navigated to by url. That is what exercises the injection path:
- * the worker injects on `chrome.tabs.onUpdated` reaching `complete`, which a
- * navigation produces whether a reader clicked or a url was opened. Driving it
- * by clicking put github's own routing inside the cpu figure and measured
- * nothing extra. The same document case, where module scope survives and the
- * listener guard has to hold, is `SoftNavigation.bench.ts`.
- *
- * Recorded and not gated. The shape has to be known before a ceiling means
- * anything.
- */
 test("browsing the whole fixture repository", async ({ context }) => {
     test.setTimeout(300_000);
 
@@ -86,9 +64,6 @@ test("browsing the whole fixture repository", async ({ context }) => {
         `BENCH browsing: ${FILES.length} files, ${last.keys} cached, resident ${Math.round(baseKb / 1024)}MB before, ${Math.min(...residents)} to ${Math.max(...residents)}MB during, ${residents[residents.length - 1]}MB after, ${last.bytes}B stored (${Math.round(last.bytes / last.keys)}B an entry), cpu ${ourCpuMs.toFixed(1)}ms of ${totalCpuMs.toFixed(0)}ms (${((ourCpuMs / totalCpuMs) * 100).toFixed(2)}%)`,
     );
 
-    // No growth rate is recorded. Resident is not monotonic across a browse:
-    // the worker is killed and restarted, so the figure tracks process
-    // lifecycle and a slope drawn through it would describe that, not the cache.
     record("browsing", {
         files: FILES.length,
         cachedFiles: last.keys,
@@ -103,13 +78,9 @@ test("browsing the whole fixture repository", async ({ context }) => {
     });
 
     // Assert
-    // One entry a file, so browsing leaves no duplicates behind.
+    // One entry a file.
     expect(last.keys).toBeLessThanOrEqual(FILES.length);
 
-    // And nearly all of them cached. Polling for the commit identity took the
-    // miss rate from about one file in seven to under two in a hundred, but
-    // not to zero: a page whose header never arrives at all still caches
-    // nothing. Asserting every file would flap about one run in five.
-    // `cachedFiles` records the rate instead.
+    // A page whose commit header never arrives caches nothing, so not every file.
     expect(last.keys).toBeGreaterThan(FILES.length - 2);
 });

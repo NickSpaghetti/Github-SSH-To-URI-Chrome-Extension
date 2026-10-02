@@ -81,7 +81,7 @@ const attachLogsOnFailureAsync = async (testInfo: TestInfo, lines: string[]) => 
  * @param dist The build to copy.
  * @returns The copy's folder.
  */
-const grantOptionalHosts = (dist: string): string => {
+export const grantOptionalHosts = (dist: string): string => {
     const granted = fs.mkdtempSync(path.join(os.tmpdir(), "iac-granted-"));
     fs.cpSync(dist, granted, { recursive: true });
     const manifestFile = path.join(granted, "manifest.json");

@@ -1,0 +1,115 @@
+import { Page } from "@playwright/test";
+import { FIXTURES, GITLAB_FIXTURES } from "../extension";
+
+/** The shape of a fixture file: its line count and its size in UTF-8 bytes. */
+export type Fingerprint = { lines: number; bytes: number };
+
+/** A host whose file pages the benchmarks measure. */
+export type BenchHost = {
+    /** The host's name in benchmark output and in the baseline. */
+    readonly name: string;
+    /**
+     * Returns the url of a fixture file's page.
+     * @param path The file's path in the fixture repository.
+     * @returns The page's url.
+     */
+    readonly fileUrl: (path: string) => string;
+    /** The selector of the anchors the extension injects on this host's pages. */
+    readonly anchor: string;
+    /** Whether this host is an optional permission that has to be granted. */
+    readonly grantOptionalHosts: boolean;
+    /**
+     * Scrolls the code one viewport down.
+     * @param page The page to scroll.
+     */
+    readonly scrollStep: (page: Page) => Promise<void>;
+    /**
+     * Scrolls the code back to its first line.
+     * @param page The page to scroll.
+     */
+    readonly scrollToTop: (page: Page) => Promise<void>;
+    /** Whether lines stay rendered once scrolled past. */
+    readonly keepsRenderedLines: boolean;
+    /**
+     * Reads the shape of the file a page shows.
+     * @param page The page to read from.
+     * @returns The file's line count and size in UTF-8 bytes.
+     */
+    readonly fingerprint: (page: Page) => Promise<Fingerprint>;
+    /** The links that lead from `benchmarks/parse/small.tf` to `benchmarks/parse/large.tf`, in order, without a reload. */
+    readonly browseToLargeParse: readonly string[];
+};
+
+/** github.com. */
+export const GITHUB: BenchHost = {
+    name: "github",
+    fileUrl: (path) => `${FIXTURES}/blob/main/${path}`,
+    anchor: 'a[id^="GithubTerraformSourceUrl-"]',
+    grantOptionalHosts: false,
+    scrollStep: async (page) => {
+        await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    },
+    scrollToTop: async (page) => {
+        await page.evaluate(() => window.scrollTo(0, 0));
+    },
+    keepsRenderedLines: false,
+    // GitHub keeps the whole file in a read only textarea, without its final newline.
+    fingerprint: async (page) =>
+        await page.evaluate(() => {
+            const area = document.getElementById(
+                "read-only-cursor-text-area",
+            ) as HTMLTextAreaElement | null;
+            if (area === null) {
+                return { lines: 0, bytes: 0 };
+            }
+            return {
+                lines: area.value.split("\n").length,
+                bytes: new TextEncoder().encode(area.value).length,
+            };
+        }),
+    browseToLargeParse: [
+        'a[href$="/tree/main/benchmarks"]',
+        'a[href$="/benchmarks/parse"]',
+        'a[href*="parse/large.tf"]',
+    ],
+};
+
+// GitLab's code view scrolls inside its own panel, not the window.
+const GITLAB_SCROLLER = ".js-static-panel-inner";
+const GITLAB_BLOB_ROUTE = "/-/blob/";
+const GITLAB_RAW_ROUTE = "/-/raw/";
+
+/** gitlab.com, with the extension's optional access to it granted. */
+export const GITLAB: BenchHost = {
+    name: "gitlab",
+    fileUrl: (path) => `${GITLAB_FIXTURES}${GITLAB_BLOB_ROUTE}main/${path}`,
+    anchor: 'a[id^="GitlabTerraformSourceUrl-"]',
+    grantOptionalHosts: true,
+    scrollStep: async (page) => {
+        await page.evaluate((selector) => {
+            const scroller = document.querySelector(selector);
+            scroller?.scrollBy(0, scroller.clientHeight);
+        }, GITLAB_SCROLLER);
+    },
+    scrollToTop: async (page) => {
+        await page.evaluate((selector) => {
+            document.querySelector(selector)?.scrollTo(0, 0);
+        }, GITLAB_SCROLLER);
+    },
+    // GitLab renders a file in chunks of 70 lines and never removes one.
+    keepsRenderedLines: true,
+    // GitLab never holds the whole file on the page. Its raw file is measured
+    // as GitHub's textarea holds it, without its final newline.
+    fingerprint: async (page) => {
+        const raw = page.url().split(GITLAB_BLOB_ROUTE).join(GITLAB_RAW_ROUTE);
+        const text = await (await page.request.get(raw)).text();
+        const held = text.endsWith("\n") ? text.slice(0, -1) : text;
+        return { lines: held.split("\n").length, bytes: Buffer.byteLength(held, "utf8") };
+    },
+    // GitLab's file browser links end in `?ref_type=heads`, and its breadcrumb does not.
+    browseToLargeParse: [
+        'a[href$="/-/tree/main/benchmarks"]',
+        'a[href*="/-/tree/main/benchmarks/parse?"]',
+        'a[href*="/-/blob/main/benchmarks/parse/large.tf?"]',
+    ],
+};

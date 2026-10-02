@@ -2,31 +2,22 @@ type Range = { count: number };
 type Fn = { functionName: string; ranges: Range[] };
 type Script = { url: string; functions: Fn[] };
 
-/** Either Playwright's session or the browser level client. */
+/** Sends a CDP command, through Playwright's session or the browser level client. */
 export type Send = (method: string, params?: Record<string, unknown>) => Promise<unknown>;
 
 const EXTENSION = "chrome-extension://";
 
 /**
- * Call counts taken from V8 rather than from anything added to the extension.
- * `Profiler.startPreciseCoverage` with `callCount` instruments at compile
- * time, so nothing in `src` knows this is happening.
- *
- * Exact only for synchronous functions. V8 counts every resumption of an
- * async function as an entry to its top level range, so a function that
- * awaits reports roughly one plus the number of awaits it suspended on.
- * Measured: `buildDisplayModuleAsync` reads 20 for ten modules that made ten
- * requests, and `hydrateModulesAsync` reads 4 for one call.
- *
- * So an exact count of work needs a synchronous function, or the network, as
- * `Resolution.bench.ts` does. A count off an async function is a signal that
- * something ran and roughly how often, not a total.
+ * How many times the extension's functions are entered, read from V8's
+ * precise coverage. A count for an async function includes every resumption
+ * after an await, so it is not a call total.
  */
 export class CallCounts {
     private constructor(private readonly scripts: Script[]) {}
 
     /**
-     * @param send A cdp session on the target to count in.
+     * Starts counting calls on a target.
+     * @param send A CDP session on the target to count in.
      */
     public static async startAsync(send: Send): Promise<void> {
         await send("Profiler.enable");
@@ -34,8 +25,7 @@ export class CallCounts {
     }
 
     /**
-     * Resets the counters, so each take reports what happened since the last
-     * one rather than since the start.
+     * Returns the counts since the previous take, and resets them.
      * @param send The same session `startAsync` was given.
      * @returns What the extension's own scripts did since the previous take.
      */
@@ -45,9 +35,9 @@ export class CallCounts {
     }
 
     /**
-     * Summed over every script declaring the function. A content script
-     * injected more than once into the same document is several scripts to
-     * v8, and reading only the first reports one copy's work as the total.
+     * Returns how many times functions of a name were entered. Every function
+     * of that name, in every one of the extension's scripts, counts toward the
+     * total.
      * @param functionName The function as it is named in a readable build.
      * @returns How many times it was entered, 0 when it never was.
      */
@@ -61,16 +51,17 @@ export class CallCounts {
     }
 
     /**
+     * Returns how many separately compiled copies of a function V8 holds.
      * @param functionName The function as it is named in a readable build.
-     * @returns How many separately compiled copies of it v8 is holding.
+     * @returns The number of copies.
      */
     public copiesOf(functionName: string): number {
         return this.declaring(functionName).length;
     }
 
     private declaring(functionName: string): Fn[] {
-        return this.scripts
-            .map((script) => script.functions.find((entry) => entry.functionName === functionName))
-            .filter((fn): fn is Fn => fn !== undefined);
+        return this.scripts.flatMap((script) =>
+            script.functions.filter((entry) => entry.functionName === functionName),
+        );
     }
 }

@@ -37,10 +37,11 @@ export class GitLabPageWriter implements IPageWriter {
     }
 
     private observeRenderedLines(): MutationObserver {
+        const observed = document;
         const observer = new MutationObserver((records) => {
             // GitLab moves between files without loading a new document, so
             // the links stop applying once the url is not the one they were built for.
-            if (document.URL !== this.linkedUrl) {
+            if (observed.URL !== this.linkedUrl) {
                 return;
             }
             linkLines(renderedLines(records), this.links);

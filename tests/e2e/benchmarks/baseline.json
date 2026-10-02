@@ -15,7 +15,7 @@
         "lostCacheRebuiltModules": 16
     },
     "worker": {
-        "residentMb": 64,
+        "residentMb": 65,
         "jsHeapKb": 1574
     },
     "resolution": {
@@ -29,7 +29,7 @@
         },
         "large": {
             "modules": 40,
-            "spanMs": 493,
+            "spanMs": 522,
             "fingerprint": {
                 "lines": 205,
                 "bytes": 4029
@@ -43,7 +43,7 @@
                     "bytes": 1951
                 },
                 "modules": 10,
-                "spanMs": 179
+                "spanMs": 192
             },
             "large": {
                 "fingerprint": {
@@ -51,13 +51,13 @@
                     "bytes": 7416
                 },
                 "modules": 40,
-                "spanMs": 526
+                "spanMs": 491
             }
         }
     },
     "popup": {
-        "warmToTableMs": 111,
-        "bundleLoadMs": 34,
+        "warmToTableMs": 72,
+        "bundleLoadMs": 24,
         "shippedBundleBytes": 47256,
         "coldRequests": 10,
         "renderedRows": 40,
@@ -67,9 +67,9 @@
         "smallLines": 504,
         "largeLines": 1992,
         "sizeRatio": 4.04,
-        "smallToFirstLinkMs": 2451,
-        "largeToFirstLinkMs": 2419,
-        "latencyRatio": 0.99,
+        "smallToFirstLinkMs": 2433,
+        "largeToFirstLinkMs": 2630,
+        "latencyRatio": 1.08,
         "smallBytes": 11963,
         "largeBytes": 48277,
         "tofu": {
@@ -78,18 +78,18 @@
             "smallBytes": 13258,
             "largeBytes": 51675,
             "sizeRatio": 3.9,
-            "smallToFirstLinkMs": 2524,
-            "largeToFirstLinkMs": 2916,
-            "latencyRatio": 1.16
+            "smallToFirstLinkMs": 2521,
+            "largeToFirstLinkMs": 2707,
+            "latencyRatio": 1.07
         }
     },
     "userExperience": {
         "cpuSharePercent": 0.31,
-        "allocSharePercent": 4.54,
-        "cpuMs": 8.8,
+        "allocSharePercent": 3.53,
+        "cpuMs": 5.3,
         "longTasks": 6,
         "cycles": 3,
-        "allocKb": 52.6
+        "allocKb": 40
     },
     "softNavigation": {
         "navigations": 3,
@@ -98,23 +98,52 @@
     },
     "browsing": {
         "files": 16,
-        "cachedFiles": 16,
-        "residentBeforeMb": 93,
-        "residentLowMb": 141,
-        "residentHighMb": 167,
-        "residentAfterMb": 146,
-        "storedBytes": 21019,
-        "storedBytesPerEntry": 1314,
-        "cpuMs": 1.6,
-        "cpuSharePercent": 0.27
+        "cachedFiles": 15,
+        "residentBeforeMb": 92,
+        "residentLowMb": 92,
+        "residentHighMb": 170,
+        "residentAfterMb": 143,
+        "storedBytes": 19982,
+        "storedBytesPerEntry": 1332,
+        "cpuMs": 1.4,
+        "cpuSharePercent": 0.26
     },
     "tabs": {
         "open": 21,
-        "workerBeforeMb": 90,
-        "workerAfterMb": 199,
+        "workerBeforeMb": 91,
+        "workerAfterMb": 200,
         "anchorsLive": 106,
         "storedKeys": 21,
         "storedBytes": 45957,
         "cachedFiles": 21
+    },
+    "gitlab": {
+        "userExperience": {
+            "cpuSharePercent": 0.13,
+            "cycles": 3,
+            "allocSharePercent": 0.23,
+            "allocKb": 4.1,
+            "cpuMs": 0.8,
+            "longTasks": 2
+        },
+        "parse": {
+            "smallToFirstLinkMs": 1961,
+            "largeToFirstLinkMs": 2100,
+            "latencyRatio": 1.07
+        },
+        "scrolling": {
+            "cachedOnRender": 16,
+            "stepsToLastLine": 17,
+            "counts": {
+                "observerRuns": 16,
+                "resolutions": 0
+            },
+            "anchors": 16
+        },
+        "softNavigation": {
+            "navigations": 3,
+            "linkRunsOnLoad": 1,
+            "linkRunsOnArrival": 1
+        }
     }
 }

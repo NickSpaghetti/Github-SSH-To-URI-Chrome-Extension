@@ -17,6 +17,7 @@ const AXES = [
     "userExperience",
     "browsing",
     "tabs",
+    "gitlab",
 ];
 
 /**
@@ -26,7 +27,11 @@ const AXES = [
  * lower measurement is reported and discarded. Lowering one deliberately
  * means editing the baseline by hand.
  */
-const CEILINGS = ["worker.residentMb", "userExperience.cpuSharePercent"];
+const CEILINGS = [
+    "worker.residentMb",
+    "userExperience.cpuSharePercent",
+    "gitlab.userExperience.cpuSharePercent",
+];
 
 type Values = Record<string, unknown>;
 

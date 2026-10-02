@@ -5,12 +5,6 @@ import { SourceTypes } from "../../../src/types/SourceTypes";
 
 const FIXTURE = `${FIXTURES}/blob/main/benchmarks/scrolling/large.tf`;
 
-/**
- * A filler entry, typed as the thing the extension writes so the compiler
- * keeps it in step. A hand shaped literal would drift the day `DisplayModule`
- * gains a field, and the ceiling this fills to would stop being the ceiling
- * real use meets.
- */
 const FILLER: CachedModules = {
     sha: "49e180c0aa11bb22cc33dd44ee55ff6677889900",
     modules: Array.from({ length: 16 }, () => ({
@@ -26,17 +20,8 @@ const FILLER: CachedModules = {
     })),
 };
 
-/**
- * Fills session storage until it refuses, so the next real write meets a full
- * quota.
- *
- * The entry is passed in rather than built in the page: `SourceTypes` is an
- * enum, so a reference to it inside the evaluated function would be undefined
- * in the browser.
- * @param worker The extension's service worker.
- * @param filler The entry to write repeatedly.
- * @returns How many entries were accepted before one was refused.
- */
+// `SourceTypes` is undefined inside `worker.evaluate`, so the entry is built
+// here and passed in.
 const fillToCeilingAsync = async (
     worker: import("@playwright/test").Worker,
     filler: CachedModules,
@@ -45,8 +30,7 @@ const fillToCeilingAsync = async (
         let written = 0;
         for (let i = 0; i < 5000; i += 1) {
             try {
-                // Prefixed, because in use it is this cache's own entries that
-                // fill the quota, and only those are reset.
+                // Under the cache's own prefix, the one a reset clears.
                 await chrome.storage.session.set({
                     [`modules:filler.invalid:/pad/${i}.tf`]: entry,
                 });
@@ -58,11 +42,6 @@ const fillToCeilingAsync = async (
         return written;
     }, filler)) as number;
 
-/**
- * The assertions are that a write attempted at the ceiling succeeds, and that
- * the reset is what made room. Entry count staying under a cap would also
- * pass on an empty cache, which is what a broken cache looks like.
- */
 test("a page browsed after the cache fills is still cached", async ({ context }) => {
     // Arrange
     const worker = context.serviceWorkers()[0];
@@ -88,7 +67,6 @@ test("a page browsed after the cache fills is still cached", async ({ context })
     expect(filled).toBeGreaterThan(100);
     expect(stored.mine).toBe(1);
 
-    // The reset is the mechanism. Without this the test also passes if the
-    // write merely happened to fit while eviction quietly stopped working.
+    // Fewer keys than were written, so the reset made the room.
     expect(stored.keys).toBeLessThan(filled);
 });

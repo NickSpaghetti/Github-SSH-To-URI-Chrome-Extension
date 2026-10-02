@@ -1,12 +1,9 @@
 import { BrowserCdp } from "./BrowserCdp";
 
+/** A request a target made: its url, when it started and finished, and its status. */
 export type Request = { url: string; start: number; end: number; status: number };
 
-/**
- * Registry lookups are http requests, so the harness counts them at the
- * network rather than through an instrument in the extension. This measures
- * what actually went out instead of the extension's own account of it.
- */
+/** The requests a target makes, recorded at the network. */
 export class NetworkWatch {
     private readonly started = new Map<string, { url: string; start: number }>();
     private readonly statuses = new Map<string, number>();
@@ -15,6 +12,7 @@ export class NetworkWatch {
     private constructor(private readonly cdp: BrowserCdp) {}
 
     /**
+     * Starts recording a target's requests.
      * @param cdp A browser level client.
      * @param session A session attached to the target making the requests.
      * @returns A watch that is already recording.
@@ -27,6 +25,7 @@ export class NetworkWatch {
     }
 
     /**
+     * Returns the requests made to a host.
      * @param host The host to count requests to.
      * @returns Each request, with when it started and finished.
      */
@@ -35,8 +34,9 @@ export class NetworkWatch {
     }
 
     /**
+     * Returns the requests to a host that it did not answer with 200.
      * @param host The host to count requests to.
-     * @returns Each request the server did not answer with 200.
+     * @returns Each such request.
      */
     public rejectedBy(host: string): Request[] {
         return this.requestsTo(host).filter((request) => request.status !== 200);
