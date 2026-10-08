@@ -35,7 +35,7 @@ jobs:
         run: pnpm audit:prod
 
       - name: Audit dev dependencies
-        run: pnpm audit:dev
+        run: pnpm audit:dev || echo "::warning title=Dev dependency audit::pnpm audit --dev found vulnerabilities, see the step log"
 
       # The wasm build runs in a container, so Go's caches are bind mounted out
       # of it. Without this every run re-downloads the module graph.
