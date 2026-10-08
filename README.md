@@ -4,7 +4,7 @@
 
 ## Installing the Extension
 
-A new Chrome Web Store listing is pending. Until it is live, build from source with the [Developing Locally](#developing-locally) steps.
+[Chrome Web Store listing](https://chromewebstore.google.com/detail/binjlkmohbkkblgnbdofdpeaknmahkdb?utm_source=item-share-cb). Until it is live, build from source with the [Developing Locally](#developing-locally) steps.
 
 ## Using the extension
 
